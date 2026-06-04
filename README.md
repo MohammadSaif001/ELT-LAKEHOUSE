@@ -207,14 +207,14 @@ modern-ecommerce-lakehouse/
 
 ## Key Features
 
-✅ Real-time streaming architecture  
-✅ Scalable distributed processing  
-✅ Modern data stack (Spark + Airflow + dbt)  
-✅ Comprehensive data quality checks  
-✅ Production-ready monitoring  
-✅ Fully containerized with Docker  
-✅ CI/CD pipeline with GitHub Actions  
-✅ Documented with ADR patterns  
+Real-time streaming architecture  
+Scalable distributed processing  
+Modern data stack (Spark + Airflow + dbt)  
+Comprehensive data quality checks  
+Production-ready monitoring  
+Fully containerized with Docker  
+CI/CD pipeline with GitHub Actions  
+Documented with ADR patterns  
 
 ---
 
