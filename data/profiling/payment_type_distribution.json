@@ -1,0 +1,7 @@
+{
+    "credit_card": 0.7392,
+    "boleto": 0.1904,
+    "voucher": 0.0556,
+    "debit_card": 0.0147,
+    "not_defined": 0.0
+}

@@ -1,0 +1,29 @@
+# Data
+data/raw/
+data/profiling/
+
+# Environment
+.Elt-lakehouse/
+.venv/
+venv/
+
+# Notebooks
+notebooks/
+*.ipynb
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+*.swp
+*.swo

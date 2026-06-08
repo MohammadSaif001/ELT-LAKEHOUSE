@@ -178,6 +178,20 @@ modern-ecommerce-lakehouse/
 
 ---
 
+## Dataset Information
+
+**Olist source files are excluded from version control due to repository size.** The raw datasets are stored in `data/raw/olist/` and are not committed to Git as they are large files.
+
+**Profiling metadata** was generated from the original dataset and is included under `data/profiling/`. This includes:
+- `state_distribution.json` - State-level customer distribution
+- `city_state_mapping.json` - City-to-state mappings
+- `city_zip_mapping.json` - City-to-zipcode mappings
+- `order_status_distribution.json` - Order status distribution
+
+These profiling files provide insights into the dataset structure without requiring the full source files.
+
+---
+
 ## Technology Stack
 
 | Component | Purpose |
