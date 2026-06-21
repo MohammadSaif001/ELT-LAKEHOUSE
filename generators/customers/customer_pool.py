@@ -1,12 +1,13 @@
-from generators.base.pool_manger import save_pool
+from generators.base.pool_builder import build_pool
 from generators.customers.customer_generator import generate_customer
 
-#=================================
-# Build Customer Pool
-#================================
-def build_customer_pool():
-    customers = []
-    for _ in range(10000):
-        customers.append(generate_customer())
+#==========================
+# Build Customers data
+#==========================
 
-    save_pool(customers, "customer_pool.json")
+def build_customers():
+    return build_pool(
+        generator_function = generate_customer,
+        pool_name = "customer_pool.json",
+        size = 10000
+    )

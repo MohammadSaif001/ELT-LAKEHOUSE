@@ -38,6 +38,10 @@ PRODUCT_POOL = load_pool(
     "product_pool.json"
 )
 
+SELLER_POOL = load_pool(
+    "seller_pool.json"
+)
+
 def price_generator() -> float:
     """
     Generates realistic product prices using
@@ -134,12 +138,12 @@ def generate_order_item(order_id: str,order_item_id: int,purchase_timestamp: dat
     Generates a single order item record.
     """
     product = get_product()
-    print(product)
+    seller = random.choice(SELLER_POOL)
     return {
         "order_id": order_id,
         "order_item_id": order_item_id,
         "product_id": product["product_id"],
-        "seller_id": product["seller_id"],
+        "seller_id": seller["seller_id"],
 
         "shipping_limit_date":
             generate_shipping_limit_date(
@@ -177,7 +181,8 @@ def generate_order_items(order_id: str,purchase_timestamp: datetime) -> list[dic
         )
     ]
 
-generate_order_items(
-    order_id=generate_id(),
-    purchase_timestamp=datetime.now()
-)
+if __name__ == "__main__":
+    generate_order_items(
+        order_id=generate_id(),
+        purchase_timestamp=datetime.now()
+    )

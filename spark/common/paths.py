@@ -11,7 +11,8 @@ CUSTOMERS_GENERATOR_DIR = GENERTORS_DIR / "customers"
 ORDERS_GENERATOR_DIR = GENERTORS_DIR / "orders"
 PRODUCTS_GENERATOR_DIR = GENERTORS_DIR / "products"
 REVIEWS_GENERATOR_DIR = GENERTORS_DIR / "reviews"
-GENETRADED_DIR = PROJECT_ROOT / "data" / "generated"
+PAYMENTS_GENERATOR_DIR = GENERTORS_DIR / "payments"
+
 
 # -------------------------
 # Data
@@ -21,7 +22,7 @@ DATA_DIR = PROJECT_ROOT / "data"
 RAW_DATA_DIR = DATA_DIR / "raw"
 PROFILING_DIR = DATA_DIR / "profiling"
 ORDER_ITEM_PROFILING_DIR = PROFILING_DIR / "order_item"
-GENERATED_DIR = DATA_DIR / "generated"
+#GENERATED_DIR = DATA_DIR / "generated"
 
 
 
@@ -30,6 +31,7 @@ GENERATED_DIR = DATA_DIR / "generated"
 # -------------------------
 
 STORAGE_DIR = PROJECT_ROOT / "storage"
+GENERATED_DIR = STORAGE_DIR / "generated"
 BRONZE_DIR = STORAGE_DIR / "bronze"
 SILVER_DIR = STORAGE_DIR / "silver"
 GOLD_DIR = STORAGE_DIR / "gold"

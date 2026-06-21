@@ -1,20 +1,14 @@
+from generators.base.pool_builder import build_pool
 from generators.sellers.seller_generator import generate_seller
-from generators.base.pool_manger import save_pool
 from spark.common.paths import POOLS_DIR
 
 #============================
-# Build Seller Pool
+# Build Seller
 #============================
 
-def build_seller_pool():
-    seller_pool = []
-
-    for _ in range(2000):
-        seller_pool.append(
-        generate_seller()
-    )
-
-    save_pool(
-        seller_pool,
-        "seller_pool.json"
+def build_seller():
+    return build_pool(
+        generator_function = generate_seller,
+        pool_name = "seller_pool.json",
+        size = 2000
     )

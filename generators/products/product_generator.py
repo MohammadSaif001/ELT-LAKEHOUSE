@@ -48,15 +48,7 @@ WIDTH_STATS = load_distribution(
 )
 
 def generate_product():
-    # weight = round(
-    #     max(
-    #         1,
-    #         random.normalvariate(
-    #             PRODUCT_WEIGHT_STATS["mean"],
-    #             PRODUCT_WEIGHT_STATS["std"]
-    #         )
-    #     )
-    # )
+
     name_length = int(
         max(
             1,
@@ -124,7 +116,8 @@ def generate_product():
     )
     )
 
-    return{
+    seller = random.choice(SELLER_POOL)
+    return {
         "product_id": generate_id(),
         "product_category_name": weighted_choice(PRODUCT_CATEGORY_DIST),
         "product_name_length" : name_length,
@@ -134,5 +127,4 @@ def generate_product():
         "product_length_cm": length,
         "product_height_cm": height,
         "product_width_cm": width
-        
     }

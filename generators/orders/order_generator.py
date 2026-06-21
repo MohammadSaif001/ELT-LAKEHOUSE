@@ -2,7 +2,6 @@ import json
 import random
 from datetime import datetime
 from datetime import timedelta
-from spark.common.paths import GENETRADED_DIR
 from generators.base.generator_base import generate_id
 from generators.base.pool_manger import (
     load_pool,
@@ -41,39 +40,38 @@ ORDER_APPROVED_STATS = load_distribution( #9
     "order_approval_delay_stats.json"
 )
 def generate_order_purchase_timestamp()-> datetime:
-    year = random_from_list(
-        [2025,2026]
-    )
-    month = int(weighted_choice(
-        ORDER_PURCHASE_TIMESTAMP_MONTHS
-        )
-    )
-    day = random.randint(1, 28)  # Simplify to avoid month-end issues
-    
-    hour = int(
-        weighted_choice(ORDER_PURCHASE_TIMESTAMP_HOURS
-        )
-    )
+    target_weekday = weighted_choice(ORDER_PURCHASE_TIMESTAMP_WEEKDAYS)
+    weekday_map = {
+        "Monday": 0, "Tuesday": 1, "Wednesday": 2, "Thursday": 3,
+        "Friday": 4, "Saturday": 5, "Sunday": 6
+    }
+    target_val = weekday_map[target_weekday]
 
+    year = random_from_list([2025, 2026])
+    month = int(weighted_choice(ORDER_PURCHASE_TIMESTAMP_MONTHS))
+    day = random.randint(1, 28)
+    
+    hour = int(weighted_choice(ORDER_PURCHASE_TIMESTAMP_HOURS))
     minute = random.randint(0, 59)
     second = random.randint(0, 59)
-    return datetime(year,month,day,hour,minute,second)
+
+    dt = datetime(year, month, day, hour, minute, second)
+    current_val = dt.weekday()
+    diff = target_val - current_val
+    dt = dt + timedelta(days=diff)
+
+    # Cutoff at current local time June 21, 2026
+    cutoff = datetime(2026, 6, 21, 13, 30)
+    while dt > cutoff:
+        dt = dt - timedelta(days=364) # 52 weeks preserves weekday
+
+    return dt
 
 def generate_approved_timestamp(purchase_timestamp: datetime) -> datetime:
-    delay_hours = max(
-        1,
-        round(
-            random.normalvariate(
-                ORDER_APPROVED_STATS["mean_hours"],
-                ORDER_APPROVED_STATS["std_hours"]
-            )
-        )
-    )
-    return (
-        purchase_timestamp + timedelta(
-            hours = delay_hours
-        )
-    )
+    # Lognormal distribution: mean 10.42, std 26.04 -> mu = 1.35, sigma = 1.4
+    delay_hours = round(random.lognormvariate(1.35, 1.4))
+    delay_hours = max(1, min(720, delay_hours)) # Bound it to at most 30 days
+    return purchase_timestamp + timedelta(hours=delay_hours)
     
 def generate_delivered_carrier_date(approved_at : datetime) -> datetime:
     delay = float(
@@ -115,7 +113,11 @@ def generate_order() -> dict:
     approved_at = None
     delivered_carrier_date = None
     delivered_customer_date = None
-    estimated_delivery_date = None
+    
+    # Estimated delivery date always exists for all orders
+    estimated_delivery_date = (
+        generate_estimated_delivery_date(purchase_timestamp) 
+    )
 
     if order_status in ["approved","processing",
                         "invoiced","shipped", "delivered"
@@ -136,10 +138,6 @@ def generate_order() -> dict:
         delivered_customer_date = (
             generate_delivered_customer_date(delivered_carrier_date) #type: ignore
         )
-
-        estimated_delivery_date = (
-            generate_estimated_delivery_date(purchase_timestamp) 
-            )
 
     return {
         "order_id": generate_id(),

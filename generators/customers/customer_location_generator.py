@@ -23,9 +23,15 @@ def generate_customer_location(customer: dict) -> dict:
     city = customer["customer_city"]
 
     if city not in city_coordinate_map:
-        raise KeyError(f"Coordinates not found for {city}")
-
-    coords = city_coordinate_map[city]
+        state = customer["customer_state"]
+        state_cities = state_city_map.get(state, [])
+        valid_cities = [c for c in state_cities if c in city_coordinate_map]
+        if valid_cities:
+            coords = city_coordinate_map[random.choice(valid_cities)]
+        else:
+            coords = {"geolocation_lat": -23.5505, "geolocation_lng": -46.6333}
+    else:
+        coords = city_coordinate_map[city]
 
     return {
         "customer_id":customer["customer_id"],
