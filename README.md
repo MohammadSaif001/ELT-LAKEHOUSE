@@ -6,15 +6,15 @@
 
 ### Key Features
 
-- **Real-time Data Ingestion**: Kafka-based streaming pipeline for continuous data ingestion
-- **Medallion Architecture**: Bronze (raw) → Silver (cleaned) → Gold (analytics-ready) data layers
-- **Apache Spark**: Distributed data processing and transformations
-- **Apache Airflow**: Orchestration and workflow management
-- **dbt**: Data transformation and modeling
-- **Data Quality**: Comprehensive testing and validation frameworks
-- **Monitoring & Observability**: Grafana dashboards and Prometheus metrics
-- **Docker Containerization**: Complete environment as code with Docker Compose
-- **CI/CD Pipeline**: GitHub Actions for automated testing and deployment
+- **Real-time Data Ingestion**: Kafka-based streaming pipeline for continuous data ingestion.
+- **Medallion Architecture**: Bronze (raw) → Silver (cleaned) → Gold (analytics-ready) data layers.
+- **Apache Spark**: Distributed data processing and transformations.
+- **Apache Airflow**: Orchestration and workflow management.
+- **dbt**: Data transformation and modeling.
+- **Data Quality & Referential Integrity**: Automated test validation rules executing key checks across all generated datasets.
+- **Monitoring & Observability**: Grafana dashboards and Prometheus metrics.
+- **Docker Containerization**: Complete environment as code with Docker Compose.
+- **CI/CD Pipeline**: GitHub Actions for automated testing and deployment.
 
 ---
 
@@ -37,9 +37,40 @@ modern-ecommerce-lakehouse/
 │   └── postgres/                           # PostgreSQL service configuration
 │
 ├── generators/
-│   ├── faker_order_generator.py            # Generate order data
-│   ├── payment_generator.py                # Generate payment data
-│   └── customer_generator.py               # Generate customer data
+│   ├── base/                               # Reusable helpers & pool managers
+│   │   ├── data_loading.py                 # Load generated datasets
+│   │   ├── data_saving.py                  # Save generated datasets
+│   │   ├── pool_builder.py                 # Utility to build entities from scratch
+│   │   └── pool_manger.py                  # Handles loading and saving metadata pools
+│   │
+│   ├── customers/                          # Customer & geolocation generation
+│   │   ├── build_customers.py              # Customer dataset builder
+│   │   ├── build_geolocations.py           # Geolocation dataset builder
+│   │   ├── customer_generator.py           # Generate individual customer records
+│   │   └── customer_location_generator.py  # Generate coordinates matched to customers
+│   │
+│   ├── orders/                             # Order & order item generation
+│   │   ├── build_orders.py                 # Builds orders & order items datasets
+│   │   ├── order_generator.py              # Generates orders using customer pool
+│   │   └── order_item_generator.py         # Generates order items using product/seller pools
+│   │
+│   ├── payments/                           # Payment generation
+│   │   ├── build_payments.py               # Payments dataset builder
+│   │   └── payment_generator.py            # Generates payment events based on order values
+│   │
+│   ├── products/                           # Product pool generation
+│   │   ├── build_products.py               # Products dataset builder
+│   │   └── product_generator.py            # Generates product entries using seller pool
+│   │
+│   ├── reviews/                            # Review generation
+│   │   ├── build_reviews.py                # Reviews dataset builder
+│   │   └── review_generator.py             # Generates satisfaction reviews for delivered orders
+│   │
+│   ├── sellers/                            # Seller generation
+│   │   ├── build_sellers.py                # Sellers dataset builder
+│   │   └── seller_generator.py             # Generates seller demographics
+│   │
+│   └── build_dataset.py                    # Orchestrates all generators in dependency order
 │
 ├── ingestion/
 │   ├── kafka_producer.py                   # Kafka data producer
@@ -72,7 +103,8 @@ modern-ecommerce-lakehouse/
 ├── storage/
 │   ├── bronze/                             # Raw data storage
 │   ├── silver/                             # Cleaned data storage
-│   └── gold/                               # Analytics data storage
+│   ├── gold/                               # Analytics data storage
+│   └── generated/                          # Structurally equivalent generated datasets
 │
 ├── monitoring/
 │   ├── grafana/                            # Grafana dashboard configuration
@@ -105,41 +137,42 @@ modern-ecommerce-lakehouse/
 ## Component Overview
 
 ### Data Ingestion Layer
-- **Kafka**: Message broker for real-time event streaming
-- **Generators**: Synthetic data generation for orders, payments, and customers
-- **Consumers**: Stream processing and data ingestion
+- **Kafka**: Message broker for real-time event streaming.
+- **Generators**: Synthetic data generation mapping to Olist database structures.
+- **Consumers**: Stream processing and data ingestion.
 
 ### Processing Layer
-- **Apache Spark**: Distributed data processing engine
-- **Transformations**: Silver layer cleaning and enrichment jobs
-- **Schema Management**: Registry for data schema evolution
+- **Apache Spark**: Distributed data processing engine.
+- **Transformations**: Silver layer cleaning and enrichment jobs.
+- **Schema Management**: Registry for data schema evolution.
 
 ### Transformation & Modeling Layer
-- **dbt**: SQL-based data transformation tool
-- **Models**: Multi-layered data models (staging → silver → marts → gold)
-- **Testing**: Data quality and integrity tests
-- **Snapshots**: Historical tracking of dimension changes
+- **dbt**: SQL-based data transformation tool.
+- **Models**: Multi-layered data models (staging → silver → marts → gold).
+- **Testing**: Data quality and integrity tests.
+- **Snapshots**: Historical tracking of dimension changes.
 
 ### Storage Layer
 - **Medallion Architecture**:
-  - **Bronze**: Raw, immutable data source
-  - **Silver**: Cleaned, deduplicated data
-  - **Gold**: Analytics-ready, business-purpose data
+  - **Bronze**: Raw, immutable data source.
+  - **Silver**: Cleaned, deduplicated data.
+  - **Gold**: Analytics-ready, business-purpose data.
+  - **Generated**: Structurally equivalent target dataset mimicking the Olist schema.
 
 ### Orchestration
-- **Apache Airflow**: DAG-based workflow orchestration
-- **Task Dependencies**: Automated pipeline scheduling and monitoring
+- **Apache Airflow**: DAG-based workflow orchestration.
+- **Task Dependencies**: Automated pipeline scheduling and monitoring.
 
 ### Monitoring & Quality
-- **Grafana**: Visualization and dashboarding
-- **Prometheus**: Metrics collection and alerting
-- **Data Quality Tests**: Validation rules for data integrity
-- **Unit & Integration Tests**: Code quality assurance
+- **Grafana**: Visualization and dashboarding.
+- **Prometheus**: Metrics collection and alerting.
+- **Data Quality Tests**: Validation rules for data integrity.
+- **Unit & Integration Tests**: Code quality assurance.
 
 ### Infrastructure
-- **Docker**: Containerized services (Spark, Airflow, Kafka, PostgreSQL)
-- **Docker Compose**: Multi-container orchestration
-- **CI/CD**: GitHub Actions for automated testing and deployment
+- **Docker**: Containerized services (Spark, Airflow, Kafka, PostgreSQL).
+- **Docker Compose**: Multi-container orchestration.
+- **CI/CD**: GitHub Actions for automated testing and deployment.
 
 ---
 
@@ -169,11 +202,9 @@ modern-ecommerce-lakehouse/
    - Grafana: http://localhost:3000
    - Kafka: localhost:9092
 
-4. **Run data generators**
+4. **Run target dataset generation and referential checks**
    ```bash
-   python generators/faker_order_generator.py
-   python generators/payment_generator.py
-   python generators/customer_generator.py
+   python3 -m generators.build_dataset
    ```
 
 ---
@@ -182,13 +213,18 @@ modern-ecommerce-lakehouse/
 
 **Olist source files are excluded from version control due to repository size.** The raw datasets are stored in `data/raw/olist/` and are not committed to Git as they are large files.
 
-**Profiling metadata** was generated from the original dataset and is included under `data/profiling/`. This includes:
-- `state_distribution.json` - State-level customer distribution
-- `city_state_mapping.json` - City-to-state mappings
-- `city_zip_mapping.json` - City-to-zipcode mappings
-- `order_status_distribution.json` - Order status distribution
+**Profiling metadata and distributions** are used as a source for generators and are stored under `data/profiling/` and `generators/base/`.
+The generator pipeline loads pre-computed pools from `metadata/pools/` (e.g. `customer_pool.json`, `product_pool.json`) to create a unified set of target datasets in `storage/generated/`:
+1. `generated_customers_data.json`
+2. `generated_geolocation_data.json`
+3. `generated_sellers_data.json`
+4. `generated_products_data.json`
+5. `generated_orders_data.json`
+6. `generated_order_items_data.json`
+7. `generated_payments_data.json`
+8. `generated_reviews_data.json`
 
-These profiling files provide insights into the dataset structure without requiring the full source files.
+Foreign-key integrity is validated automatically at the end of the generation run.
 
 ---
 
@@ -210,25 +246,12 @@ These profiling files provide insights into the dataset structure without requir
 
 ## Development Workflow
 
-1. **Data Generation**: Create synthetic data using generators
-2. **Ingestion**: Stream data via Kafka to Bronze layer
-3. **Processing**: Transform data with Spark for Silver layer
-4. **Modeling**: Build analytics models with dbt for Gold layer
-5. **Monitoring**: Track pipeline health via Grafana dashboards
-6. **Testing**: Validate data quality with dbt tests and custom validators
-
----
-
-## Key Features
-
-Real-time streaming architecture  
-Scalable distributed processing  
-Modern data stack (Spark + Airflow + dbt)  
-Comprehensive data quality checks  
-Production-ready monitoring  
-Fully containerized with Docker  
-CI/CD pipeline with GitHub Actions  
-Documented with ADR patterns  
+1. **Data Generation**: Create synthetic Olist-compliant data using `python3 -m generators.build_dataset`.
+2. **Ingestion**: Stream data via Kafka to Bronze layer.
+3. **Processing**: Transform data with Spark for Silver layer.
+4. **Modeling**: Build analytics models with dbt for Gold layer.
+5. **Monitoring**: Track pipeline health via Grafana dashboards.
+6. **Testing**: Validate data quality with dbt tests and custom validators.
 
 ---
 
@@ -241,9 +264,3 @@ Contributions are welcome! Please follow the development guidelines in [docs/dec
 ## License
 
 This project is licensed under the MIT License - see LICENSE file for details.
-
----
-
-## Support
-
-For issues, questions, or suggestions, please open an issue on GitHub or contact the development team.
