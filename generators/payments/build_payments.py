@@ -2,7 +2,7 @@ from generators.base.data_loading import load_generated_data
 from generators.base.data_saving import save_generated_data
 from generators.payments.payment_generator import generate_payment
 
-def build_payments():
+def build_payments(output_dir: str) -> None:
     """Generates payment records for generated orders and saves them."""
     orders = load_generated_data("generated_orders_data.json")
     order_items = load_generated_data("generated_order_items_data.json")
@@ -23,5 +23,6 @@ def build_payments():
         
     save_generated_data(
         payments,
-        "generated_payments_data.json"
+        "generated_payments_data.json",
+        output_dir  
     )

@@ -8,7 +8,7 @@ from generators.orders.order_item_generator import generate_order_items
 # Order Builder
 # ==========================
 
-def build_orders():
+def build_orders(output_dir)-> None:
     """Generates order records and saves them to generated storage."""
     orders = []
     for _ in range(1000):
@@ -16,14 +16,15 @@ def build_orders():
 
     save_generated_data(
         orders,
-        "generated_orders_data.json"
+        "generated_orders_data.json",
+        output_dir
     )
 
 # ==========================
 # Order Item Builder
 # ==========================
 
-def build_order_items():
+def build_order_items(output_dir: str) -> None:
     """Generates order item records corresponding to existing orders and saves them."""
     orders = load_generated_data(
         "generated_orders_data.json"
@@ -43,5 +44,6 @@ def build_order_items():
         )
     save_generated_data(
         all_order_items,
-        "generated_order_items_data.json"
+        "generated_order_items_data.json",
+        output_dir
     )
