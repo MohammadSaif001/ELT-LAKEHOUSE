@@ -15,17 +15,16 @@ from generators.payments.build_payments import build_payments
 from generators.reviews.build_reviews import build_reviews
 
 
-def main():
+def main(output_dir : str ="storage/generated") -> None:
     print("Starting generation...")
-    build_customers()
-    build_geolocations()
-    build_sellers()
-    build_products()
-
-    build_orders()
-    build_order_items()
-    build_payments()
-    build_reviews()
+    build_customers(output_dir)
+    build_geolocations(output_dir)
+    build_sellers(output_dir)
+    build_products(output_dir)
+    build_orders(output_dir)
+    build_order_items(output_dir)
+    build_payments(output_dir)
+    build_reviews(output_dir)
     print("Generation completed successfully!")
 
 

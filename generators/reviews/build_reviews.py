@@ -2,7 +2,7 @@ from generators.base.data_loading import load_generated_data
 from generators.base.data_saving import save_generated_data
 from generators.reviews.review_generator import generate_review
 
-def build_reviews():
+def build_reviews(output_dir: str) -> None:
     """
     Generates reviews only for delivered orders and saves to generated storage.
     """
@@ -15,5 +15,6 @@ def build_reviews():
         
     save_generated_data(
         reviews,
-        "generated_reviews_data.json"
+        "generated_reviews_data.json",
+        output_dir
     )
