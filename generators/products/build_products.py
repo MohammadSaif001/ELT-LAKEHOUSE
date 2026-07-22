@@ -1,4 +1,4 @@
-from generators.base.pool_manger import load_pool
+from generators.base.pool_manager import load_pool
 from generators.base.data_saving import save_generated_data
 
 def build_products(output_dir: str) -> None:

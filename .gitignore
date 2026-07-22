@@ -4,8 +4,6 @@ data/profiling/
 
 # Environment
 .Elt-lakehouse/
-.venv/
-venv/
 
 # Notebooks
 notebooks/
@@ -27,3 +25,12 @@ __pycache__/
 .DS_Store
 *.swp
 *.swo
+
+# Logs
+logs/
+
+# storage
+storage/
+
+# diff
+*.diff

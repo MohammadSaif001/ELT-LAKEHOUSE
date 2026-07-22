@@ -7,13 +7,13 @@ def build_payments(output_dir: str) -> None:
     orders = load_generated_data("generated_orders_data.json")
     order_items = load_generated_data("generated_order_items_data.json")
     
-    order_totals = {}
+    order_totals : dict = {}
     for item in order_items:
         order_id = item["order_id"]
         val = item["price"] + item["freight_value"]
         order_totals[order_id] = order_totals.get(order_id, 0.0) + val
         
-    payments = []
+    payments : list = []
     for order in orders:
         order_id = order["order_id"]
         total_value = order_totals.get(order_id, 0.0)

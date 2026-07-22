@@ -2,7 +2,7 @@ from datetime import datetime
 from generators.base.data_loading import load_generated_data
 
 
-def test_cancelled_orders_have_no_delivery():
+def test_cancelled_orders_have_no_delivery() -> None:
 
     orders = load_generated_data("generated_orders_data.json")
     for order in orders:
@@ -13,7 +13,7 @@ def test_cancelled_orders_have_no_delivery():
             )
 
 
-def test_delivered_orders_have_delivery_date():
+def test_delivered_orders_have_delivery_date() -> None:
 
     orders = load_generated_data("generated_orders_data.json")
     for order in orders:
@@ -23,7 +23,7 @@ def test_delivered_orders_have_delivery_date():
                 is not None
             )
 
-def test_review_only_for_delivered_orders():
+def test_review_only_for_delivered_orders() -> None:
 
     orders = load_generated_data(
         "generated_orders_data.json"
@@ -42,13 +42,13 @@ def test_review_only_for_delivered_orders():
             ] == "delivered"
         )
 
-def test_payment_values_is_greater_than_zer0():
+def test_payment_values_is_greater_than_zero() -> None:
     payments = load_generated_data("generated_payments_data.json")
     for payment in payments:
         assert payment["payment_value"] > 0
         
 
-def test_order_have_at_least_one_item():
+def test_order_have_at_least_one_item() -> None:
     
     orders = load_generated_data("generated_orders_data.json")
     order_items = load_generated_data("generated_order_items_data.json")
@@ -62,7 +62,7 @@ def test_order_have_at_least_one_item():
             f"Order {order['order_id']} has no items."
         )
     
-def test_purchase_timestamps_are_valid():
+def test_purchase_timestamps_are_valid() -> None:
     orders = load_generated_data("generated_orders_data.json")
     for order in orders:
         if order["order_status"] != "delivered":

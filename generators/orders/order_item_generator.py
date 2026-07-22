@@ -6,9 +6,8 @@ produce realistic order item records.
 import json
 import random
 from datetime import datetime, timedelta
-from spark.common.paths import PROFILING_DIR
 from generators.base.generator_base import generate_id
-from generators.base.pool_manger import load_pool, save_pool
+from generators.base.pool_manager import load_pool
 from generators.base.distribution_loader import (
     load_distribution,
     weighted_choice,

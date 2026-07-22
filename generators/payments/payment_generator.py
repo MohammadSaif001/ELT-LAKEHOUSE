@@ -1,4 +1,5 @@
 import random
+from typing import Literal
 from generators.base.distribution_loader import (
     load_distribution,
     weighted_choice
@@ -22,13 +23,9 @@ PAYMENT_SEQUENCE_DIST = load_distribution(
 
 
 def generate_payment(order: dict, total_value: float) -> dict:
-    """
-    Generate payment record for an order with aligned payment value.
-    """
+    """ Generate payment record for an order with aligned payment value. """
 
-    payment_type = weighted_choice(
-        PAYMENT_TYPE_DIST
-    )
+    payment_type = weighted_choice(PAYMENT_TYPE_DIST)
 
     if payment_type in ["boleto", "voucher", "debit_card"]:
         installments = 1
@@ -41,7 +38,7 @@ def generate_payment(order: dict, total_value: float) -> dict:
             )
         )
 
-    payment_sequential = 1
+    payment_sequential : Literal[1] = 1
 
     return {
         "order_id": order["order_id"],

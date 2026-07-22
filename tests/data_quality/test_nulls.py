@@ -7,7 +7,7 @@ def test_orders_no_null():
     orders = load_generated_data(
         "generated_orders_data.json")
     
-    REQUIRED_COLUMNS = [
+    REQUIRED_COLUMNS:list[str] = [
         "order_id",
         "customer_id",
         "order_status",
@@ -26,11 +26,12 @@ def test_orders_no_null():
 def test_customers_no_null():
     customers = load_generated_data(
         "generated_customers_data.json")
-    REQUIRED_COLUMNS = [
+    REQUIRED_COLUMNS :list[str] = [
         "customer_id",
         "customer_unique_id",
         "customer_city",
-        "customer_state"
+        "customer_state",
+        "customer_zip_code_prefix"
     ]
     for customer in customers:
         for column in REQUIRED_COLUMNS:
@@ -45,7 +46,7 @@ def test_customers_no_null():
 def test_geolocations_no_null():
     geolocations = load_generated_data(
         "generated_geolocation_data.json")
-    REQUIRED_COLUMNS = [
+    REQUIRED_COLUMNS :list[str] = [
         "customer_id",
         "geolocation_zip_code_prefix",
         "geolocation_city",
@@ -65,7 +66,7 @@ def test_geolocations_no_null():
 def test_sellers_no_null():
     sellers = load_generated_data(
         "generated_sellers_data.json")
-    REQUIRED_COLUMNS = [
+    REQUIRED_COLUMNS :list[str]= [
         "seller_id",
         "seller_zip_code_prefix",
         "seller_city",
@@ -85,7 +86,7 @@ def test_sellers_no_null():
 def test_products_no_null():
     products = load_generated_data(
         "generated_products_data.json")
-    REQUIRED_COLUMNS = [
+    REQUIRED_COLUMNS :list[str] = [
         "product_id",
         "product_category_name"
     ]
@@ -101,7 +102,7 @@ def test_products_no_null():
 def test_order_items_no_null():
     order_items = load_generated_data(
         "generated_order_items_data.json")
-    REQUIRED_COLUMNS = [
+    REQUIRED_COLUMNS :list[str]= [
         "order_id",
         "product_id"
     ]   
@@ -118,7 +119,7 @@ def test_payments_no_null():
     payments = load_generated_data(
         "generated_payments_data.json")
     
-    REQUIRED_COLUMNS = [
+    REQUIRED_COLUMNS:list[str] = [
         "order_id",
         "payment_type",
         "payment_installments",
@@ -134,10 +135,10 @@ def test_payments_no_null():
 #=========================================
 # Test for NULL Values in Reviews data
 #=========================================
-def test_reviews_no_null():
+def test_reviews_no_null() -> None:
     reviews = load_generated_data(
         "generated_reviews_data.json")
-    REQUIRED_COLUMNS = [
+    REQUIRED_COLUMNS :list[str]= [
         "review_id",
         "review_score",
         "order_id"

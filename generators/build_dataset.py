@@ -16,15 +16,23 @@ from generators.reviews.build_reviews import build_reviews
 
 
 def main(output_dir : str ="storage/generated") -> None:
-    print("Starting generation...")
+    print("Starting generation...\n")
     build_customers(output_dir)
+    print("Customers data generated successfully.")
     build_geolocations(output_dir)
+    print("Geolocations data generated successfully.")
     build_sellers(output_dir)
+    print("Sellers data generated successfully.")
     build_products(output_dir)
+    print("Products data generated successfully.")
     build_orders(output_dir)
+    print("Orders data generated successfully.")
     build_order_items(output_dir)
+    print("Order items data generated successfully.")
     build_payments(output_dir)
+    print("Payments data generated successfully.")
     build_reviews(output_dir)
+    print("Reviews data generated successfully.\n")
     print("Generation completed successfully!")
 
 

@@ -1,26 +1,22 @@
-#generators/base/distribution_loader.py
 import json
 import random
-from pathlib import Path
-from spark.common.paths import (
-    PROFILING_DIR,
-    ORDER_ITEM_PROFILING_DIR
-)
+from typing import Any
+from spark.common.paths import PROFILING_DIR
 
 
 def load_distribution(file_name: str) -> dict:
-    file_path = (
+    file_path  = (
         PROFILING_DIR / file_name
     )
     with open(file_path, "r") as file:
         return json.load(file)
 
-def weighted_choice(distribution: dict):
+def weighted_choice(distribution: dict) -> str:
     return random.choices(
         population = list(distribution.keys()),
         weights=list(distribution.values()),
         k=1
     )[0]
 
-def random_from_list(values: list):
+def random_from_list(values: list) -> Any:
     return random.choice(values)

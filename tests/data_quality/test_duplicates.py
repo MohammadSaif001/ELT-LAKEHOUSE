@@ -1,6 +1,6 @@
 from generators.base.data_loading import load_generated_data
 
-def assert_unique(values,name):
+def assert_unique(values,name) -> None:
     """
     Assert that all values in the list are unique.
     
@@ -16,7 +16,7 @@ def assert_unique(values,name):
 # 1.Test duplicate data in customer ids
 #======================================
 
-def test_unique_customer_ids():
+def test_unique_customer_ids() -> None:
 
     customers = load_generated_data(
         "generated_customers_data.json"
@@ -30,7 +30,7 @@ def test_unique_customer_ids():
 #===================================
 # 2.Test duplicate data in order items
 #===================================
-def test_unique_order_items_keys():
+def test_unique_order_items_keys() -> None:
     seen = set()
     order_items = load_generated_data(
         "generated_order_items_data.json"
@@ -48,11 +48,11 @@ def test_unique_order_items_keys():
 #================================
 # 3.Test duplicate data in seller
 #================================
-def test_unique_seller_ids():
+def test_unique_seller_ids() -> None:
     sellers = load_generated_data(
         "generated_sellers_data.json"
     )
-    ids = [
+    ids :list= [
         seller["seller_id"] for
         seller in sellers
     ]
@@ -62,7 +62,7 @@ def test_unique_seller_ids():
 # 4.Test duplicate data in products
 #==================================
 
-def test_unique_product_ids():
+def test_unique_product_ids() -> None:
     products = load_generated_data(
         "generated_products_data.json"
     )
@@ -77,7 +77,7 @@ def test_unique_product_ids():
 # 5.Test duplicate data in orders
 #================================
 
-def test_unique_order_ids():
+def test_unique_order_ids() -> None:
     orders = load_generated_data(
         "generated_orders_data.json"
     )
@@ -92,7 +92,7 @@ def test_unique_order_ids():
 # 6.Test duplicate data in reviews
 #=================================
 
-def test_unique_review_ids():
+def test_unique_review_ids() -> None:
     reviews = load_generated_data(
         "generated_reviews_data.json"
     )
@@ -107,7 +107,7 @@ def test_unique_review_ids():
 # 7.Test duplicate data in payments
 #===================================
 
-def test_unique_payment_keys():
+def test_unique_payment_keys() -> None:
     seen = set()
     payments = load_generated_data(
         "generated_payments_data.json"

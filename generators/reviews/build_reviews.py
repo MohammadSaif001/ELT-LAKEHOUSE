@@ -9,7 +9,7 @@ def build_reviews(output_dir: str) -> None:
     orders = load_generated_data("generated_orders_data.json")
     delivered_orders = [order for order in orders if order["order_status"] == "delivered"]
     
-    reviews = []
+    reviews :list = []
     for order in delivered_orders:
         reviews.append(generate_review(order))
         

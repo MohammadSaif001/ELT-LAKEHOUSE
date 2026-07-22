@@ -10,8 +10,8 @@ from generators.orders.order_item_generator import generate_order_items
 
 def build_orders(output_dir)-> None:
     """Generates order records and saves them to generated storage."""
-    orders = []
-    for _ in range(1000):
+    orders :list = []
+    for _ in range(8000):
         orders.append(generate_order())
 
     save_generated_data(
@@ -29,7 +29,7 @@ def build_order_items(output_dir: str) -> None:
     orders = load_generated_data(
         "generated_orders_data.json"
     )
-    all_order_items = []
+    all_order_items: list = []
     for order in orders:
         purchase_timestamp = datetime.strptime(
             order["order_purchase_timestamp"],

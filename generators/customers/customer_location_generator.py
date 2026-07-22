@@ -5,7 +5,7 @@ produce realistic geolocation records.
 """
 import random
 from generators.base.distribution_loader import load_distribution
-from generators.base.pool_manger import load_pool, save_pool
+
 
 #! state distribution
 state_dist = load_distribution("state_distribution.json")
@@ -20,18 +20,17 @@ city_coordinate_map = load_distribution("city_coordinate_mapping.json")
 
 def generate_customer_location(customer: dict) -> dict:
 
-    city = customer["customer_city"]
-
+    city : str = customer["customer_city"]
     if city not in city_coordinate_map:
-        state = customer["customer_state"]
-        state_cities = state_city_map.get(state, [])
-        valid_cities = [c for c in state_cities if c in city_coordinate_map]
+        state : str = customer["customer_state"]
+        state_cities : list = state_city_map.get(state, [])
+        valid_cities = [cities for cities in state_cities if cities in city_coordinate_map]
         if valid_cities:
             coords = city_coordinate_map[random.choice(valid_cities)]
         else:
-            coords = {"geolocation_lat": -23.5505, "geolocation_lng": -46.6333}
+            coords : dict = {"geolocation_lat": -23.5505, "geolocation_lng": -46.6333}
     else:
-        coords = city_coordinate_map[city]
+        coords : dict = city_coordinate_map[city]
 
     return {
         "customer_id":customer["customer_id"],

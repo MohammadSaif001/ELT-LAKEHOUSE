@@ -4,26 +4,24 @@ from generators.base.data_loading import load_generated_data
 
 # Helpler function to calculate the distribution of values in a given column of a list of dictionaries.
 
-def calculate_distribution(rows, column):
+def calculate_distribution(rows, column)-> dict[str,float]:
 
-    counts = Counter(
+    counts:Counter = Counter(
         row[column]
         for row in rows
     )
 
-    total = len(rows)
+    total:int = len(rows)
 
     return {
         str(key): value / total
         for key, value in counts.items()
     }
 
-def test_order_status_distribution():
+def test_order_status_distribution()-> None:
 
     historical = load_distribution("order_status_distribution.json")
-
     orders = load_generated_data("generated_orders_data.json")
-
     generated = calculate_distribution(orders, "order_status")
 
     for status in historical:

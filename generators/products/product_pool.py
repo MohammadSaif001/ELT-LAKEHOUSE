@@ -6,7 +6,7 @@ from generators.products.product_generator import generate_product
 # Build Product Pool
 #==========================
 
-def build_product():
+def build_product_pool() -> list:
     return build_pool(
         generator_function = generate_product,
         pool_name = "product_pool.json",

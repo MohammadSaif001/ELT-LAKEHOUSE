@@ -6,7 +6,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 # Generators
 #============================
 
-GENERTORS_DIR = PROJECT_ROOT / "generators"
+GENERTORS_DIR : Path = PROJECT_ROOT / "generators"
 CUSTOMERS_GENERATOR_DIR = GENERTORS_DIR / "customers"
 ORDERS_GENERATOR_DIR = GENERTORS_DIR / "orders"
 PRODUCTS_GENERATOR_DIR = GENERTORS_DIR / "products"
@@ -65,12 +65,6 @@ def get_project_root() -> Path:
     """
     # Returns the absolute path to the root 'data_engineering_project' folder."""
     return PROJECT_ROOT
-
-# def get_logs_path(filename: str) -> Path:
-#     """
-#     # Returns the absolute path to a log file in the data/logs directory."""
-#     LOG_DIR.mkdir(parents=True, exist_ok=True)
-#     return LOG_DIR / filename
 
 
 def get_config_path()-> Path:

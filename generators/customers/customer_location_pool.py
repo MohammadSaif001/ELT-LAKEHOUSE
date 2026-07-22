@@ -1,15 +1,15 @@
-from generators.base.pool_manger import load_pool, save_pool ,load_pool
+from generators.base.pool_manager import load_pool, save_pool 
 from generators.customers.customer_location_generator import generate_customer_location
 
 #=================================
 # Build Customer Location Pool
 #================================
 
-def build_customer_location_pool():
-    customers = load_pool(
+def build_customer_location_pool() -> None:
+    customers : list = load_pool(
     "customer_pool.json")
 
-    locations = []
+    locations : list = []
     for customer in customers:
         locations.append(generate_customer_location(customer))
         

@@ -4,7 +4,6 @@ Uses Olist-derived distributions and mappings to
 produce realistic customer records.
 """
 from generators.base.generator_base import generate_id
-from generators.base.pool_manger import save_pool
 from generators.base.distribution_loader import (
     load_distribution,
     weighted_choice,
@@ -32,7 +31,9 @@ def generate_customer()-> dict:
         city = weighted_choice(city_dist[state])
     else:
         city = random_from_list(state_city_map[state])
-    zip_code = random_from_list(city_zip_map.get(city, ["01000"]))
+    zip_code = str(
+        random_from_list(city_zip_map.get(city, ["01000"]))
+        )
 
     customer = {
         "customer_id": generate_id(),

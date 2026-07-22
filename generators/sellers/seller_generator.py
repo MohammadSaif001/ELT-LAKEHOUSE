@@ -10,7 +10,8 @@ SELLER_CITY_MAP = load_distribution("state_city_mapping.json")
 SELLER_STATE_DIST = load_distribution("seller_state_distribution.json")
 SELLER_ZIP_MAP = load_distribution("city_zip_mapping.json")
 
-def generate_seller():
+def generate_seller() -> dict:
+    """ Generate a seller record with realistic location data. """
     state = weighted_choice(SELLER_STATE_DIST)
     if state in CITY_DIST and CITY_DIST[state]:
         city = weighted_choice(CITY_DIST[state])

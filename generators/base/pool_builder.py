@@ -1,6 +1,6 @@
-from generators.base.pool_manger import save_pool
+from generators.base.pool_manager import save_pool
 
-def build_pool(generator_function, pool_name : str, size : int):
+def build_pool(generator_function, pool_name : str, size : int) -> list:
     pool = []
     for _ in range(size):
         pool.append(generator_function())

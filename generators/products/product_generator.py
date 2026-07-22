@@ -1,6 +1,6 @@
 import random
 from generators.base.generator_base import generate_id
-from generators.base.pool_manger import load_pool
+from generators.base.pool_manager import load_pool
 from generators.base.distribution_loader import (
     load_distribution,
     weighted_choice
@@ -47,9 +47,9 @@ WIDTH_STATS = load_distribution(
     "product_width_stats.json"
 )
 
-def generate_product():
+def generate_product() -> dict:
 
-    name_length = int(
+    name_length : int = int(
         max(
             1,
             random.normalvariate(
@@ -59,7 +59,7 @@ def generate_product():
         )
     )
     
-    description_length = int(
+    description_length : int = int(
         max(
             1,
             random.normalvariate(
@@ -68,7 +68,7 @@ def generate_product():
             )
         )
     )
-    photo_quantity = int(
+    photo_quantity : int = int(
         float(
             weighted_choice(
             PRODUCT_PHOTO_STATS
@@ -76,7 +76,7 @@ def generate_product():
         )
     )
     
-    weight = round(
+    weight : int = round(
     max(
         1,
         random.normalvariate(
@@ -86,7 +86,7 @@ def generate_product():
     )
 )
 
-    length = round(
+    length : int= round(
     max(
         1,
         random.normalvariate(
@@ -96,7 +96,7 @@ def generate_product():
     )
     )
 
-    height = round(
+    height :int = round(
     max(
         1,
         random.normalvariate(
@@ -106,7 +106,7 @@ def generate_product():
     )
     )
 
-    width = round(
+    width : int = round(
     max(
         1,
         random.normalvariate(
@@ -116,7 +116,6 @@ def generate_product():
     )
     )
 
-    seller = random.choice(SELLER_POOL)
     return {
         "product_id": generate_id(),
         "product_category_name": weighted_choice(PRODUCT_CATEGORY_DIST),
