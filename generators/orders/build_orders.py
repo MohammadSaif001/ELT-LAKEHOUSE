@@ -1,49 +1,107 @@
 from datetime import datetime
+from spark.common.logger import get_logger
 from generators.base.data_saving import save_generated_data
 from generators.base.data_loading import load_generated_data
 from generators.orders.order_generator import generate_order
 from generators.orders.order_item_generator import generate_order_items
 
+logger = get_logger("generators.orders.build_orders")
+
 # ==========================
 # Order Builder
 # ==========================
 
-def build_orders(output_dir)-> None:
+def build_orders(output_dir: str) -> None:
     """Generates order records and saves them to generated storage."""
-    orders :list = []
-    for _ in range(8000):
-        orders.append(generate_order())
-
-    save_generated_data(
-        orders,
-        "generated_orders_data.json",
-        output_dir
-    )
+    record_count : int = 8000
+    output_name : str = "generated_orders_data.json"
+    started_at : datetime = datetime.now()
+    
+    try:
+        logger.info(
+            "Starting order generation : records = %d, output_dir = %s",
+            record_count,
+            output_dir
+        )
+        
+        orders : list = [generate_order() for _ in range(record_count)]
+        
+        logger.info(
+            "Saving generated order dataset : records = %d , file = %s, output_dir = %s",
+            len(orders),
+            output_name,
+            output_dir
+        )
+        save_generated_data(orders, output_name, output_dir)
+        
+        duration_seconds : float = (datetime.now() - started_at).total_seconds()
+        
+        logger.info(
+            "Order dataset generated successfully: records = %d, path = %s/%s, duration = %.2f seconds",
+            len(orders),
+            output_dir,
+            output_name,
+            duration_seconds
+        )
+        
+    except Exception:
+        logger.exception(
+            "Order dataset generation failed: output_dir=%s",
+            output_dir,
+        )
+        raise
+    pass
 
 # ==========================
 # Order Item Builder
 # ==========================
 
 def build_order_items(output_dir: str) -> None:
-    """Generates order item records corresponding to existing orders and saves them."""
-    orders = load_generated_data(
-        "generated_orders_data.json"
-    )
-    all_order_items: list = []
-    for order in orders:
-        purchase_timestamp = datetime.strptime(
-            order["order_purchase_timestamp"],
-            "%Y-%m-%d %H:%M:%S"
+    """ Generates order item records corresponding to existing orders and saves them."""
+    
+    orders_file : str = "generated_orders_data.json"
+    output_file : str = "generated_order_items_data.json"
+    started_at : datetime = datetime.now()
+    
+    try:
+        logger.info("Loading orders : file = %s", orders_file)
+        orders = load_generated_data(orders_file)
+        
+        logger.info("Generating order items : records = %d", len(orders))
+        all_order_items: list = []
+        for order in orders:
+            purchase_timestamp : datetime = datetime.strptime(
+                order["order_purchase_timestamp"],
+                "%Y-%m-%d %H:%M:%S"
+            )
+            items : list = generate_order_items(
+                order_id=order["order_id"],
+                purchase_timestamp=purchase_timestamp
+            )
+            all_order_items.extend(items)
+            
+        logger.info(
+            "Saving order-item dataset : orders = %d , records = %d , file = %s, output_dir = %s",
+            len(all_order_items),
+            len(orders),
+            output_file,
+            output_dir
         )
-        items = generate_order_items(
-            order_id=order["order_id"],
-            purchase_timestamp=purchase_timestamp
+        save_generated_data(all_order_items, output_file, output_dir)
+        
+        duration_seconds : float = (datetime.now() - started_at).total_seconds()
+        logger.info(
+            "Order item dataset generated successfully: records = %d, path = %s/%s, duration = %.2f seconds",
+            len(all_order_items),
+            output_dir,
+            output_file,
+            duration_seconds
         )
-        all_order_items.extend(
-            items
+
+    except Exception:
+        logger.exception(
+            "Order item dataset generation failed: orders_file = %s, output_dir = %s",
+            orders_file,
+            output_dir,
         )
-    save_generated_data(
-        all_order_items,
-        "generated_order_items_data.json",
-        output_dir
-    )
+        raise

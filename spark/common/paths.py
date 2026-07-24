@@ -18,12 +18,9 @@ PAYMENTS_GENERATOR_DIR = GENERTORS_DIR / "payments"
 # Data
 # -------------------------
 DATA_DIR = PROJECT_ROOT / "data"
-
 RAW_DATA_DIR = DATA_DIR / "raw"
 PROFILING_DIR = DATA_DIR / "profiling"
 ORDER_ITEM_PROFILING_DIR = PROFILING_DIR / "order_item"
-#GENERATED_DIR = DATA_DIR / "generated"
-
 
 
 # -------------------------
@@ -61,12 +58,17 @@ def get_raw_data_path(filename: str) -> Path:
     # Returns the absolute path to a raw data file in the data/raw directory."""
     return RAW_DATA_DIR / filename
 
+#===============================
+# Logger
+#===============================
+
 def get_project_root() -> Path:
     """
-    # Returns the absolute path to the root 'data_engineering_project' folder."""
+    ### Returns the absolute path to the root 'data_engineering_project' folder."""
     return PROJECT_ROOT
 
 
 def get_config_path()-> Path:
-    """Returns absolute path to configs/db_config.json"""
+    """
+    ### Returns absolute path to configs/db_config.json"""
     return get_project_root() / "configs" / "db_config.json"
