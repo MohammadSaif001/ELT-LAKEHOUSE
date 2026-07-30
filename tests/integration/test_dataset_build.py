@@ -1,12 +1,12 @@
 import json
-from generators.build_dataset import main
+from generators.build_dataset import data_set_builder
 
 #========================
 # Test the build pipeline
 #========================
 def test_build_pipeline(tmp_path):
 
-    main(output_dir=tmp_path)
+    data_set_builder(output_dir=tmp_path)
     expected_files = [
         "generated_orders_data.json",
         "generated_order_items_data.json",

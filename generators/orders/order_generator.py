@@ -11,9 +11,10 @@ from generators.base.distribution_loader import(
     weighted_choice,
     random_from_list
 )
-CUSTOMER_POOL = load_pool(
-    "customer_pool.json"
-)
+def get_customer_pool() -> list[dict]:
+    return load_pool("customer_pool.json")
+
+
 ORDER_STATUS_DIST = load_distribution( 
     "order_status_distribution.json"
 )
@@ -97,7 +98,8 @@ def generate_estimated_delivery_date(purchase_timestamp: datetime) -> datetime:
     )
     return ( purchase_timestamp + timedelta(days=delay) )
 def get_customer_id() -> str:
-    customer : dict = random.choice(CUSTOMER_POOL)
+    customer_pool = get_customer_pool()
+    customer : dict = random.choice(customer_pool)
     return customer["customer_id"]
 
 def generate_order() -> dict:

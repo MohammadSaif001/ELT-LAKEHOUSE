@@ -34,3 +34,7 @@ storage/
 
 # diff
 *.diff
+
+# visua
+lib/
+visual

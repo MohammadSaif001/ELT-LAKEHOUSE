@@ -8,14 +8,14 @@ from generators.sellers.seller_pool import build_seller_pool
 
 logger = get_logger("generators.build_pool")
 
-def main() -> None:
+def build_pool() -> None:
     start_time : float = time.perf_counter()
     logger.info("Starting pool generation...")
     generators: list[tuple[str, Callable]]= [
         ("customers", build_customers_pool),
         ("customer locations", build_customer_location_pool),
-        ("products", build_product_pool),
         ("sellers", build_seller_pool),
+        ("products", build_product_pool),
     ]
     
     try:
@@ -30,4 +30,4 @@ def main() -> None:
     
     
 if __name__ == "__main__":
-    main()
+    build_pool()

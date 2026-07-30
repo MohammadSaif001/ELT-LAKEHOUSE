@@ -21,7 +21,7 @@ from generators.reviews.build_reviews import build_reviews
 
 logger = get_logger("generators.build_dataset")
 
-def main(output_dir: str = "storage/generated") -> None:
+def data_set_builder(output_dir: str = "storage/generated") -> None:
     start_time : float = time.perf_counter()
     output_path = Path(output_dir)
     logger.info(
@@ -52,4 +52,4 @@ def main(output_dir: str = "storage/generated") -> None:
     
 
 if __name__ == "__main__":
-    main()
+    data_set_builder()

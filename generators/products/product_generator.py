@@ -1,11 +1,9 @@
 import random
 from generators.base.generator_base import generate_id
-from generators.base.pool_manager import load_pool
 from generators.base.distribution_loader import (
     load_distribution,
     weighted_choice
 )
-from spark.common.paths import POOLS_DIR
 
 PRODUCT_CATEGORY_DIST = load_distribution(
     "product_category_distribution.json"
@@ -25,10 +23,6 @@ PRODUCT_DESCRIPTION_STATS = load_distribution(
 
 PRODUCT_PHOTO_STATS = load_distribution(
     "product_photos_qty_distribution.json"
-)
-
-SELLER_POOL = load_pool(
-    "seller_pool.json"
 )
 
 WEIGHT_STATS = load_distribution(
