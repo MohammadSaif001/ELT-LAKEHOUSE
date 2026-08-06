@@ -1,5 +1,6 @@
 from datetime import datetime
 from spark.common.logger import get_logger
+from config.config_loader import load_yaml
 from generators.base.data_saving import save_generated_data
 from generators.base.data_loading import load_generated_data
 from generators.orders.order_generator import generate_order
@@ -11,9 +12,10 @@ logger = get_logger("generators.orders.build_orders")
 # Order Builder
 # ==========================
 
+GEN_CONFIG = load_yaml("generator_config.yaml")["dataset_volume"]
 def build_orders(output_dir: str) -> None:
     """Generates order records and saves them to generated storage."""
-    record_count : int = 8000
+    record_count : int = GEN_CONFIG["orders"]
     output_name : str = "generated_orders_data.json"
     started_at : datetime = datetime.now()
     
@@ -60,12 +62,15 @@ def build_order_items(output_dir: str) -> None:
     """ Generates order item records corresponding to existing orders and saves them."""
     
     orders_file : str = "generated_orders_data.json"
+    products_file : str = "generated_products_data.json"
     output_file : str = "generated_order_items_data.json"
     started_at : datetime = datetime.now()
     
     try:
         logger.info("Loading orders : file = %s", orders_file)
-        orders = load_generated_data(orders_file)
+        orders = load_generated_data(orders_file, base_dir=output_dir)
+        logger.info("Loading products : file = %s", products_file)
+        products = load_generated_data(products_file, base_dir=output_dir)
         
         logger.info("Generating order items : records = %d", len(orders))
         all_order_items: list = []
@@ -77,6 +82,8 @@ def build_order_items(output_dir: str) -> None:
             items : list = generate_order_items(
                 order_id=order["order_id"],
                 purchase_timestamp=purchase_timestamp
+                ,
+                products=products,
             )
             all_order_items.extend(items)
             

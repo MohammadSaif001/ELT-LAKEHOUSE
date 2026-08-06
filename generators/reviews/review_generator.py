@@ -1,4 +1,5 @@
 import random
+from config.config_loader import load_yaml
 from datetime import datetime, timedelta
 from generators.base.generator_base import generate_id
 from generators.base.distribution_loader import (
@@ -8,6 +9,8 @@ from generators.base.distribution_loader import (
 
 # Load review score distribution
 raw_score_dist = load_distribution("review_score_distribution.json")
+
+GEN_REVIEW_CONFIG = load_yaml("generator_config.yaml")["reviews"]
 
 # Filter score distribution keys 
 
@@ -21,57 +24,37 @@ SCORE_DIST = {key: value/ total_weight for key,
             value in SCORE_DIST.items()}
 
 
-POSITIVE :list[tuple[str,str]] = [
-    (
-        "Great purchase",
-        "Product arrived on time and quality was excellent."
-    ),
-    (
-        "Excellent seller",
-        "Everything arrived as expected."
-    )
-]
-
-NEGATIVE :list[tuple[str,str]] = [
-    (
-        "Poor experience",
-        "Delivery was delayed and product quality was poor."
-    ),
-    (
-        "Disappointed",
-        "Item was different from the description."
-    )
-]
-
-NEUTRAL_REVIEWS :list[tuple[str,str]] = [
-    (
-        "Average experience",
-        "Product is okay"
-    ),
-    (
-        "Expected better",
-        "Nothing special"
-    )
-    ]
-
 def generate_review(order: dict) -> dict:
     """
     Generates a review record for a delivered order.
     """
+    def select_template(template_group: list[dict[str, str]]) -> tuple[str, str]:
+        template = random.choice(template_group)
+        return template["title"], template["message"]
+
     score : int = int(weighted_choice(SCORE_DIST))
-    if score >= 4:
-        title,message = random.choice(POSITIVE)
-    elif score == 3:
-        title, message = random.choice(NEUTRAL_REVIEWS)
+    if score >= GEN_REVIEW_CONFIG["positive_score_threshold"]:
+        title, message = select_template(GEN_REVIEW_CONFIG["templates"]["positive"])
+    elif score == GEN_REVIEW_CONFIG["neutral_score"]:
+        title, message = select_template(GEN_REVIEW_CONFIG["templates"]["neutral"])
     else:
-        title, message = random.choice(NEGATIVE)
-        
-    # review_creation_date is 1 to 3 days after customer delivery date
-    delivered_date_str = order["order_delivered_customer_date"]
+        title, message = select_template(GEN_REVIEW_CONFIG["templates"]["negative"])
+
+    delivered_date_str = (
+        order.get("order_delivered_customer_date")
+        or order.get("order_estimated_delivery_date")
+        or order.get("order_purchase_timestamp")
+    )
+
+    if not delivered_date_str:
+        raise ValueError(
+            f"Cannot generate review for order {order.get('order_id')}: missing delivery timestamp"
+        )
+
     delivered_dt : datetime = datetime.strptime(delivered_date_str, "%Y-%m-%d %H:%M:%S")
     
-    creation_dt : datetime = delivered_dt + timedelta(days=random.randint(1, 3))
-    answer_dt : datetime = creation_dt + timedelta(days=random.randint(1, 4))
+    creation_dt : datetime = delivered_dt + timedelta(days=random.randint(*GEN_REVIEW_CONFIG["creation_delay_days"]))
+    answer_dt : datetime = creation_dt + timedelta(days=random.randint(*GEN_REVIEW_CONFIG["answer_delay_days"]))
     
     return {
         "review_id": generate_id(),

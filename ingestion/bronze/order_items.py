@@ -1,6 +1,7 @@
 from pyspark.sql import SparkSession
+from config.config_loader import load_yaml
 from spark.common.logger import get_logger
-from ingestion.common.ingestor import ingestor
+from ingestion.core.ingestor import ingestor
 
 
 
@@ -8,6 +9,7 @@ logger = get_logger("ingestion.bronze.order_items")
 
 INPUT_PATH = "storage/generated/generated_order_items_data.json"
 OUTPUT_PATH = "storage/bronze/order_items_delta"
+GEN_CONFIG = load_yaml("spark_config.yaml")["spark"]["bronze"]
 
 def ingest_order_items(spark : SparkSession) -> None:
     """Ingest generated order items JSON data into a Bronze Delta table."""
@@ -24,7 +26,7 @@ def ingest_order_items(spark : SparkSession) -> None:
             input_path=INPUT_PATH,
             output_path=OUTPUT_PATH,
             spark=spark,
-            mode="overwrite",
+            mode=GEN_CONFIG["mode"],
         )
 
         logger.info(
