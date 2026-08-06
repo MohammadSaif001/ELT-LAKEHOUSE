@@ -8,6 +8,9 @@ from generators.sellers.seller_pool import build_seller_pool
 
 logger = get_logger("generators.build_pool")
 
+#==========================
+        #Build Pool
+#==========================
 def build_pool() -> None:
     start_time : float = time.perf_counter()
     logger.info("Starting pool generation...")

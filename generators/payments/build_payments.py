@@ -1,5 +1,6 @@
 from time import perf_counter
 from spark.common.logger import get_logger
+from config.config_loader import load_yaml
 from generators.base.data_loading import load_generated_data
 from generators.base.data_saving import save_generated_data
 from generators.payments.payment_generator import generate_payment
@@ -10,12 +11,15 @@ logger = get_logger("generators.payments.build_payments")
 # Payment Builder
 #=========================
 
+GEN_CONFIG = load_yaml("generator_config.yaml")["payments"]
+
 def build_payments(output_dir: str) -> None:
     """Generate payment records for generated orders and save them."""
     orders_file : str = "generated_orders_data.json"
     order_items_file : str = "generated_order_items_data.json"
     output_file : str = "generated_payments_data.json"
     started_at : float = perf_counter()
+    FALLBACK_TOTAL : int = GEN_CONFIG["fallback_total_value"]
 
     try:
         logger.info(
@@ -23,8 +27,8 @@ def build_payments(output_dir: str) -> None:
             orders_file,
             order_items_file,
         )
-        orders = load_generated_data(orders_file)
-        order_items = load_generated_data(order_items_file)
+        orders = load_generated_data(orders_file, base_dir=output_dir)
+        order_items = load_generated_data(order_items_file, base_dir=output_dir)
 
         logger.info(
             "Calculating order totals: orders = %d, order_items = %d",
@@ -46,7 +50,7 @@ def build_payments(output_dir: str) -> None:
             total_value = order_totals.get(order_id, 0.0)
 
             if total_value <= 0:
-                total_value = 20.0
+                total_value = FALLBACK_TOTAL
                 fallback_count += 1
 
             payments.append(generate_payment(order, total_value))
