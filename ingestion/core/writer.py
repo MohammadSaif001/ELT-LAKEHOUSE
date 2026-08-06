@@ -12,19 +12,20 @@ logger = get_logger("ingestion.common.writer")
 def write_delta(df : DataFrame, output_path : str , mode : str = "overwrite") -> None:
     """Write a Spark DataFrame to Delta Lake format."""
     try:
+        DATAFRAME_LENGTH = len(df.columns)
         logger.info(
             "Writing DataFrame to Delta Lake: path=%s, mode=%s, columns=%d",
             output_path, 
             mode,
-            len(df.columns)
+            DATAFRAME_LENGTH
         )
 
         df.write.format("delta").mode(mode).save(output_path)
 
         logger.info(
-            "DataFrame written to Delta Lake: path=%s, rows=%d",
+            "DataFrame written to Delta Lake: path=%s, columns=%d",
             output_path,
-            df.count(),
+            DATAFRAME_LENGTH
         )
 
     except Exception:

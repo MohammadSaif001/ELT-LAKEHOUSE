@@ -29,7 +29,7 @@ def ingestor(
         pass
     except Exception:
         logger.exception(
-            "Error occurred while ingesting data: input_path=%s, output_path=%s, error=%s",
+            "Error occurred while ingesting data: input_path=%s, output_path=%s",
             input_path,
             output_path,
         )
