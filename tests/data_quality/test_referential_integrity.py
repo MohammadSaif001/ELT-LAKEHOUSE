@@ -49,18 +49,18 @@ def test_customer_geolocation_fk() -> None: #3
         )
         
 def test_order_item_product_fk() -> None: #4
-    orders = load_generated_data("generated_orders_data.json")
+    products = load_generated_data("generated_products_data.json")
     order_items = load_generated_data("generated_order_items_data.json")
     
-    order_ids:set[str] = {
-        order["order_id"]
-        for order in orders
+    product_ids:set[str] = {
+        product["product_id"]
+        for product in products
     }
     
-    for item in order_items     :
+    for item in order_items:
         assert (
-            item["order_id"]
-            in order_ids
+            item["product_id"]
+            in product_ids
         )
         
 def test_payment_order_fk()-> None: #5
