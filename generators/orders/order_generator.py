@@ -1,77 +1,87 @@
-import json
 import random
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
+from config.config_loader import load_yaml
+from generators.base.pool_manager import load_pool
 from generators.base.generator_base import generate_id
-from generators.base.pool_manager import (
-    load_pool,
-)
 from generators.base.distribution_loader import(
     load_distribution,
     weighted_choice,
     random_from_list
 )
+
+# Order status distribution
+ORDER_STATUS_DIST = load_distribution("order_status_distribution.json")
+
+# Order purchase timestamp hours distributions
+ORDER_PURCHASE_TIMESTAMP_HOURS = load_distribution("order_purchase_hours_distribution.json")
+
+# Order purchase timestamp weekday distributions
+ORDER_PURCHASE_TIMESTAMP_WEEKDAYS = load_distribution("order_purchase_weekdays_distribution.json")
+
+# Order purchase timestamp month distributions
+ORDER_PURCHASE_TIMESTAMP_MONTHS = load_distribution("order_purchase_month_distribution.json")
+
+# Order estimated delivery delay distribution
+ORDER_ESTIMATED_DELIVERY_DELAY_DIST = load_distribution("order_estimated_delivery_delay_distribution.json")
+
+# Order carrier delay distribution
+ORDER_CARRIER_DELAY_DIST = load_distribution("order_carrier_delay_distribution.json")
+
+# Order delivery delay distribution
+ORDER_DELIVERY_DELAY_DIST = load_distribution( "order_delivery_delay_distribution.json")
+
+# Order approval delay distribution
+ORDER_APPROVED_STATS = load_distribution("order_approval_delay_stats.json")
+
+GEN_CONFIG = load_yaml("generator_config.yaml")
+
+GEN_CONFIG_STATUS = GEN_CONFIG["order_status"]
+
+DELAY_MODELS = GEN_CONFIG["delay_models"]
+
 def get_customer_pool() -> list[dict]:
     return load_pool("customer_pool.json")
 
-
-ORDER_STATUS_DIST = load_distribution( 
-    "order_status_distribution.json"
-)
-ORDER_PURCHASE_TIMESTAMP_HOURS = load_distribution( 
-    "order_purchase_hours_distribution.json"
-)
-ORDER_PURCHASE_TIMESTAMP_WEEKDAYS = load_distribution( 
-    "order_purchase_weekdays_distribution.json"
-)
-ORDER_PURCHASE_TIMESTAMP_MONTHS = load_distribution( 
-    "order_purchase_month_distribution.json"
-)
-ORDER_ESTIMATED_DELIVERY_DELAY_DIST = load_distribution( 
-    "order_estimated_delivery_delay_distribution.json"
-)
-ORDER_CARRIER_DELAY_DIST = load_distribution( 
-    "order_carrier_delay_distribution.json"
-)
-ORDER_DELIVERY_DELAY_DIST = load_distribution( 
-    "order_delivery_delay_distribution.json"
-)
-
-ORDER_APPROVED_STATS = load_distribution(
-    "order_approval_delay_stats.json"
-)
 def generate_order_purchase_timestamp()-> datetime:
     target_weekday = weighted_choice(ORDER_PURCHASE_TIMESTAMP_WEEKDAYS)
-    weekday_map = {
+    weekday_map : dict[str, int] = {
         "Monday": 0, "Tuesday": 1, "Wednesday": 2, "Thursday": 3,
         "Friday": 4, "Saturday": 5, "Sunday": 6
     }
-    target_val = weekday_map[target_weekday]
+    target_val: int = weekday_map[target_weekday]
 
-    year = random_from_list([2025, 2026])
-    month : int = int(weighted_choice(ORDER_PURCHASE_TIMESTAMP_MONTHS))
-    day : int  = random.randint(1, 28)
+    YEARS : int = random_from_list(GEN_CONFIG["generation"]["years"])
+    MONTH : int = int(weighted_choice(ORDER_PURCHASE_TIMESTAMP_MONTHS))
+    DAYS : int  = random.randint(
+        GEN_CONFIG["generation"]["day_of_month"][0], 
+        GEN_CONFIG["generation"]["day_of_month"][1]
+        )
     
-    hour = int(weighted_choice(ORDER_PURCHASE_TIMESTAMP_HOURS))
-    minute : int = random.randint(0, 59)
-    second : int = random.randint(0, 59)
+    HOUR = int(weighted_choice(ORDER_PURCHASE_TIMESTAMP_HOURS))
+    MINUTE : int = random.randint(0, 59)
+    SECOND : int = random.randint(0, 59)
 
-    dt : datetime = datetime(year, month, day, hour, minute, second)
+    dt : datetime = datetime(YEARS, MONTH, DAYS, HOUR, MINUTE, SECOND)
     current_val : int = dt.weekday()
     diff : int = target_val - current_val
-    dt = dt + timedelta(days=diff)
-
+    DATE : datetime = dt + timedelta(days=diff)
+    DAYS : int = GEN_CONFIG["generation"]["cutoff_step_days"]
     # Cutoff at current local time June 21, 2026
-    cutoff : datetime = datetime(2026, 6, 21, 13, 30)
-    while dt > cutoff:
-        dt = dt - timedelta(days=364) # 52 weeks preserves weekday
+    CUTOFF : datetime = datetime.fromisoformat(GEN_CONFIG["generation"]["cutoff"])
+    while DATE > CUTOFF:
+        DATE = DATE - timedelta(days=DAYS) # 52 weeks preserves weekday
 
-    return dt
+    return DATE
 
 def generate_approved_timestamp(purchase_timestamp: datetime) -> datetime:
     # Lognormal distribution: mean 10.42, std 26.04 -> mu = 1.35, sigma = 1.4
-    delay_hours : int = round(random.lognormvariate(1.35, 1.4))
-    delay_hours : int = max(1, min(720, delay_hours)) # Bound it to at most 30 days
+    MU = DELAY_MODELS["approved_delay"]["lognormal_mu"]
+    SIGMA = DELAY_MODELS["approved_delay"]["lognormal_sigma"]
+    MIN_HOURS = DELAY_MODELS["approved_delay"]["min_hours"]
+    MAX_HOURS = DELAY_MODELS["approved_delay"]["max_hours"]
+
+    delay_hours : int = round(random.lognormvariate(MU, SIGMA))
+    delay_hours : int = max(MIN_HOURS, min(MAX_HOURS, delay_hours)) # Bound it to at most 30 days
     return purchase_timestamp + timedelta(hours=delay_hours)
     
 def generate_delivered_carrier_date(approved_at : datetime) -> datetime:
@@ -119,21 +129,17 @@ def generate_order() -> dict:
     # Estimated delivery date always exists for all orders
     estimated_delivery_date = (generate_estimated_delivery_date(purchase_timestamp))
 
-    if order_status in ["approved","processing",
-                        "invoiced","shipped", "delivered"
-]:
+    if order_status in GEN_CONFIG_STATUS["approved_or_later"]:
 
         approved_at = generate_approved_timestamp(purchase_timestamp)
 
-    if order_status in [
-        "shipped","delivered"
-    ]:
+    if order_status in GEN_CONFIG_STATUS["shipped_or_later"]:
 
         delivered_carrier_date = (
             generate_delivered_carrier_date(approved_at) #type: ignore
         )
 
-    if order_status == "delivered":
+    if order_status in GEN_CONFIG_STATUS["delivered"]:
 
         delivered_customer_date = (
             generate_delivered_customer_date(delivered_carrier_date) #type: ignore
@@ -163,5 +169,10 @@ def generate_order() -> dict:
             estimated_delivery_date.strftime("%Y-%m-%d %H:%M:%S")
             if estimated_delivery_date else None,
     }
+    
+if __name__ == "__main__":
+    # Example usage
+    order = generate_order()
+    print(order)
 
 
