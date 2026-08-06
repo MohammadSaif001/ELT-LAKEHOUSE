@@ -1,51 +1,36 @@
 import random
+from config.config_loader import load_yaml
 from generators.base.generator_base import generate_id
 from generators.base.distribution_loader import (
     load_distribution,
     weighted_choice
 )
 
-PRODUCT_CATEGORY_DIST = load_distribution(
-    "product_category_distribution.json"
-)
+PRODUCT_CATEGORY_DIST = load_distribution("product_category_distribution.json")
 
-PRODUCT_WEIGHT_STATS = load_distribution(
-    "product_weight_distribution.json"
-)
+PRODUCT_WEIGHT_STATS = load_distribution("product_weight_distribution.json")
 
-PRODUCT_NAME_STATS = load_distribution(
-    "product_name_length_stats.json"
-)
+PRODUCT_NAME_STATS = load_distribution("product_name_length_stats.json")
 
-PRODUCT_DESCRIPTION_STATS = load_distribution(
-    "product_description_length_stats.json"
-)
+PRODUCT_DESCRIPTION_STATS = load_distribution("product_description_length_stats.json")
 
-PRODUCT_PHOTO_STATS = load_distribution(
-    "product_photos_qty_distribution.json"
-)
+PRODUCT_PHOTO_STATS = load_distribution("product_photos_qty_distribution.json")
 
-WEIGHT_STATS = load_distribution(
-    "product_weight_stats.json"
-)
+WEIGHT_STATS = load_distribution("product_weight_stats.json")
 
-LENGTH_STATS = load_distribution(
-    "product_length_stats.json"
-)
+LENGTH_STATS = load_distribution("product_length_stats.json")
 
-HEIGHT_STATS = load_distribution(
-    "product_height_stats.json"
-)
+HEIGHT_STATS = load_distribution("product_height_stats.json")
 
-WIDTH_STATS = load_distribution(
-    "product_width_stats.json"
-)
+WIDTH_STATS = load_distribution("product_width_stats.json")
+
+GEN_DIMENSION_CONFIG = load_yaml("generator_config.yaml")["product_dimensions"]
 
 def generate_product() -> dict:
 
     name_length : int = int(
         max(
-            1,
+            GEN_DIMENSION_CONFIG["min_value"],
             random.normalvariate(
                 PRODUCT_NAME_STATS["mean"],
                 PRODUCT_NAME_STATS["std"]
@@ -55,7 +40,7 @@ def generate_product() -> dict:
     
     description_length : int = int(
         max(
-            1,
+            GEN_DIMENSION_CONFIG["min_value"],
             random.normalvariate(
                 PRODUCT_DESCRIPTION_STATS["mean"],
                 PRODUCT_DESCRIPTION_STATS["std"]
@@ -72,7 +57,7 @@ def generate_product() -> dict:
     
     weight : int = round(
     max(
-        1,
+        GEN_DIMENSION_CONFIG["min_value"],
         random.normalvariate(
             WEIGHT_STATS["mean"],
             WEIGHT_STATS["std"]
@@ -82,7 +67,7 @@ def generate_product() -> dict:
 
     length : int= round(
     max(
-        1,
+        GEN_DIMENSION_CONFIG["min_value"],
         random.normalvariate(
             LENGTH_STATS["mean"],
             LENGTH_STATS["std"]
@@ -92,7 +77,7 @@ def generate_product() -> dict:
 
     height :int = round(
     max(
-        1,
+        GEN_DIMENSION_CONFIG["min_value"],
         random.normalvariate(
             HEIGHT_STATS["mean"],
             HEIGHT_STATS["std"]
@@ -102,7 +87,7 @@ def generate_product() -> dict:
 
     width : int = round(
     max(
-        1,
+        GEN_DIMENSION_CONFIG["min_value"],
         random.normalvariate(
             WIDTH_STATS["mean"],
             WIDTH_STATS["std"]

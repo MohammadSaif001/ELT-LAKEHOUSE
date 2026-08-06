@@ -3,7 +3,6 @@ Order items generator.
 Uses Olist-derived distributions and mappings to
 produce realistic order item records.
 """
-import json
 import random
 from datetime import datetime, timedelta
 from generators.base.generator_base import generate_id
@@ -14,32 +13,22 @@ from generators.base.distribution_loader import (
 )
 
 # Price statistics
-PRICE_STATS = load_distribution(
-    "order_price_stats.json"
-)
+PRICE_STATS = load_distribution("order_price_stats.json")
 
 # Freight statistics
-FREIGHT_STATS = load_distribution(
-    "order_freight_value_stats.json"
-)
+FREIGHT_STATS = load_distribution("order_freight_value_stats.json")
 
 # Items per order distribution
-ITEMS_PER_ORDER_DIST = load_distribution(
-    "items_per_order_distribution.json"
-)
+ITEMS_PER_ORDER_DIST = load_distribution("items_per_order_distribution.json")
 
 # Shipping delay statistics
-SHIPPING_STATS = load_distribution(
-    "order_shipping_delay_stats.json"
-)
+SHIPPING_STATS = load_distribution("order_shipping_delay_stats.json")
 
-PRODUCT_POOL = load_pool(
-    "product_pool.json"
-)
+# Product pool
+PRODUCT_POOL = load_pool("product_pool.json")
 
-SELLER_POOL = load_pool(
-    "seller_pool.json"
-)
+# Seller pool
+SELLER_POOL = load_pool("seller_pool.json")
 
 def price_generator() -> float:
     """
@@ -127,16 +116,20 @@ def freight_value_generator() -> float:
         max(0.0, freight),2
     )
 
-def get_product():
-    return random.choice(
-        PRODUCT_POOL
-    )
+def get_product(products: list[dict] | None = None):
+    pool = products if products is not None else PRODUCT_POOL
+    return random.choice(pool)
 
-def generate_order_item(order_id: str,order_item_id: int,purchase_timestamp: datetime) -> dict:
+def generate_order_item(
+    order_id: str,
+    order_item_id: int,
+    purchase_timestamp: datetime,
+    products: list[dict] | None = None,
+) -> dict:
     """
     Generates a single order item record.
     """
-    product = get_product()
+    product = get_product(products)
     seller = random.choice(SELLER_POOL)
     return {
         "order_id": order_id,
@@ -158,7 +151,11 @@ def generate_order_item(order_id: str,order_item_id: int,purchase_timestamp: dat
     }
 
 
-def generate_order_items(order_id: str,purchase_timestamp: datetime) -> list[dict]:
+def generate_order_items(
+    order_id: str,
+    purchase_timestamp: datetime,
+    products: list[dict] | None = None,
+) -> list[dict]:
     """
     Generates all order items belonging
     to a single order.
@@ -173,6 +170,8 @@ def generate_order_items(order_id: str,purchase_timestamp: datetime) -> list[dic
             order_id=order_id,
             order_item_id=item_id,
             purchase_timestamp=purchase_timestamp
+            ,
+            products=products,
         )
         for item_id in range(
             1,

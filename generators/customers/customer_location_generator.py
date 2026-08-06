@@ -4,6 +4,7 @@ Uses Olist-derived distributions and mappings to
 produce realistic geolocation records.
 """
 import random
+from config.config_loader import load_yaml
 from generators.base.distribution_loader import load_distribution
 
 
@@ -18,6 +19,8 @@ state_city_map = load_distribution("state_city_mapping.json")
 #! city coordinate map
 city_coordinate_map = load_distribution("city_coordinate_mapping.json")
 
+config = load_yaml("generator_config.yaml")["location_defaults"]
+
 def generate_customer_location(customer: dict) -> dict:
 
     city : str = customer["customer_city"]
@@ -28,9 +31,15 @@ def generate_customer_location(customer: dict) -> dict:
         if valid_cities:
             coords = city_coordinate_map[random.choice(valid_cities)]
         else:
-            coords : dict = {"geolocation_lat": -23.5505, "geolocation_lng": -46.6333}
+            fallback_coords = config.get("fallback_cordinates", {})
+            coords : dict = {
+                "geolocation_lat": fallback_coords.get("lat", 0.0),
+                "geolocation_lng": fallback_coords.get("long", 0.0),
+            }
     else:
         coords : dict = city_coordinate_map[city]
+
+    jitter = config.get("jitter_degrees", 0.0)
 
     return {
         "customer_id":customer["customer_id"],
@@ -39,9 +48,9 @@ def generate_customer_location(customer: dict) -> dict:
         "geolocation_state":customer["customer_state"],
 
         "geolocation_lat":coords["geolocation_lat"]
-            + random.uniform(-0.02,0.02),
+            + random.uniform(-jitter, jitter),
 
         "geolocation_lng":coords["geolocation_lng"]
-            + random.uniform(-0.02,0.02)
+            + random.uniform(-jitter, jitter)
     }
     
