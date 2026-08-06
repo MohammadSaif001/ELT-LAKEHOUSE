@@ -23,7 +23,7 @@ def build_reviews(output_dir: str) -> None:
             "Loading generated orders : file = %s",
             orders_file
         )
-        orders = load_generated_data(orders_file)
+        orders = load_generated_data(orders_file, base_dir=output_dir)
         
         delivered_orders : list  = [order for order in orders if order["order_status"] == "delivered"]
 
