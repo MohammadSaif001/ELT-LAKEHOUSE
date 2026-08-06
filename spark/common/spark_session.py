@@ -2,8 +2,6 @@ from pyspark.sql import SparkSession
 from spark.common.logger import get_logger
 from config.config_loader import load_yaml
 
-CONFIG = load_yaml("spark_config.yaml")
-
 logger   = get_logger("spark.common.spark_session")
 
 
@@ -14,12 +12,12 @@ logger   = get_logger("spark.common.spark_session")
 def create_spark_session(app_name: str | None = None) -> SparkSession:
     """Create and return a Spark session configured for Delta Lake."""
     try:
-        config = load_yaml("spark_config.yaml")
-        spark_config = config["spark"]
+        CONFIG = load_yaml("spark_config.yaml")
+        spark_config = CONFIG["spark"]
 
         resolved_app_name = app_name or spark_config.get("app_name", "Modern Lakehouse")
 
-        # Prefer structured keys under `sql` in config (`sql.shuffle_partitions`, `sql.timezone`).
+        # Prefer structured keys under `sql` in config for better organization
         sql_config = spark_config.get("sql", {})
         shuffle_partitions = sql_config.get("shuffle_partitions", 200)
         session_timezone = sql_config.get("timezone", "UTC")
@@ -45,10 +43,7 @@ def create_spark_session(app_name: str | None = None) -> SparkSession:
             .config("spark.sql.shuffle.partitions", shuffle_partitions)
             .config("spark.sql.session.timeZone", session_timezone)
         )
-
         
-        # Attempt to use the Python `delta` helper if available; otherwise
-        # fall back to adding the Delta Spark package via Maven coordinates.
         try:
             from delta import configure_spark_with_delta_pip as configure_delta
         except Exception:

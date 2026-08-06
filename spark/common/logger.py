@@ -1,6 +1,7 @@
 import logging 
 import logging.config
 from pathlib import Path
+from spark.common.paths import PROJECT_ROOT
 
 import yaml 
 _CONFIG_LOADED = False
@@ -19,7 +20,10 @@ def _setup_logging() -> None:
     if _CONFIG_LOADED:
         return
     
-    config_path  = Path("config/logging_config.yaml")
+    config_path  = PROJECT_ROOT / "config" / "logging_config.yaml"
+    
+    if not config_path.is_file():
+        raise FileNotFoundError(f"Logging configuration file not found: {config_path}")
     
     with open(config_path, "r") as file:
         config = yaml.safe_load(file)

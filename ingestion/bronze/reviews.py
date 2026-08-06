@@ -1,12 +1,14 @@
 from pyspark.sql import SparkSession
+from config.config_loader import load_yaml
 from spark.common.logger import get_logger
-from ingestion.common.ingestor import ingestor
+from ingestion.core.ingestor import ingestor
 
 
 logger = get_logger("ingestion.bronze.reviews")
 
 INPUT_PATH = "storage/generated/generated_reviews_data.json"
 OUTPUT_PATH = "storage/bronze/reviews_delta"
+GEN_CONFIG = load_yaml("spark_config.yaml")["spark"]["bronze"]
 
 def ingest_reviews(spark : SparkSession) -> None:
     """Ingest generated reviews JSON data into a Bronze Delta table."""
@@ -22,7 +24,7 @@ def ingest_reviews(spark : SparkSession) -> None:
             input_path=INPUT_PATH,
             output_path=OUTPUT_PATH,
             spark=spark,
-            mode="overwrite",
+            mode=GEN_CONFIG["mode"],
         )
 
         logger.info(
