@@ -1,11 +1,10 @@
 import time
 from collections.abc import Callable
 from spark.common.logger import get_logger
+from generators.sellers.seller_pool import build_seller_pool
+from generators.products.product_pool import build_product_pool
 from generators.customers.customer_pool import build_customers_pool
 from generators.customers.customer_location_pool import build_customer_location_pool
-from generators.products.product_pool import build_product_pool
-from generators.sellers.seller_pool import build_seller_pool
-
 logger = get_logger("generators.build_pool")
 
 #==========================

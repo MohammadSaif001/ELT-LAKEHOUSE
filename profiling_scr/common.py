@@ -11,13 +11,13 @@ def load_csv(file_name: str) -> pd.DataFrame:
 
     if file_name == "olist_order_reviews_dataset.csv":
         with csv_path.open("r", encoding="utf-8") as handle:
-            lines = [line.rstrip("\n") for line in handle if line.strip()]
+            lines : list[str] = [line.rstrip("\n") for line in handle if line.strip()]
 
         if not lines:
             return pd.DataFrame()
 
-        header = next(csv.reader([lines[0]], skipinitialspace=True))
-        rows = []
+        header : list[str] = next(csv.reader([lines[0]], skipinitialspace=True))
+        rows : list[list[str]] = []
         for line in lines[1:]:
             try:
                 row = next(csv.reader([line], skipinitialspace=True))

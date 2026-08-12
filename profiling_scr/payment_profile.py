@@ -49,7 +49,7 @@ def build_payment_profiles() -> None:
     )
     save_profile(
         payment_installment,
-        "payment_installments_distribution.json",
+        "payment_installment_distribution.json",
     )
     logger.info("Generated payment installments distribution")
     

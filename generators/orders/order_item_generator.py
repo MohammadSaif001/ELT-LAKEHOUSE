@@ -125,12 +125,20 @@ def generate_order_item(
     order_item_id: int,
     purchase_timestamp: datetime,
     products: list[dict] | None = None,
+    sellers : list[dict] | None = None,
+    product: dict | None = None,
 ) -> dict:
     """
     Generates a single order item record.
     """
-    product = get_product(products)
-    seller = random.choice(SELLER_POOL)
+    product =(
+        product if product is not None else get_product(products)
+    )
+    seller_pool = (
+        sellers if sellers is not None 
+        else SELLER_POOL
+    )
+    seller = random.choice(seller_pool)
     return {
         "order_id": order_id,
         "order_item_id": order_item_id,
@@ -150,11 +158,15 @@ def generate_order_item(
             freight_value_generator()
     }
 
+#=======================
+# Generate Order Items
+#=======================
 
 def generate_order_items(
     order_id: str,
     purchase_timestamp: datetime,
     products: list[dict] | None = None,
+    sellers: list[dict] | None = None,
 ) -> list[dict]:
     """
     Generates all order items belonging
@@ -165,6 +177,12 @@ def generate_order_items(
                 (ITEMS_PER_ORDER_DIST)
     )
 
+    product_pool :list[dict] = products if products is not None else PRODUCT_POOL
+    selected_products :list[dict] = random.sample(
+        product_pool,
+        k = min(num_items, len(product_pool)),
+    )
+
     return [
         generate_order_item(
             order_id=order_id,
@@ -172,11 +190,10 @@ def generate_order_items(
             purchase_timestamp=purchase_timestamp
             ,
             products=products,
+            sellers=sellers,
+            product=product,
         )
-        for item_id in range(
-            1,
-            num_items + 1
-        )
+        for item_id, product in enumerate(selected_products, start=1)
     ]
 
 if __name__ == "__main__":

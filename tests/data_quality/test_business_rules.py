@@ -1,4 +1,5 @@
 from datetime import datetime
+from turtle import st
 from generators.base.data_loading import load_generated_data
 
 
@@ -52,15 +53,20 @@ def test_order_have_at_least_one_item() -> None:
     
     orders = load_generated_data("generated_orders_data.json")
     order_items = load_generated_data("generated_order_items_data.json")
-    item_order_ids = [
-        item["order_id"] 
-        for item in order_items
-    ]
-    for order in orders:
-        if order["order_status"] != "canceled":
-            assert order["order_id"] in item_order_ids,(
-            f"Order {order['order_id']} has no items."
-        )
+    
+    order_ids :set[str]= {
+        order["order_id"] for order in orders
+    }
+    
+    order_ids_with_items : set[str] = {
+        item["order_id"] for item in order_items
+    }
+    
+    missing_order_ids : set[str] = order_ids - order_ids_with_items
+    assert not missing_order_ids,(
+        f"Orders with no items: {missing_order_ids}"
+    )
+    
     
 def test_purchase_timestamps_are_valid() -> None:
     orders = load_generated_data("generated_orders_data.json")

@@ -305,4 +305,4 @@ def build_order_profiles() -> None:
         "order_shipping_delay_stats.json",
     )
     
-    logger.info("Generated order shipping delay stats") 
+    logger.info("Generated order shipping delay stats")

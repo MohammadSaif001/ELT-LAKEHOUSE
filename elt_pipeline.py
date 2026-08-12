@@ -3,12 +3,16 @@
 - It ingests the generated data into Bronze Delta tables 
 """
 import time
-from generators.build_pool  import build_pool
-from generators.build_dataset import data_set_builder
-from ingestion.bronze.run import bronze_runner
 from spark.common.logger import get_logger
+from generators.build_pool  import build_pool
+from ingestion.bronze.run import bronze_runner
+from generators.build_dataset import data_set_builder
 
 logger = get_logger("elt_pipeline")
+
+#==========================
+        #ELT Pipeline
+#==========================
 
 def main()-> None:
     """ Run the ELT pipeline."""
@@ -18,7 +22,9 @@ def main()-> None:
         
         # Generate synthetic data
         build_pool()
-        # data_set_builder()
+        
+        # Generate datasets from the synthetic data
+        data_set_builder()
         
         # Ingest data into Bronze Delta tables
         bronze_runner()

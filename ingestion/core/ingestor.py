@@ -1,8 +1,8 @@
 from spark.common.logger import get_logger
-from ingestion.common.reader import read_json 
-from ingestion.common.writer import write_delta
+from ingestion.core.reader import read_json 
+from ingestion.core.writer import write_delta
 
-logger = get_logger("ingestion.common.ingestor")
+logger = get_logger("ingestion.core.ingestor")
 
 def ingestor(
     input_path: str,

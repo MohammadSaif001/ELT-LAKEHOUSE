@@ -141,3 +141,24 @@ def build_order_item_profiles() -> None:
         "order_shipping_month_distribution.json",
     )
     logger.info("Generated order shipping month distribution")
+    
+    #=============================
+    # Order Price Statistics
+    #=============================
+    order_stat = {
+    "mean_price" : float(order_items["price"].mean()),
+    "median_price" : float(order_items["price"].median()),
+    "std_price" : float(order_items["price"].std()),
+    "min_price" : float(order_items["price"].min()),
+    "max_price" : float(order_items["price"].max()),
+    "p25_price" : float(order_items["price"].quantile(0.25)),
+    "p50_price" : float(order_items["price"].quantile(0.50)),
+    "p75_price" : float(order_items["price"].quantile(0.75)),
+    "p95_price" : float(order_items["price"].quantile(0.95)),
+    "count_price" : int(order_items["price"].count())
+    }
+    save_profile(
+        order_stat,
+        "order_price_stats.json",
+    )
+    logger.info("Generated order item price stats")

@@ -64,6 +64,7 @@ def build_order_items(output_dir: str) -> None:
     orders_file : str = "generated_orders_data.json"
     products_file : str = "generated_products_data.json"
     output_file : str = "generated_order_items_data.json"
+    sellers_file : str = "generated_sellers_data.json"
     started_at : datetime = datetime.now()
     
     try:
@@ -71,6 +72,8 @@ def build_order_items(output_dir: str) -> None:
         orders = load_generated_data(orders_file, base_dir=output_dir)
         logger.info("Loading products : file = %s", products_file)
         products = load_generated_data(products_file, base_dir=output_dir)
+        logger.info("Loading sellers : file = %s", sellers_file)
+        sellers = load_generated_data(sellers_file, base_dir=output_dir)
         
         logger.info("Generating order items : records = %d", len(orders))
         all_order_items: list = []
@@ -84,6 +87,7 @@ def build_order_items(output_dir: str) -> None:
                 purchase_timestamp=purchase_timestamp
                 ,
                 products=products,
+                sellers=sellers
             )
             all_order_items.extend(items)
             

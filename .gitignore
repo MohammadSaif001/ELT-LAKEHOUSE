@@ -1,15 +1,18 @@
-# Data
-data/raw/
-data/profiling
+# Generated data and profiling output
+/data/raw/
+/data/profiling/
+/storage/bronze/
 
-# Environment
-.Elt-lakehouse/
+# Local environment
+/.Elt-lakehouse/
+/.env
+/.env.*
 
-# Notebooks
-notebooks/
+# Notebooks and notebook-generated files
+/notebooks/
 *.ipynb
 
-# Python
+# Python caches and build artifacts
 __pycache__/
 *.pyc
 *.pyo
@@ -27,14 +30,11 @@ __pycache__/
 *.swo
 
 # Logs
-logs/
+/logs/
 
-# storage
-storage/
-
-# diff
+# Patch files
 *.diff
 
-# visua
-lib/
-visual
+# Local/generated tooling output
+/lib/
+/visual/
