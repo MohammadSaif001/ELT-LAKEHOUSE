@@ -1,0 +1,12 @@
+{
+    "mean_price": 19.990319928983578,
+    "median_price": 16.26,
+    "std_price": 15.806405412297082,
+    "min_price": 0.0,
+    "max_price": 409.68,
+    "p25_price": 13.08,
+    "p50_price": 16.26,
+    "p75_price": 21.15,
+    "p95_price": 45.12,
+    "count_price": 112650
+}

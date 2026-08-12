@@ -1,0 +1,12 @@
+{
+    "mean_days": 2.36,
+    "median_days": 1.0,
+    "std_days": 3.51,
+    "min_days": 0.0,
+    "max_days": 125.0,
+    "p50_days": 1.0,
+    "p25_days": 0.0,
+    "p75_days": 3.0,
+    "p95_days": 8.0,
+    "count_days": 96285
+}
