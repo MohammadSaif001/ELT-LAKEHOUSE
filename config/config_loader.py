@@ -1,7 +1,7 @@
 import yaml
 from pathlib import Path
 from functools import lru_cache
-from spark.common.logger import get_logger
+from src.elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 

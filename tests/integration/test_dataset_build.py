@@ -1,12 +1,12 @@
 import json
-from generators.build_dataset import data_set_builder
+from src.elt_lakehouse.generators.build_dataset import build_dataset
 
 #========================
 # Test the build pipeline
 #========================
 def test_build_pipeline(tmp_path):
 
-    data_set_builder(output_dir=tmp_path)
+    build_dataset(output_dir=tmp_path)
     expected_files = [
         "generated_orders_data.json",
         "generated_order_items_data.json",

@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}Overview{% endblock %}
+{% block content %}
+
+<div class="panel">
+  <div class="panel-header"><span>Overall Pipeline Status</span></div>
+  <div class="panel-body">
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="label">Status</div>
+        <div class="value">
+          <span class="indicator indicator-{{ overview.overall_status }}"></span>{{ overview.overall_status.replace('_', ' ') }}
+        </div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Stages</div>
+        <div class="value">{{ overview.stages|length }}</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Log File</div>
+        <div class="value">{{ "FOUND" if overview.log_file_exists else "ABSENT" }}</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Recent Runs</div>
+        <div class="value">{{ overview.recent_runs|length }}</div>
+      </div>
+    </div>
+    {% if not overview.log_file_exists %}
+    <div class="empty-state" style="margin-top:8px;">
+      No application log found at logs/application.log -- the pipeline (python3 elt_pipeline.py)
+      has not been executed in this environment yet. Stage/job status below falls back to
+      checking storage/ and metadata/ output directly.
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-header"><span>Pipeline Stages</span></div>
+  <div class="panel-body">
+    <table>
+      <thead>
+        <tr><th>Stage</th><th>Status</th><th>Jobs OK</th><th>Detail</th></tr>
+      </thead>
+      <tbody>
+        {% for stage in overview.stages %}
+        <tr>
+          <td><a href="{{ url_for('stage_detail', stage_key=stage.stage.key) }}">{{ stage.stage.label }}</a></td>
+          <td><span class="status-pill status-{{ stage.status }}">{{ stage.status.replace('_', ' ') }}</span></td>
+          <td>{{ stage.jobs|selectattr('status', 'equalto', 'SUCCESS')|list|length }} / {{ stage.jobs|length }}</td>
+          <td class="detail-block">{{ stage.stage.jobs|length }} job(s) tracked: {{ stage.jobs|map(attribute='job.label')|join(', ') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="panel">
+    <div class="panel-header"><span>Recent Runs (elt_pipeline.py)</span></div>
+    <div class="panel-body">
+      {% if overview.recent_runs %}
+      <table>
+        <thead><tr><th>Timestamp</th><th>Status</th><th>Message</th></tr></thead>
+        <tbody>
+          {% for run in overview.recent_runs %}
+          <tr>
+            <td>{{ run.timestamp }}</td>
+            <td><span class="status-pill status-{{ run.status }}">{{ run.status }}</span></td>
+            <td>{{ run.message }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state">No pipeline runs recorded yet.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header"><span>Downstream Storage Layers</span></div>
+    <div class="panel-body">
+      <table>
+        <thead><tr><th>Layer</th><th>Status</th><th>Last Modified</th><th>Size</th></tr></thead>
+        <tbody>
+          {% for layer in overview.downstream_layers %}
+          <tr>
+            <td>{{ layer.label }}</td>
+            <td>
+              {% if layer.has_data %}
+              <span class="status-pill status-SUCCESS">DATA PRESENT</span>
+              {% else %}
+              <span class="status-pill status-NO_DATA">EMPTY</span>
+              {% endif %}
+            </td>
+            <td>{{ layer.modified_at.strftime('%Y-%m-%d %H:%M:%S') if layer.modified_at else '--' }}</td>
+            <td>{{ layer.size_bytes if layer.size_bytes else 0 }} B</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="grid-3">
+  <div class="panel">
+    <div class="panel-header"><span>metadata/pipeline_state/state.json</span></div>
+    <div class="panel-body">
+      {% if overview.pipeline_state_raw %}
+      <pre class="raw-json">{{ overview.pipeline_state_raw }}</pre>
+      {% else %}
+      <div class="empty-state">Empty / not yet written</div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-header"><span>metadata/watermarks/watermark.json</span></div>
+    <div class="panel-body">
+      {% if overview.watermark_raw %}
+      <pre class="raw-json">{{ overview.watermark_raw }}</pre>
+      {% else %}
+      <div class="empty-state">Empty / not yet written</div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-header"><span>metadata/checkpoints/bronze_checkpoint.json</span></div>
+    <div class="panel-body">
+      {% if overview.checkpoint_raw %}
+      <pre class="raw-json">{{ overview.checkpoint_raw }}</pre>
+      {% else %}
+      <div class="empty-state">Empty / not yet written</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}

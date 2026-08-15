@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "elt-lakehouse"
+version = "0.1.0"
+requires-python = ">=3.10"
+description = "ELT Lakehouse data engineering project"
+
+[tool.setuptools.packages.find]
+include = [
+    "generators*",
+    "ingestion*",
+    "spark*",
+    "profiling_scr*",
+    "warehouse*",
+    "dashboard*",
+    "monitoring*",
+]

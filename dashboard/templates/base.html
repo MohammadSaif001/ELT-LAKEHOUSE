@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}Pipeline Monitor{% endblock %} :: ELT Lakehouse</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/console.css') }}">
+</head>
+<body>
+  <div class="titlebar">
+    <span class="title">// Pipeline Monitor -- ELT Lakehouse</span>
+    <span class="clock">read-only console</span>
+  </div>
+  <div class="nav">
+    <a href="{{ url_for('index') }}">[ Overview ]</a>
+  </div>
+  <div class="container">
+    {% block content %}{% endblock %}
+    <div class="footer-note">
+      Data source: logs/application.log, metadata/*.json, storage/. No synthetic or mocked data is displayed.
+    </div>
+  </div>
+</body>
+</html>

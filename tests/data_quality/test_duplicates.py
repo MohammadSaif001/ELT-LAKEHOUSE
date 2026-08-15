@@ -1,4 +1,4 @@
-from generators.base.data_loading import load_generated_data
+from src.elt_lakehouse.generators.base.data_loading import load_generated_data
 
 def assert_unique(values,name) -> None:
     """

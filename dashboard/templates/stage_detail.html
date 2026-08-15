@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}{{ stage.stage.label }}{% endblock %}
+{% block content %}
+
+<div class="panel">
+  <div class="panel-header">
+    <span>{{ stage.stage.label }}</span>
+    <a class="btn-link" href="{{ url_for('index') }}">&lt; back</a>
+  </div>
+  <div class="panel-body">
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="label">Status</div>
+        <div class="value"><span class="indicator indicator-{{ stage.status }}"></span>{{ stage.status.replace('_', ' ') }}</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Logger</div>
+        <div class="value" style="font-size:12px;">{{ stage.stage.logger_name }}</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Jobs</div>
+        <div class="value">{{ stage.jobs|length }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-header"><span>Jobs</span></div>
+  <div class="panel-body">
+    <table>
+      <thead>
+        <tr><th>Job</th><th>Status</th><th>Last Activity</th><th>Detail</th></tr>
+      </thead>
+      <tbody>
+        {% for js in stage.jobs %}
+        <tr>
+          <td>{{ js.job.label }}</td>
+          <td><span class="status-pill status-{{ js.status }}">{{ js.status.replace('_', ' ') }}</span></td>
+          <td>{{ js.last_activity.strftime('%Y-%m-%d %H:%M:%S') if js.last_activity else '--' }}</td>
+          <td>{{ js.detail }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

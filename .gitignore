@@ -37,4 +37,4 @@ __pycache__/
 
 # Local/generated tooling output
 /lib/
-/visual/
+visual/

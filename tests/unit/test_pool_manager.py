@@ -1,4 +1,4 @@
-from generators.base.pool_manager import load_pool
+from src.elt_lakehouse.generators.base.pool_manager import load_pool
 
 
 def test_customer_pool_exists() -> None:

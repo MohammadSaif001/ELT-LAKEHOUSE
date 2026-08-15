@@ -1,20 +1,15 @@
-""" This is the main orchestration script for the ELT pipeline. 
-- It generates synthetic data
-- It ingests the generated data into Bronze Delta tables 
-"""
 import time
-from spark.common.logger import get_logger
-from generators.build_pool  import build_pool
-from ingestion.bronze.run import bronze_runner
-from generators.build_dataset import data_set_builder
-
+from src.elt_lakehouse.spark.common.logger import get_logger
+from src.elt_lakehouse.generators.build_pool  import build_pool
+from src.elt_lakehouse.generators.build_dataset import build_dataset
+from src.elt_lakehouse.ingestion.bronze.bronze_runner import bronze_runner
 logger = get_logger("elt_pipeline")
 
 #==========================
         #ELT Pipeline
 #==========================
 
-def main()-> None:
+def orchestrate() -> None:
     """ Run the ELT pipeline."""
     try:
         logger.info("Starting ELT pipeline...")
@@ -24,7 +19,7 @@ def main()-> None:
         build_pool()
         
         # Generate datasets from the synthetic data
-        data_set_builder()
+        build_dataset()
         
         # Ingest data into Bronze Delta tables
         bronze_runner()
@@ -34,6 +29,9 @@ def main()-> None:
     except Exception :
         logger.exception(f"Pipeline failed with an critical error.")
 
+def main() -> None:
+    """Main function to run the ELT pipeline."""
+    orchestrate()
 
 
 if __name__ == "__main__":

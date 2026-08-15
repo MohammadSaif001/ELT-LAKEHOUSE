@@ -1,4 +1,4 @@
-from generators.orders.order_generator import generate_order
+from src.elt_lakehouse.generators.orders.order_generator import generate_order
 
 def test_generate_order()-> None:
 
