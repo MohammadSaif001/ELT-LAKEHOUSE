@@ -1,20 +1,17 @@
+---
 spark:
   app_name: Modern Lakehouse
-  master: local[*]
-
-  sql:
-    shuffle_partitions: 4
-    timezone: "UTC"
-
+  bronze:
+    compression: snappy
+    mode: overwrite
   delta:
     enable: true
-  
+  master: local[*]
+  sql:
+    shuffle_partitions: 4
+    timezone: UTC
   storage:
-    generated: "storage/generated"
-    bronze: "storage/bronze"
-    silver: "storage/silver"
-    gold: "storage/gold"
-  
-  bronze:
-    mode : overwrite
-    compression : "snappy"
+    bronze: storage/bronze
+    generated: storage/generated
+    gold: storage/gold
+    silver: storage/silver

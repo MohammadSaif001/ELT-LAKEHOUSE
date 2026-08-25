@@ -3,17 +3,15 @@ from config.config_loader import load_yaml
 from src.elt_lakehouse.spark.common.logger import get_logger
 from src.elt_lakehouse.ingestion.core.ingestor import ingestor
 
-
-
-logger = get_logger("ingestion.bronze.customers")
+logger = get_logger(__name__)
 
 INPUT_PATH = "storage/generated/generated_customers_data.json"
 OUTPUT_PATH = "storage/bronze/customers_delta"
 GEN_CONFIG = load_yaml("spark_config.yaml")["spark"]["bronze"]
 
-def ingest_customers(spark : SparkSession) -> None:
-    """Ingest generated customer JSON data into a Bronze Delta table."""
 
+def ingest_customers(spark: SparkSession) -> None:
+    """Ingest generated customer JSON data into a Bronze Delta table."""
 
     try:
         logger.info(
@@ -41,6 +39,3 @@ def ingest_customers(spark : SparkSession) -> None:
             OUTPUT_PATH,
         )
         raise
-
-
-        

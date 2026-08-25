@@ -2,21 +2,18 @@ import logging
 from pyspark.sql import DataFrame, SparkSession
 from src.elt_lakehouse.spark.common.logger import get_logger
 
-logger = get_logger("ingestion.common.reader")
+logger = get_logger(__name__)
 
-#===============================
+
+# ===============================
 # Read JSON into DataFrame
-#===============================
+# ===============================
 def read_json(spark: SparkSession, input_path: str) -> DataFrame:
     """Read a JSON file into a Spark DataFrame."""
     try:
         logger.info("Reading JSON into DataFrame: path=%s", input_path)
 
-        df = (
-            spark.read
-            .option("multiLine", "true")
-            .json(input_path)
-        )
+        df = spark.read.option("multiLine", "true").json(input_path)
 
         logger.info(
             "DataFrame created: path=%s, columns=%d",

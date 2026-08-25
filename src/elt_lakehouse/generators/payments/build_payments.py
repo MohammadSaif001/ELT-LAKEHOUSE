@@ -1,25 +1,26 @@
-from time import perf_counter
+from datetime import datetime
 from config.config_loader import load_yaml
 from src.elt_lakehouse.spark.common.logger import get_logger
 from src.elt_lakehouse.generators.base.data_loading import load_generated_data
 from src.elt_lakehouse.generators.base.data_saving import save_generated_data
 from src.elt_lakehouse.generators.payments.payment_generator import generate_payment
 
-logger = get_logger("generators.payments.build_payments")
+logger = get_logger(__name__)
 
-#=========================
+# =========================
 # Payment Builder
-#=========================
+# =========================
 
 GEN_CONFIG = load_yaml("generator_config.yaml")["payments"]
 
+
 def build_payments(output_dir: str) -> None:
     """Generate payment records for generated orders and save them."""
-    orders_file : str = "generated_orders_data.json"
-    order_items_file : str = "generated_order_items_data.json"
-    output_file : str = "generated_payments_data.json"
-    started_at : float = perf_counter()
-    FALLBACK_TOTAL : int = GEN_CONFIG["fallback_total_value"]
+    orders_file: str = "generated_orders_data.json"
+    order_items_file: str = "generated_order_items_data.json"
+    output_file: str = "generated_payments_data.json"
+    started_at: datetime = datetime.now()
+    FALLBACK_TOTAL: int = GEN_CONFIG["fallback_total_value"]
 
     try:
         logger.info(
@@ -56,16 +57,16 @@ def build_payments(output_dir: str) -> None:
             payments.append(generate_payment(order, total_value))
 
         logger.info(
-            "Saving payments: records = %d, fallback_payments = %d, file = %s",
+            "Saving payments: records=%d, fallback_payments=%d, file=%s",
             len(payments),
             fallback_count,
             output_file,
         )
         save_generated_data(payments, output_file, output_dir)
 
-        duration_seconds : float = perf_counter() - started_at
+        duration_seconds: float = (datetime.now() - started_at).total_seconds()
         logger.info(
-            "Payment dataset generated successfully: records = %d, path = %s/%s, duration = %.2fs",
+            "Payment dataset generated successfully: records=%d, path=%s/%s, duration_s=%.2f",
             len(payments),
             output_dir,
             output_file,
@@ -74,7 +75,7 @@ def build_payments(output_dir: str) -> None:
 
     except Exception:
         logger.exception(
-            "Payment dataset generation failed: orders_file = %s, output_dir = %s",
+            "Payment dataset generation failed: orders_file=%s, output_dir=%s",
             orders_file,
             output_dir,
         )

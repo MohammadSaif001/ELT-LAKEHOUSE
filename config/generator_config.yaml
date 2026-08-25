@@ -1,30 +1,31 @@
 generation:
-  years : [2025,2026]
-  cutoff : "2026-06-21T13:30:00"
-  cutoff_step_days : 364
-  day_of_month : [1,28]
+  years: [2025,2026]
+  cutoff: "2026-06-21T13:30:00"
+  cutoff_step_days: 364
+  day_of_month: [1,28]
 
 order_status:
   approved_or_later: ["approved","processing","invoiced","shipped", "delivered"]
   shipped_or_later: ["shipped", "delivered"]
   delivered: ["delivered"]
+  unavailable: ["unavailable"]
 
 
 delay_models:
   approved_delay:
-    lognormal_mu : 1.35
-    lognormal_sigma : 1.5
-    min_hours : 1
-    max_hours : 720
+    lognormal_mu: 1.35
+    lognormal_sigma: 1.5
+    min_hours: 1
+    max_hours: 720
 
 payments:
-  single_installment_types : ["boleto","voucher","debit_card"]
-  fallback_total_value : 20.0
+  single_installment_types: ["boleto","voucher","debit_card"]
+  fallback_total_value: 20.0
 
 pool_size:
-  customers : 100000
-  products : 100000
-  sellers : 20000
+  customers: 100000
+  products: 100000
+  sellers: 20000
 
 dataset_volume:
     orders: 80000
@@ -33,11 +34,11 @@ product_dimensions:
     min_value: 1
 
 location_defaults:
-  fallback_zip : ["01000"]
+  fallback_zip: ["01000"]
   fallback_cordinates:
-    lat : -23.5505
-    long : -46.6333
-  jitter_degrees : 0.02
+    lat: -23.5505
+    long: -46.6333
+  jitter_degrees: 0.02
 
 reviews:
   positive_score_threshold: 4

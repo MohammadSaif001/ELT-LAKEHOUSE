@@ -3,14 +3,14 @@ from config.config_loader import load_yaml
 from src.elt_lakehouse.spark.common.logger import get_logger
 from src.elt_lakehouse.ingestion.core.ingestor import ingestor
 
-
-logger = get_logger("ingestion.bronze.geolocation")
+logger = get_logger(__name__)
 
 INPUT_PATH = "storage/generated/generated_geolocation_data.json"
 OUTPUT_PATH = "storage/bronze/geolocation_delta"
 GEN_CONFIG = load_yaml("spark_config.yaml")["spark"]["bronze"]
 
-def ingest_geolocation(spark : SparkSession) -> None:
+
+def ingest_geolocation(spark: SparkSession) -> None:
     """Ingest generated geolocation JSON data into a Bronze Delta table."""
 
     try:
@@ -24,7 +24,7 @@ def ingest_geolocation(spark : SparkSession) -> None:
             input_path=INPUT_PATH,
             output_path=OUTPUT_PATH,
             spark=spark,
-            mode= GEN_CONFIG["mode"],
+            mode=GEN_CONFIG["mode"],
         )
 
         logger.info(
@@ -39,4 +39,3 @@ def ingest_geolocation(spark : SparkSession) -> None:
             OUTPUT_PATH,
         )
         raise
-

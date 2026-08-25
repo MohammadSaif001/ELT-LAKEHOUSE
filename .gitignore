@@ -3,6 +3,7 @@
 /data/profiling/
 /storage/generated/
 /storage/bronze/
+/storage/generated/
 
 # Local environment
 /.Elt-lakehouse/
@@ -40,7 +41,3 @@ __pycache__/
 /lib/
 visual/
 /dashboard/
-
-# Temporary files
-*.tmp
-report_sender/

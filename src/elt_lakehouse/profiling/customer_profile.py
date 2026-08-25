@@ -1,5 +1,6 @@
 from src.elt_lakehouse.spark.common.logger import get_logger
 from src.elt_lakehouse.profiling.common import load_csv, save_profile
+
 logger = get_logger(__name__)
 
 
@@ -26,24 +27,16 @@ def build_customer_profiles() -> None:
     customer["customer_state"] = customer["customer_state"].str.strip()
     customer["customer_city"] = customer["customer_city"].str.strip()
 
-    geolocation["geolocation_state"] = (
-        geolocation["geolocation_state"]
-        .str.strip()
-    )
+    geolocation["geolocation_state"] = geolocation["geolocation_state"].str.strip()
 
-    geolocation["geolocation_city"] = (
-        geolocation["geolocation_city"]
-        .str.strip()
-    )
+    geolocation["geolocation_city"] = geolocation["geolocation_city"].str.strip()
 
     # ==========================================================
     # State distribution
     # ==========================================================
 
     state_distribution = (
-        customer["customer_state"]
-        .value_counts(normalize=True)
-        .to_dict()
+        customer["customer_state"].value_counts(normalize=True).to_dict()
     )
 
     save_profile(
@@ -66,7 +59,7 @@ def build_customer_profiles() -> None:
                 customer["customer_state"] == state,
                 "customer_city",
             ]
-            .value_counts(normalize=True) # type: ignore
+            .value_counts(normalize=True)  # type: ignore
             .to_dict()
         )
 
@@ -82,9 +75,7 @@ def build_customer_profiles() -> None:
     # ==========================================================
 
     state_city_mapping = (
-        geolocation.groupby("geolocation_state")[
-            "geolocation_city"
-        ]
+        geolocation.groupby("geolocation_state")["geolocation_city"]
         .unique()
         .apply(sorted)
         .to_dict()
@@ -102,9 +93,7 @@ def build_customer_profiles() -> None:
     # ==========================================================
 
     city_zip_mapping = (
-        geolocation.groupby("geolocation_city")[
-            "geolocation_zip_code_prefix"
-        ]
+        geolocation.groupby("geolocation_city")["geolocation_zip_code_prefix"]
         .unique()
         .apply(lambda x: sorted(map(int, x)))
         .to_dict()
@@ -141,6 +130,7 @@ def build_customer_profiles() -> None:
     logger.info("Generated city-coordinate mapping")
 
     logger.info("Customer profiling completed successfully")
-    
+
+
 if __name__ == "__main__":
     build_customer_profiles()
