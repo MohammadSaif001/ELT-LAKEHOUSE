@@ -1,6 +1,7 @@
 # Generated data and profiling output
 /data/raw/
 /data/profiling/
+/storage/generated/
 /storage/bronze/
 
 # Local environment
@@ -39,3 +40,7 @@ __pycache__/
 /lib/
 visual/
 /dashboard/
+
+# Temporary files
+*.tmp
+report_sender/
