@@ -1,6 +1,7 @@
 # Generated data and profiling output
 /data/raw/
 /data/profiling/
+/storage/generated/
 /storage/bronze/
 /storage/generated/
 
