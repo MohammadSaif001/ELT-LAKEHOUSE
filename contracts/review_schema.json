@@ -1,0 +1,43 @@
+{
+    "type": "object",
+    "properties": {
+      "review_id": {
+        "type": "string"
+      },
+      "order_id": {
+        "type": "string"
+      },
+      "customer_id": {
+        "type": "string"
+      },
+      "review_score": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 5
+      },
+      "review_comment_title": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "review_comment_message": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "review_creation_date": {
+        "type": "string",
+        "format": "date-time"
+      }
+    },
+    "required": [
+      "review_id",
+      "order_id",
+      "customer_id",
+      "review_score",
+      "review_creation_date"
+    ],
+    "additionalProperties": false
+  }

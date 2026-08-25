@@ -1,0 +1,65 @@
+{
+    "type": "object",
+    "properties": {
+      "product_id": {
+        "type": "string"
+      },
+      "product_category_name": {
+        "type": "string"
+      },
+      "product_name_length": {
+        "type": [
+          "integer",
+          "null"
+        ],
+        "minimum": 0
+      },
+      "product_description_length": {
+        "type": [
+          "integer",
+          "null"
+        ],
+        "minimum": 0
+      },
+      "product_photos_qty": {
+        "type": [
+          "integer",
+          "null"
+        ],
+        "minimum": 0
+      },
+      "product_weight_g": {
+        "type": [
+          "integer",
+          "null"
+        ],
+        "minimum": 0
+      },
+      "product_length_cm": {
+        "type": [
+          "integer",
+          "null"
+        ],
+        "minimum": 0
+      },
+      "product_height_cm": {
+        "type": [
+          "integer",
+          "null"
+        ],
+        "minimum": 0
+      },
+      "product_width_cm": {
+        "type": [
+          "integer",
+          "null"
+        ],
+        "minimum": 0
+      }
+    },
+    "required": [
+      "product_id",
+      "product_category_name"
+    ],
+    "additionalProperties": false
+  }

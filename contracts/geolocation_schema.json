@@ -1,0 +1,28 @@
+{
+    "type": "object",
+    "properties": {
+      "geolocation_zip_code_prefix": {
+        "type": "integer"
+      },
+      "geolocation_lat": {
+        "type": "number"
+      },
+      "geolocation_lng": {
+        "type": "number"
+      },
+      "geolocation_city": {
+        "type": "string"
+      },
+      "geolocation_state": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "geolocation_zip_code_prefix",
+      "geolocation_lat",
+      "geolocation_lng",
+      "geolocation_city",
+      "geolocation_state"
+    ],
+    "additionalProperties": false
+  }

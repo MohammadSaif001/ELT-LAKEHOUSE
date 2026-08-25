@@ -1,0 +1,28 @@
+{
+    "type": "object",
+    "properties": {
+        "customer_id": {
+            "type": "string"
+        },
+        "customer_unique_id": {
+            "type": "string"
+        },
+        "customer_zip_code_prefix": {
+            "type": "integer"
+        },
+        "customer_city": {
+            "type": "string"
+        },
+        "customer_state": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "customer_id",
+        "customer_unique_id",
+        "customer_zip_code_prefix",
+        "customer_city",
+        "customer_state"
+    ],
+    "additionalProperties": false
+}
