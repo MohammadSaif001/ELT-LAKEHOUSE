@@ -26,13 +26,12 @@ def load_yaml(config_file: str) -> dict:
             config = yaml.safe_load(file) or {}
 
         logger.info(
-            "Configuration loaded successfully: path=%s, keys=%s",
-            config_path,
-            list(config.keys()),
+            "Configuration loaded: file=%s, keys=%s",
+            config_file,
+            sorted(config),
         )
         return config
 
     except yaml.YAMLError:
         logger.exception("Invalid YAML configuration: path=%s", config_path)
         raise
-

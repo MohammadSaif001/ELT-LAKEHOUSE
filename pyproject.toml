@@ -8,13 +8,9 @@ version = "0.1.0"
 requires-python = ">=3.10"
 description = "ELT Lakehouse data engineering project"
 
+[tool.setuptools]
+package-dir = { "" = "src" }
+
 [tool.setuptools.packages.find]
-include = [
-    "generators*",
-    "ingestion*",
-    "spark*",
-    "profiling_scr*",
-    "warehouse*",
-    "dashboard*",
-    "monitoring*",
-]
+where = ["src"]
+include = ["elt_lakehouse*"]
