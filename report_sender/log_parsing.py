@@ -72,7 +72,7 @@ def generate_report() -> dict:
                 if duration_match:
                     report["duration"] = float(duration_match.group(1))
 
-            elif "pipeline failed with an critical error" in message_lower:
+            elif "pipeline failed with a critical error" in message_lower:
 
                 report["status"] = "FAILED"
 
