@@ -1,94 +1,64 @@
 from src.elt_lakehouse.generators.base.data_loading import load_generated_data
 
 
-def test_order_customer_fk() -> None: #1
+def test_order_customer_fk() -> None:  # 1
     customers = load_generated_data("generated_customers_data.json")
     orders = load_generated_data("generated_orders_data.json")
 
-    customer_ids:set[str] = {
-        customer["customer_id"]
-        for customer in customers
-    }
+    customer_ids: set[str] = {customer["customer_id"] for customer in customers}
 
     for order in orders:
 
-        assert (
-            order["customer_id"]
-            in customer_ids
-        )
+        assert order["customer_id"] in customer_ids
 
 
-def test_order_item_order_fk() -> None: #2
+def test_order_item_order_fk() -> None:  # 2
     orders = load_generated_data("generated_orders_data.json")
     items = load_generated_data("generated_order_items_data.json")
 
-    order_ids :set[str] = {
-        order["order_id"]
-        for order in orders
-    }
+    order_ids: set[str] = {order["order_id"] for order in orders}
 
     for item in items:
-        assert (
-            item["order_id"]
-            in order_ids
-        )
-        
-def test_customer_geolocation_fk() -> None: #3
+        assert item["order_id"] in order_ids
+
+
+def test_customer_geolocation_fk() -> None:  # 3
     customers = load_generated_data("generated_customers_data.json")
     geolocations = load_generated_data("generated_geolocation_data.json")
-    
-    geolocation_ids:set[str]= {
-        geolocation["customer_id"]
-        for geolocation in geolocations
+
+    geolocation_ids: set[str] = {
+        geolocation["customer_id"] for geolocation in geolocations
     }
-    
+
     for customer in customers:
-        assert (
-            customer["customer_id"]
-            in geolocation_ids
-        )
-        
-def test_order_item_product_fk() -> None: #4
+        assert customer["customer_id"] in geolocation_ids
+
+
+def test_order_item_product_fk() -> None:  # 4
     products = load_generated_data("generated_products_data.json")
     order_items = load_generated_data("generated_order_items_data.json")
-    
-    product_ids:set[str] = {
-        product["product_id"]
-        for product in products
-    }
-    
+
+    product_ids: set[str] = {product["product_id"] for product in products}
+
     for item in order_items:
-        assert (
-            item["product_id"]
-            in product_ids
-        )
-        
-def test_payment_order_fk()-> None: #5
+        assert item["product_id"] in product_ids
+
+
+def test_payment_order_fk() -> None:  # 5
     payments = load_generated_data("generated_payments_data.json")
     orders = load_generated_data("generated_orders_data.json")
 
-    order_ids:set[str] = {
-        order["order_id"]
-        for order in orders
-    }
+    order_ids: set[str] = {order["order_id"] for order in orders}
 
     for payment in payments:
-        assert (
-            payment["order_id"]
-            in order_ids
-        )
-        
-def test_review_order_fk() -> None: #6
+        assert payment["order_id"] in order_ids
+
+
+def test_review_order_fk() -> None:  # 6
     reviews = load_generated_data("generated_reviews_data.json")
     orders = load_generated_data("generated_orders_data.json")
 
-    order_ids:set[str] = {
-        order["order_id"]
-        for order in orders
-    }
+    order_ids: set[str] = {order["order_id"] for order in orders}
 
     for review in reviews:
-        assert (
-            review["order_id"]
-            in order_ids
-        )
+        assert review["order_id"] in order_ids

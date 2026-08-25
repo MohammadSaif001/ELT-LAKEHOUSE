@@ -7,66 +7,45 @@ def test_cancelled_orders_have_no_delivery() -> None:
     orders = load_generated_data("generated_orders_data.json")
     for order in orders:
         if order["order_status"] == "canceled":
-            assert (
-                order["order_delivered_customer_date"]
-                is None
-            )
+            assert order["order_delivered_customer_date"] is None
 
 
 def test_delivered_orders_have_delivery_date() -> None:
 
     orders = load_generated_data("generated_orders_data.json")
     for order in orders:
-        if order["order_status"] == "delivered": 
-            assert (
-                order["order_delivered_customer_date"]
-                is not None
-            )
+        if order["order_status"] == "delivered":
+            assert order["order_delivered_customer_date"] is not None
+
 
 def test_review_only_for_delivered_orders() -> None:
 
-    orders = load_generated_data(
-        "generated_orders_data.json"
-    )
-    reviews = load_generated_data(
-        "generated_reviews_data.json"
-    )
-    order_status_map = {
-        order["order_id"]: order["order_status"]
-        for order in orders
-    }
+    orders = load_generated_data("generated_orders_data.json")
+    reviews = load_generated_data("generated_reviews_data.json")
+    order_status_map = {order["order_id"]: order["order_status"] for order in orders}
     for review in reviews:
-        assert (
-            order_status_map[
-                review["order_id"]
-            ] == "delivered"
-        )
+        assert order_status_map[review["order_id"]] == "delivered"
+
 
 def test_payment_values_is_greater_than_zero() -> None:
     payments = load_generated_data("generated_payments_data.json")
     for payment in payments:
         assert payment["payment_value"] > 0
-        
+
 
 def test_order_have_at_least_one_item() -> None:
-    
+
     orders = load_generated_data("generated_orders_data.json")
     order_items = load_generated_data("generated_order_items_data.json")
-    
-    order_ids :set[str]= {
-        order["order_id"] for order in orders
-    }
-    
-    order_ids_with_items : set[str] = {
-        item["order_id"] for item in order_items
-    }
-    
-    missing_order_ids : set[str] = order_ids - order_ids_with_items
-    assert not missing_order_ids,(
-        f"Orders with no items: {missing_order_ids}"
-    )
-    
-    
+
+    order_ids: set[str] = {order["order_id"] for order in orders}
+
+    order_ids_with_items: set[str] = {item["order_id"] for item in order_items}
+
+    missing_order_ids: set[str] = order_ids - order_ids_with_items
+    assert not missing_order_ids, f"Orders with no items: {missing_order_ids}"
+
+
 def test_purchase_timestamps_are_valid() -> None:
     orders = load_generated_data("generated_orders_data.json")
     for order in orders:
@@ -75,7 +54,7 @@ def test_purchase_timestamps_are_valid() -> None:
         purchase = datetime.fromisoformat(order["order_purchase_timestamp"])
         approved = datetime.fromisoformat(order["order_approved_at"])
         delivered = datetime.fromisoformat(order["order_delivered_customer_date"])
-        assert purchase <= approved <= delivered,(
+        assert purchase <= approved <= delivered, (
             f"Timestamps for order {order['order_id']} are inconsistent: "
             f"purchase={purchase}, approved={approved}, delivered={delivered}"
         )
