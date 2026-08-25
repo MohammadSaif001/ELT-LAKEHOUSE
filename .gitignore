@@ -2,6 +2,7 @@
 /data/raw/
 /data/profiling/
 /storage/bronze/
+/storage/generated/
 
 # Local environment
 /.Elt-lakehouse/
@@ -39,4 +40,3 @@ __pycache__/
 /lib/
 visual/
 /dashboard/
-/report_sender/
