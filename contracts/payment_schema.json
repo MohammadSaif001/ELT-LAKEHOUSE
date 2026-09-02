@@ -6,7 +6,7 @@
         "nullable": false
       },
       "payment_sequential": {
-        "type": "int",
+        "type": "integer",
         "nullable" : false
       },
       "payment_type": {
@@ -14,11 +14,11 @@
         "nullable" : false
       },
       "payment_installments": {
-        "type": "int",
+        "type": "integer",
         "nullable" : false
       },
       "payment_value": {
-        "type": "float",
+        "type": "number",
         "nullable" : false
       }
     },

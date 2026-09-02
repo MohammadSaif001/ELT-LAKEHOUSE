@@ -2,15 +2,15 @@
   "type": "object",
   "properties": {
     "geolocation_zip_code_prefix": {
-      "type": "int",
+      "type": "integer",
       "nullable": false
     },
     "geolocation_lat": {
-      "type": "float",
+      "type": "number",
       "nullable": false
     },
     "geolocation_lng": {
-      "type": "float",
+      "type": "number",
       "nullable": false
     },
     "geolocation_city": {

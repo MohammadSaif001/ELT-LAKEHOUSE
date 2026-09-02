@@ -10,7 +10,7 @@
       "nullable": false
     },
     "review_score": {
-      "type": "int",
+      "type": "integer",
       "minimum": 1,
       "maximum": 5,
       "nullable": false

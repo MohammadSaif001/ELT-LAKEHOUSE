@@ -10,37 +10,37 @@
       "nullable": true
     },
     "product_name_length": {
-      "type": "int",
+      "type": "integer",
       "nullable": true,
       "minimum": 0
     },
     "product_description_length": {
-      "type": "int",
+      "type": "integer",
       "nullable": true,
       "minimum": 0
     },
     "product_photo_quantity": {
-      "type": "int",
+      "type": "integer",
       "nullable": true,
       "minimum": 0
     },
     "product_weight_g": {
-      "type": "int",
+      "type": "integer",
       "nullable": true,
       "minimum": 0
     },
     "product_length_cm": {
-      "type": "int",
+      "type": "integer",
       "nullable": true,
       "minimum": 0
     },
     "product_height_cm": {
-      "type": "int",
+      "type": "integer",
       "nullable": true,
       "minimum": 0
     },
     "product_width_cm": {
-      "type": "int",
+      "type": "integer",
       "nullable": true,
       "minimum": 0
     }

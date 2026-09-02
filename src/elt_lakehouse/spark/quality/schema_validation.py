@@ -1,6 +1,6 @@
-from collections import Counter
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
+from src.elt_lakehouse.spark.utils.type_casting import resolve_spark_type
 
 
 def check_validation(df: DataFrame, extracted_schema: list[dict]) -> tuple[bool, list[str]]:
@@ -23,18 +23,10 @@ def check_validation(df: DataFrame, extracted_schema: list[dict]) -> tuple[bool,
             errors.append(f"{column}: missing column")
             continue
 
-        expected_type = contract["data_type"]
+        expected_type = resolve_spark_type(contract) or contract["data_type"]
         actual_type = actual_columns[column].dataType.simpleString()
 
-        if isinstance(expected_type, list):
-            expected_types = [
-                value
-                for value in expected_type
-                if value != "null"]
-        else:
-            expected_types = [expected_type]
-
-        if actual_type not in expected_types:
+        if actual_type != expected_type:
             errors.append(
                 f"{column}: expected type={expected_type}, "
                 f"actual type={actual_type}"
@@ -49,7 +41,7 @@ def check_validation(df: DataFrame, extracted_schema: list[dict]) -> tuple[bool,
             if has_null:
                 errors.append(f"{column}: contains NULL values " "but nullable=False")
 
-        minimum = expected_columns.get("minimum")
+        minimum = contract.get("minimum")
         if minimum is not None:
             below_min = (
                 df.filter(
@@ -62,7 +54,7 @@ def check_validation(df: DataFrame, extracted_schema: list[dict]) -> tuple[bool,
             if below_min:
                 errors.append(f"{column}: contains less than minimum = {minimum}")
 
-        maximum = expected_columns.get("maximum")
+        maximum = contract.get("maximum")
         if maximum is not None:
             above_max = (
                 df.filter(

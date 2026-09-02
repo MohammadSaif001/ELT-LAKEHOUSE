@@ -6,7 +6,7 @@
         "nullable" : false
       },
       "order_item_id": {
-        "type": "int",
+        "type": "integer",
         "nullable":false
       },
       "product_id": {
@@ -23,11 +23,11 @@
         "nullable": false
       },
       "price": {
-        "type": "float",
+        "type": "number",
         "nullable": false
       },
       "freight_value": {
-        "type": "float",
+        "type": "number",
         "nullable": false
       }
     },
