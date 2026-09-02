@@ -1,33 +1,28 @@
 {
   "type": "object",
   "properties": {
-    "customer_id": {
+    "seller_id": {
       "type": "string",
       "nullable": false
     },
-    "customer_unique_id": {
+    "seller_zip_code_prefix": {
       "type": "string",
       "nullable": false
     },
-    "customer_zip_code_prefix": {
+    "seller_city": {
       "type": "string",
       "nullable": false
     },
-    "customer_city": {
-      "type": "string",
-      "nullable": false
-    },
-    "customer_state": {
+    "seller_state": {
       "type": "string",
       "nullable": false
     }
   },
   "required": [
-    "customer_id",
-    "customer_unique_id",
-    "customer_zip_code_prefix",
-    "customer_city",
-    "customer_state"
+    "seller_id",
+    "seller_zip_code_prefix",
+    "seller_city",
+    "seller_state"
   ],
   "additionalProperties": false
 }

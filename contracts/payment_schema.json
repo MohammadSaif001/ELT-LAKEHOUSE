@@ -1,25 +1,33 @@
 {
     "type": "object",
     "properties": {
-      "payment_id": {
-        "type": "string"
-      },
       "order_id": {
-        "type": "string"
-      },
-      "payment_amount": {
-        "type": "number"
-      },
-      "payment_date": {
         "type": "string",
-        "format": "date-time"
+        "nullable": false
+      },
+      "payment_sequential": {
+        "type": "int",
+        "nullable" : false
+      },
+      "payment_type": {
+        "type": "string",
+        "nullable" : false
+      },
+      "payment_installments": {
+        "type": "int",
+        "nullable" : false
+      },
+      "payment_value": {
+        "type": "float",
+        "nullable" : false
       }
     },
     "required": [
-      "payment_id",
       "order_id",
-      "payment_amount",
-      "payment_date"
+      "payment_sequential",
+      "payment_type",
+      "payment_installments",
+      "payment_value"
     ],
     "additionalProperties": false
   }

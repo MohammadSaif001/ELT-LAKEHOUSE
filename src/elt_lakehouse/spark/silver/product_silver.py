@@ -5,16 +5,17 @@ from src.elt_lakehouse.spark.utils.validations import validation_data
 
 logger = get_logger(__name__)
 
-SELLERS_DELTA_PATH = BRONZE_DIR / "sellers_delta"
+PRODUCTS_DELTA_PATH = BRONZE_DIR / "products_delta"
+
 
 @validation_data(
-    delta_path=str(SELLERS_DELTA_PATH),
-    schema_name="sellers"
+    delta_path=str(PRODUCTS_DELTA_PATH),
+    schema_name="products"
 )
-def process_sellers(df: DataFrame) -> DataFrame:
-    logger.info("Processing sellers DataFrame")
+def process_products(df: DataFrame) -> DataFrame:
+    logger.info("Processing products DataFrame")
     return df
 
 
 if __name__ == "__main__":
-    process_sellers()
+    process_products()

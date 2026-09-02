@@ -1,28 +1,33 @@
 {
-    "type": "object",
-    "properties": {
-      "geolocation_zip_code_prefix": {
-        "type": "integer"
-      },
-      "geolocation_lat": {
-        "type": "number"
-      },
-      "geolocation_lng": {
-        "type": "number"
-      },
-      "geolocation_city": {
-        "type": "string"
-      },
-      "geolocation_state": {
-        "type": "string"
-      }
+  "type": "object",
+  "properties": {
+    "geolocation_zip_code_prefix": {
+      "type": "int",
+      "nullable": false
     },
-    "required": [
-      "geolocation_zip_code_prefix",
-      "geolocation_lat",
-      "geolocation_lng",
-      "geolocation_city",
-      "geolocation_state"
-    ],
-    "additionalProperties": false
-  }
+    "geolocation_lat": {
+      "type": "float",
+      "nullable": false
+    },
+    "geolocation_lng": {
+      "type": "float",
+      "nullable": false
+    },
+    "geolocation_city": {
+      "type": "string",
+      "nullable": false
+    },
+    "geolocation_state": {
+      "type": "string",
+      "nullable": false
+    }
+  },
+  "required": [
+    "geolocation_zip_code_prefix",
+    "geolocation_lat",
+    "geolocation_lng",
+    "geolocation_city",
+    "geolocation_state"
+  ],
+  "additionalProperties": false
+}

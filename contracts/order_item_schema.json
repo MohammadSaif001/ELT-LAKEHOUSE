@@ -2,26 +2,33 @@
     "type": "object",
     "properties": {
       "order_id": {
-        "type": "string"
+        "type": "string",
+        "nullable" : false
       },
       "order_item_id": {
-        "type": "integer"
+        "type": "int",
+        "nullable":false
       },
       "product_id": {
-        "type": "string"
+        "type": "string",
+        "nullable": false
       },
       "seller_id": {
-        "type": "string"
+        "type": "string",
+        "nullable": false
       },
       "shipping_limit_date": {
         "type": "string",
-        "format": "date-time"
+        "format": "date-time",
+        "nullable": false
       },
       "price": {
-        "type": "number"
+        "type": "float",
+        "nullable": false
       },
       "freight_value": {
-        "type": "number"
+        "type": "float",
+        "nullable": false
       }
     },
     "required": [
