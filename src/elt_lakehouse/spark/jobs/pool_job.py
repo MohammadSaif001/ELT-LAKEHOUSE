@@ -13,7 +13,8 @@ logger = get_logger(__name__)
 # ==========================
 # Build Pool
 # ==========================
-def build_pool() -> None:
+
+def run_pool_job() -> None:
     start_time: datetime = datetime.now()
     logger.info("Starting pool generation...")
     generators: list[tuple[str, Callable]] = [
@@ -38,7 +39,7 @@ def build_pool() -> None:
 
 
 def main() -> None:
-    build_pool()
+    run_pool_job()
 
 
 if __name__ == "__main__":

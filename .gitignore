@@ -32,6 +32,7 @@ __pycache__/
 *.swo
 
 # Logs
+dbt/logs/
 /logs/
 
 # Patch files

@@ -27,25 +27,26 @@ def orchestrate(args, send_report: bool = False) -> None:
         logger.info("Starting ELT pipeline...")
         start_time: datetime = datetime.now()
 
-        from src.elt_lakehouse.generators.build_pool import build_pool
-        from src.elt_lakehouse.generators.build_dataset import build_dataset
-        from src.elt_lakehouse.spark.silver.silver_runner import silver_runner
-        from src.elt_lakehouse.ingestion.bronze.bronze_runner import bronze_runner
+        from src.elt_lakehouse.spark.jobs.pool_job import run_pool_job
+        from src.elt_lakehouse.spark.jobs.dataset_job import run_dataset_job
+        from src.elt_lakehouse.spark.jobs.bronze_job import run_bronze_ingestion
+        from src.elt_lakehouse.spark.jobs.silver_job import run_silver_processing
+
 
 
         if args.run_pipeline:
-            build_pool()
-            build_dataset()
-            bronze_runner()
-            silver_runner()
+            run_pool_job()
+            run_dataset_job()
+            run_bronze_ingestion()
+            run_silver_processing()
         elif args.silver_runner:
-            silver_runner()
+            run_silver_processing()
         elif args.build_pool:
-            build_pool()
+            run_pool_job()
         elif args.build_dataset:
-            build_dataset()
+            run_dataset_job()
         elif args.bronze_runner:
-            bronze_runner()
+            run_bronze_ingestion()
 
         duration: float = (datetime.now() - start_time).total_seconds()
 

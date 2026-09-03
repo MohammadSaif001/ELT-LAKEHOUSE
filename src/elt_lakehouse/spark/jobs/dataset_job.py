@@ -20,7 +20,8 @@ logger = get_logger(__name__)
 # =======================
 
 
-def build_dataset(output_dir: str = "storage/generated") -> None:
+
+def run_dataset_job(output_dir: str = "storage/generated") -> None:
     start_time: datetime = datetime.now()
     output_path = Path(output_dir)
     logger.info(
@@ -55,7 +56,7 @@ def build_dataset(output_dir: str = "storage/generated") -> None:
 
 
 def main() -> None:
-    build_dataset()
+    run_dataset_job()
 
 
 if __name__ == "__main__":
