@@ -1,4 +1,5 @@
 import random
+
 from config.config_loader import load_yaml
 from src.elt_lakehouse.generators.base.distribution_loader import load_distribution
 
@@ -14,6 +15,7 @@ state_city_map = load_distribution("state_city_mapping.json")
 city_coordinate_map = load_distribution("city_coordinate_mapping.json")
 
 config = load_yaml("generator_config.yaml")["location_defaults"]
+
 
 def generate_customer_location(customer: dict) -> dict:
 

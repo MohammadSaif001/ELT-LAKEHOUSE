@@ -1,7 +1,7 @@
 from config.config_loader import load_yaml
-from src.elt_lakehouse.spark.common.logger import get_logger
 from src.elt_lakehouse.generators.base.pool_builder import build_pool
 from src.elt_lakehouse.generators.customers.customer_generator import generate_customer
+from src.elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 

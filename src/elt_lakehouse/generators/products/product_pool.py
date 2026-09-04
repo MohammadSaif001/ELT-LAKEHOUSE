@@ -1,7 +1,7 @@
 from config.config_loader import load_yaml
-from src.elt_lakehouse.spark.common.logger import get_logger
 from src.elt_lakehouse.generators.base.pool_builder import build_pool
 from src.elt_lakehouse.generators.products.product_generator import generate_product
+from src.elt_lakehouse.spark.common.logger import get_logger
 
 # ==========================
 # Build Product Pool
@@ -18,12 +18,14 @@ def build_product_pool() -> list:
     PRODUCT_POOL: int = POOL_CONFIG["products"]
     try:
         logger.info("Generating product pool : size=%d ", PRODUCT_POOL)
-        products: list = build_pool(generator_function=generate_product, pool_name=pool_name, size=PRODUCT_POOL)
+        products: list = build_pool(
+            generator_function=generate_product, pool_name=pool_name, size=PRODUCT_POOL
+        )
 
         logger.info(
             "Product pool generated successfully: file=%s, records=%d",
-        pool_name,
-        len(products),
+            pool_name,
+            len(products),
         )
         return products
     except Exception:

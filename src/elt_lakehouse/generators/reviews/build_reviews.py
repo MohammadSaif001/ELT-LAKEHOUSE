@@ -1,8 +1,9 @@
-from datetime import datetime
-from src.elt_lakehouse.spark.common.logger import get_logger
+from datetime import datetime, timezone
+
 from src.elt_lakehouse.generators.base.data_loading import load_generated_data
 from src.elt_lakehouse.generators.base.data_saving import save_generated_data
 from src.elt_lakehouse.generators.reviews.review_generator import generate_review
+from src.elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -16,7 +17,7 @@ def build_reviews(output_dir: str) -> None:
 
     orders_file: str = "generated_orders_data.json"
     output_file: str = "generated_reviews_data.json"
-    started_at: datetime = datetime.now()
+    started_at: datetime = datetime.now(timezone.utc)
 
     try:
         logger.info("Loading generated orders: file=%s", orders_file)
@@ -43,7 +44,7 @@ def build_reviews(output_dir: str) -> None:
 
         save_generated_data(reviews, output_file, output_dir)
 
-        duration_seconds: float = (datetime.now() - started_at).total_seconds()
+        duration_seconds: float = (datetime.now(timezone.utc) - started_at).total_seconds()
         logger.info(
             "Review dataset generated successfully: records=%d, path=%s/%s, duration_s=%.2f",
             len(reviews),

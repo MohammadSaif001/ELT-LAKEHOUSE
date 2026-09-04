@@ -1,5 +1,7 @@
 import logging
+
 from pyspark.sql import DataFrame, SparkSession
+
 from src.elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
@@ -35,9 +37,11 @@ def read_json(spark: SparkSession, input_path: str) -> DataFrame:
         logger.exception("Failed to read JSON into DataFrame: path=%s", input_path)
         raise
 
+
 # ===============================
 # Read Delta into DataFrame
 # ===============================
+
 
 def read_delta(spark: SparkSession, input_path: str) -> DataFrame:
     try:

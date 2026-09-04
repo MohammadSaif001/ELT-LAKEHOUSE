@@ -1,11 +1,13 @@
-from datetime import datetime
 from collections.abc import Callable
-from src.elt_lakehouse.spark.common.logger import get_logger
-from src.elt_lakehouse.generators.sellers.seller_pool import build_seller_pool
-from src.elt_lakehouse.generators.products.product_pool import build_product_pool
-from src.elt_lakehouse.generators.customers.customer_pool import build_customers_pool
-from src.elt_lakehouse.generators.customers.customer_location_pool import build_customer_location_pool
+from datetime import datetime, timezone
 
+from src.elt_lakehouse.generators.customers.customer_location_pool import (
+    build_customer_location_pool,
+)
+from src.elt_lakehouse.generators.customers.customer_pool import build_customers_pool
+from src.elt_lakehouse.generators.products.product_pool import build_product_pool
+from src.elt_lakehouse.generators.sellers.seller_pool import build_seller_pool
+from src.elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -14,8 +16,9 @@ logger = get_logger(__name__)
 # Build Pool
 # ==========================
 
+
 def run_pool_job() -> None:
-    start_time: datetime = datetime.now()
+    start_time: datetime = datetime.now(timezone.utc)
     logger.info("Starting pool generation...")
     generators: list[tuple[str, Callable]] = [
         ("customers", build_customers_pool),
@@ -28,7 +31,7 @@ def run_pool_job() -> None:
         for pool_name, build_function in generators:
             logger.info("Generating pool: %s", pool_name)
             build_function()
-        elapsed: float = (datetime.now() - start_time).total_seconds()
+        elapsed: float = (datetime.now(timezone.utc) - start_time).total_seconds()
         logger.info(
             "Pool generation completed successfully in duration_s=%.2f",
             elapsed,

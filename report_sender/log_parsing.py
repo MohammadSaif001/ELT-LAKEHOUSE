@@ -41,9 +41,7 @@ def generate_report() -> dict:
     report = _empty_report()
 
     with open("logs/application.log", "r") as file:
-
         for line in file:
-
             data = parse_line(line)
 
             if data is None:
@@ -61,7 +59,6 @@ def generate_report() -> dict:
                 report["status"] = "RUNNING"
 
             elif "elt pipeline completed successfully" in message_lower:
-
                 report["end_time"] = timestamp
                 report["status"] = "SUCCESS"
 
@@ -73,7 +70,6 @@ def generate_report() -> dict:
                     report["duration"] = float(duration_match.group(1))
 
             elif "pipeline failed with a critical error" in message_lower:
-
                 report["status"] = "FAILED"
 
                 report["errors"].append(
@@ -89,7 +85,6 @@ def generate_report() -> dict:
             )
 
             if dataset_match:
-
                 dataset = dataset_match.group(1).lower()
 
                 records = extract_records(message)

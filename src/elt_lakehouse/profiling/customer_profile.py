@@ -1,5 +1,5 @@
-from src.elt_lakehouse.spark.common.logger import get_logger
 from src.elt_lakehouse.profiling.common import load_csv, save_profile
+from src.elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -53,7 +53,6 @@ def build_customer_profiles() -> None:
     city_distribution = {}
 
     for state in customer["customer_state"].unique():
-
         city_distribution[state] = (
             customer.loc[
                 customer["customer_state"] == state,

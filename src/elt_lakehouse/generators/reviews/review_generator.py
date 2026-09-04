@@ -1,11 +1,12 @@
 import random
-from config.config_loader import load_yaml
 from datetime import datetime, timedelta
-from src.elt_lakehouse.generators.base.generator_base import generate_id
+
+from config.config_loader import load_yaml
 from src.elt_lakehouse.generators.base.distribution_loader import (
     load_distribution,
     weighted_choice,
 )
+from src.elt_lakehouse.generators.base.generator_base import generate_id
 
 # Load review score distribution
 raw_score_dist = load_distribution("review_score_distribution.json")
@@ -52,8 +53,10 @@ def generate_review(order: dict) -> dict:
         raise ValueError(
             f"Cannot generate review for order {order.get('order_id')}: missing delivery timestamp"
         )
-
-    delivered_dt: datetime = datetime.strptime(delivered_date_str, "%Y-%m-%d %H:%M:%S")
+    # Olist source timestamps are intentionally naive.
+    delivered_dt: datetime = datetime.strptime( #noqa: DTZ007
+        delivered_date_str, "%Y-%m-%d %H:%M:%S"
+    )
 
     creation_dt: datetime = delivered_dt + timedelta(
         days=random.randint(*GEN_REVIEW_CONFIG["creation_delay_days"])

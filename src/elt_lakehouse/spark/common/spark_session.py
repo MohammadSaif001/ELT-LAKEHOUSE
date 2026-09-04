@@ -1,12 +1,15 @@
 from pyspark.sql import SparkSession
+
 from config.config_loader import load_yaml
 from src.elt_lakehouse.spark.common.logger import get_logger
-logger   = get_logger("spark.common.spark_session")
+
+logger = get_logger("spark.common.spark_session")
 
 
-#===============================
+# ===============================
 # Create Spark Session
-#===============================
+# ===============================
+
 
 def create_spark_session(app_name: str | None = None) -> SparkSession:
     """Create and return a Spark session configured for Delta Lake."""
@@ -16,7 +19,6 @@ def create_spark_session(app_name: str | None = None) -> SparkSession:
 
         resolved_app_name = app_name or spark_config.get("app_name", "Modern Lakehouse")
 
-        
         sql_config = spark_config.get("sql", {})
         shuffle_partitions = sql_config.get("shuffle_partitions", 200)
         session_timezone = sql_config.get("timezone", "UTC")
@@ -28,8 +30,7 @@ def create_spark_session(app_name: str | None = None) -> SparkSession:
         )
 
         builder = (
-            SparkSession.builder
-            .appName(resolved_app_name)
+            SparkSession.builder.appName(resolved_app_name)
             .master(spark_config.get("master", "local[*]"))
             .config(
                 "spark.sql.extensions",
@@ -42,16 +43,16 @@ def create_spark_session(app_name: str | None = None) -> SparkSession:
             .config("spark.sql.shuffle.partitions", shuffle_partitions)
             .config("spark.sql.session.timeZone", session_timezone)
         )
-        
+
         try:
             from delta import configure_spark_with_delta_pip as configure_delta
-        except Exception:
+        except ImportError:
             configure_delta = None
 
         if configure_delta:
             spark = configure_delta(builder).getOrCreate()
         else:
-            # Default Maven coordinate for Delta Spark 
+            # Default Maven coordinate for Delta Spark
             delta_maven = spark_config.get("delta", {}).get(
                 "maven_coord", "io.delta:delta-spark_4.1_2.13:4.3.1"
             )

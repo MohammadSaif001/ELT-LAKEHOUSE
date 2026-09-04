@@ -10,7 +10,7 @@ def assert_unique(values, name) -> None:
         name (str): Name of the entity being checked (for error messages).
     """
     assert len(values) == len(set(values)), (
-        f"Duplicate {name} found: " f"{len(values) - len(set(values))}"
+        f"Duplicate {name} found: {len(values) - len(set(values))}"
     )
 
 

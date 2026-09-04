@@ -1,5 +1,6 @@
 import argparse
-from datetime import datetime
+from datetime import datetime, timezone
+
 from src.elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
@@ -25,14 +26,12 @@ def orchestrate(args, send_report: bool = False) -> None:
     """Run the ELT pipeline."""
     try:
         logger.info("Starting ELT pipeline...")
-        start_time: datetime = datetime.now()
+        start_time: datetime = datetime.now(timezone.utc)
 
-        from src.elt_lakehouse.spark.jobs.pool_job import run_pool_job
-        from src.elt_lakehouse.spark.jobs.dataset_job import run_dataset_job
         from src.elt_lakehouse.spark.jobs.bronze_job import run_bronze_ingestion
+        from src.elt_lakehouse.spark.jobs.dataset_job import run_dataset_job
+        from src.elt_lakehouse.spark.jobs.pool_job import run_pool_job
         from src.elt_lakehouse.spark.jobs.silver_job import run_silver_processing
-
-
 
         if args.run_pipeline:
             run_pool_job()
@@ -48,7 +47,7 @@ def orchestrate(args, send_report: bool = False) -> None:
         elif args.bronze_runner:
             run_bronze_ingestion()
 
-        duration: float = (datetime.now() - start_time).total_seconds()
+        duration: float = (datetime.now(timezone.utc) - start_time).total_seconds()
 
         logger.info("ELT pipeline completed successfully in %.2f seconds.", duration)
 

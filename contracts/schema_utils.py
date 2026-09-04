@@ -16,18 +16,18 @@ def load_contract(schema_file: str) -> dict:
             schema = json.load(json_file)
         return schema
     except json.JSONDecodeError:
-        raise ValueError(f"Invalid JSON schema: path={schema_path}")
+        raise TypeError(f"Invalid JSON schema: path={schema_path}")
 
 
 def field_extract(schema: dict) -> list:
 
     if not isinstance(schema, dict):
-        raise ValueError("Schema must be a dictionary.")
+        raise TypeError("Schema must be a dictionary.")
 
     properties = schema.get("properties")
 
     if not isinstance(properties, dict):
-        raise ValueError("Schema must be a dictionary.")
+        raise TypeError("Schema must be a dictionary.")
 
     required_fields = set(schema.get("required", []))
 
@@ -41,17 +41,18 @@ def field_extract(schema: dict) -> list:
         else:
             data_type = field_type
 
-        fields.append({
-            "column_name": column_name,
-            "data_type": data_type,
-            "nullable": data_type,
-            "required": column_name in required_fields,
-            **{
-                key: definition[key]
-                for key in ("format", "minimum", "maximum")
-                if key in definition
-            },
-        })
+        fields.append(
+            {
+                "column_name": column_name,
+                "data_type": data_type,
+                "nullable": data_type,
+                "required": column_name in required_fields,
+                **{
+                    key: definition[key]
+                    for key in ("format", "minimum", "maximum")
+                    if key in definition
+                },
+            }
+        )
 
     return fields
-

@@ -1,9 +1,10 @@
 import os
 import smtplib
-from dotenv import load_dotenv
-from email.mime.text import MIMEText
-from report_sender.log_parsing import generate_report
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+from dotenv import load_dotenv
+
 from src.elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
@@ -74,7 +75,6 @@ def send_email(body: str) -> bool:
         msg.attach(MIMEText(body, "plain"))
 
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=20) as server:
-
             server.starttls()
             server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
             server.sendmail(EMAIL_ADDRESS, RECIPIENT_EMAIL, msg.as_string())

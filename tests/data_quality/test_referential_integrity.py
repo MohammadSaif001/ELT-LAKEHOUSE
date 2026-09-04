@@ -8,7 +8,6 @@ def test_order_customer_fk() -> None:  # 1
     customer_ids: set[str] = {customer["customer_id"] for customer in customers}
 
     for order in orders:
-
         assert order["customer_id"] in customer_ids
 
 

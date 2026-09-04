@@ -1,9 +1,10 @@
 import logging
 import logging.config
 from pathlib import Path
-from src.elt_lakehouse.spark.common.paths import PROJECT_ROOT
 
 import yaml
+
+from src.elt_lakehouse.spark.common.paths import PROJECT_ROOT
 
 _CONFIG_LOADED = False
 

@@ -1,6 +1,7 @@
 from collections import Counter
-from src.elt_lakehouse.generators.base.distribution_loader import load_distribution
+
 from src.elt_lakehouse.generators.base.data_loading import load_generated_data
+from src.elt_lakehouse.generators.base.distribution_loader import load_distribution
 
 # Helpler function to calculate the distribution of values in a given column of a list of dictionaries.
 
@@ -21,10 +22,9 @@ def test_order_status_distribution() -> None:
     generated = calculate_distribution(orders, "order_status")
 
     for status in historical:
-
         assert abs(generated.get(status, 0) - historical[status]) < 0.05, (
             f"Distribution mismatch for {status}: "
-            f"generated={generated.get(status,0):.3f}, "
+            f"generated={generated.get(status, 0):.3f}, "
             f"historical={historical[status]:.3f}"
         )
 
@@ -36,7 +36,7 @@ def test_payment_type_distribution():
     for payment_type in historical:
         assert abs(generated.get(payment_type, 0) - historical[payment_type]) < 0.05, (
             f"Distribution mismatch for {payment_type}: "
-            f"generated={generated.get(payment_type,0):.3f}, "
+            f"generated={generated.get(payment_type, 0):.3f}, "
             f"historical={historical[payment_type]:.3f}"
         )
 
@@ -49,7 +49,7 @@ def test_product_category_distribution():
     for category in historical:
         assert abs(generated.get(category, 0) - historical[category]) < 0.05, (
             f"Distribution mismatch for {category}: "
-            f"generated={generated.get(category,0):.3f}, "
+            f"generated={generated.get(category, 0):.3f}, "
             f"historical={historical[category]:.3f}"
         )
 
@@ -62,6 +62,6 @@ def test_review_score_distribution():
     for score in historical:
         assert abs(generated.get(score, 0) - historical[score]) < 0.05, (
             f"Distribution mismatch for {score}: "
-            f"generated={generated.get(score,0):.3f}, "
+            f"generated={generated.get(score, 0):.3f}, "
             f"historical={historical[score]:.3f}"
         )

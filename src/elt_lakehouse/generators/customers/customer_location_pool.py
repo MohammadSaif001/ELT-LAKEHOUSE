@@ -1,7 +1,8 @@
-from src.elt_lakehouse.spark.common.logger import get_logger
 from src.elt_lakehouse.generators.base.pool_manager import load_pool, save_pool
-from src.elt_lakehouse.generators.customers.customer_location_generator import generate_customer_location
-
+from src.elt_lakehouse.generators.customers.customer_location_generator import (
+    generate_customer_location,
+)
+from src.elt_lakehouse.spark.common.logger import get_logger
 
 # =================================
 # Build Customer Location Pool

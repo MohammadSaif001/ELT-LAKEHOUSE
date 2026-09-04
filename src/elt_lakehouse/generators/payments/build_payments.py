@@ -1,9 +1,10 @@
-from datetime import datetime
+from datetime import datetime, timezone
+
 from config.config_loader import load_yaml
-from src.elt_lakehouse.spark.common.logger import get_logger
 from src.elt_lakehouse.generators.base.data_loading import load_generated_data
 from src.elt_lakehouse.generators.base.data_saving import save_generated_data
 from src.elt_lakehouse.generators.payments.payment_generator import generate_payment
+from src.elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -19,7 +20,7 @@ def build_payments(output_dir: str) -> None:
     orders_file: str = "generated_orders_data.json"
     order_items_file: str = "generated_order_items_data.json"
     output_file: str = "generated_payments_data.json"
-    started_at: datetime = datetime.now()
+    started_at: datetime = datetime.now(timezone.utc)
     FALLBACK_TOTAL: int = GEN_CONFIG["fallback_total_value"]
 
     try:
@@ -64,7 +65,7 @@ def build_payments(output_dir: str) -> None:
         )
         save_generated_data(payments, output_file, output_dir)
 
-        duration_seconds: float = (datetime.now() - started_at).total_seconds()
+        duration_seconds: float = (datetime.now(timezone.utc) - started_at).total_seconds()
         logger.info(
             "Payment dataset generated successfully: records=%d, path=%s/%s, duration_s=%.2f",
             len(payments),

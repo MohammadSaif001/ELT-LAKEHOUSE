@@ -1,17 +1,18 @@
-from pathlib import Path
-from datetime import datetime
 from collections.abc import Callable
-from src.elt_lakehouse.spark.common.logger import get_logger
-from src.elt_lakehouse.generators.reviews.build_reviews import build_reviews
-from src.elt_lakehouse.generators.sellers.build_sellers import build_sellers
-from src.elt_lakehouse.generators.products.build_products import build_products
-from src.elt_lakehouse.generators.payments.build_payments import build_payments
+from datetime import datetime, timezone
+from pathlib import Path
+
 from src.elt_lakehouse.generators.customers.build_customers import build_customers
 from src.elt_lakehouse.generators.customers.build_geolocations import build_geolocations
 from src.elt_lakehouse.generators.orders.build_orders import (
-    build_orders,
     build_order_items,
+    build_orders,
 )
+from src.elt_lakehouse.generators.payments.build_payments import build_payments
+from src.elt_lakehouse.generators.products.build_products import build_products
+from src.elt_lakehouse.generators.reviews.build_reviews import build_reviews
+from src.elt_lakehouse.generators.sellers.build_sellers import build_sellers
+from src.elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -20,9 +21,8 @@ logger = get_logger(__name__)
 # =======================
 
 
-
 def run_dataset_job(output_dir: str = "storage/generated") -> None:
-    start_time: datetime = datetime.now()
+    start_time: datetime = datetime.now(timezone.utc)
     output_path = Path(output_dir)
     logger.info(
         "Starting dataset generation. Output directory=%s",
@@ -45,7 +45,7 @@ def run_dataset_job(output_dir: str = "storage/generated") -> None:
             logger.info("Generating dataset:%s", dataset_name)
             build_function(output_path)
 
-        elapsed: float = (datetime.now() - start_time).total_seconds()
+        elapsed: float = (datetime.now(timezone.utc) - start_time).total_seconds()
         logger.info(
             "Dataset generation completed successfully in duration_s=%.2f",
             elapsed,

@@ -1,6 +1,7 @@
 from pyspark.sql import DataFrame
-from src.elt_lakehouse.spark.common.paths import BRONZE_DIR
+
 from src.elt_lakehouse.spark.common.logger import get_logger
+from src.elt_lakehouse.spark.common.paths import BRONZE_DIR
 from src.elt_lakehouse.spark.utils.validations import validation_data
 
 logger = get_logger(__name__)
@@ -8,10 +9,7 @@ logger = get_logger(__name__)
 ORDERS_DELTA_PATH = BRONZE_DIR / "orders_delta"
 
 
-@validation_data(
-    delta_path=str(ORDERS_DELTA_PATH),
-    schema_name="orders"
-)
+@validation_data(delta_path=str(ORDERS_DELTA_PATH), schema_name="orders")
 def process_orders(df: DataFrame) -> DataFrame:
     """
     Process the orders DataFrame.

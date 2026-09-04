@@ -9,10 +9,9 @@ SCHEMA_REGISTRY = {
     "sellers": "seller_schema.json",
 }
 
-def get_schema_file(schema_name:str):
+
+def get_schema_file(schema_name: str):
     try:
         return SCHEMA_REGISTRY[schema_name]
     except KeyError:
-        raise ValueError(
-            f"Schema '{schema_name}' not found in the schema registry."
-            )
+        raise ValueError(f"Schema '{schema_name}' not found in the schema registry.")

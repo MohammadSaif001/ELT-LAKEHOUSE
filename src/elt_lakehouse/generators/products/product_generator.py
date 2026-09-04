@@ -1,10 +1,11 @@
 import random
+
 from config.config_loader import load_yaml
-from src.elt_lakehouse.generators.base.generator_base import generate_id
 from src.elt_lakehouse.generators.base.distribution_loader import (
     load_distribution,
     weighted_choice,
 )
+from src.elt_lakehouse.generators.base.generator_base import generate_id
 
 PRODUCT_CATEGORY_DIST = load_distribution("product_category_distribution.json")
 

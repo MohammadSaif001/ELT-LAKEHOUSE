@@ -1,9 +1,9 @@
-from src.elt_lakehouse.generators.base.generator_base import generate_id
 from src.elt_lakehouse.generators.base.distribution_loader import (
     load_distribution,
-    weighted_choice,
     random_from_list,
+    weighted_choice,
 )
+from src.elt_lakehouse.generators.base.generator_base import generate_id
 
 # state distribution
 state_dist = load_distribution("state_distribution.json")
@@ -23,7 +23,7 @@ def generate_customer() -> dict:
     state, city, and zip code based on Olist distributions."""
 
     state = weighted_choice(state_dist)
-    if state in city_dist and city_dist[state]:
+    if city_dist.get(state):
         city = weighted_choice(city_dist[state])
     else:
         city = random_from_list(state_city_map[state])

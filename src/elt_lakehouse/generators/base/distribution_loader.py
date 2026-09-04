@@ -1,6 +1,7 @@
 import json
 import random
 from typing import Any
+
 from src.elt_lakehouse.spark.common.paths import PROFILING_DIR
 
 

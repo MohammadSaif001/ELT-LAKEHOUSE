@@ -1,12 +1,13 @@
-from datetime import datetime
+from datetime import datetime, timezone
+
 from config.config_loader import load_yaml
-from src.elt_lakehouse.spark.common.logger import get_logger
-from src.elt_lakehouse.generators.base.data_saving import save_generated_data
 from src.elt_lakehouse.generators.base.data_loading import load_generated_data
+from src.elt_lakehouse.generators.base.data_saving import save_generated_data
 from src.elt_lakehouse.generators.orders.order_generator import generate_order
 from src.elt_lakehouse.generators.orders.order_item_generator import (
     generate_order_items,
 )
+from src.elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -14,12 +15,13 @@ logger = get_logger(__name__)
 # Order Builder
 # ==========================
 
+
 def build_orders(output_dir: str) -> None:
     """Generates order records and saves them to generated storage."""
     GEN_CONFIG = load_yaml("generator_config.yaml")["dataset_volume"]
     record_count: int = GEN_CONFIG["orders"]
     output_name: str = "generated_orders_data.json"
-    started_at: datetime = datetime.now()
+    started_at: datetime = datetime.now(timezone.utc)
 
     try:
         logger.info(
@@ -38,7 +40,7 @@ def build_orders(output_dir: str) -> None:
         )
         save_generated_data(orders, output_name, output_dir)
 
-        duration_seconds: float = (datetime.now() - started_at).total_seconds()
+        duration_seconds: float = (datetime.now(timezone.utc) - started_at).total_seconds()
 
         logger.info(
             "Order dataset generated successfully: records=%d, path=%s/%s, duration_s=%.2f",
@@ -68,7 +70,7 @@ def build_order_items(output_dir: str) -> None:
     products_file: str = "generated_products_data.json"
     output_file: str = "generated_order_items_data.json"
     sellers_file: str = "generated_sellers_data.json"
-    started_at: datetime = datetime.now()
+    started_at: datetime = datetime.now(timezone.utc)
 
     try:
         logger.info("Loading orders: file=%s", orders_file)
@@ -81,7 +83,8 @@ def build_order_items(output_dir: str) -> None:
         logger.info("Generating order items : records=%d", len(orders))
         all_order_items: list = []
         for order in orders:
-            purchase_timestamp: datetime = datetime.strptime(
+            # Source timestamps are intentionally naive and follow the Olist format.
+            purchase_timestamp: datetime = datetime.strptime(   # noqa: DTZ007
                 order["order_purchase_timestamp"], "%Y-%m-%d %H:%M:%S"
             )
             items: list = generate_order_items(
@@ -101,7 +104,7 @@ def build_order_items(output_dir: str) -> None:
         )
         save_generated_data(all_order_items, output_file, output_dir)
 
-        duration_seconds: float = (datetime.now() - started_at).total_seconds()
+        duration_seconds: float = (datetime.now(timezone.utc) - started_at).total_seconds()
         logger.info(
             "Order item dataset generated successfully: records=%d, path=%s/%s, duration_s=%.2f",
             len(all_order_items),

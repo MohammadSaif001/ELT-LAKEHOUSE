@@ -1,9 +1,9 @@
-from src.elt_lakehouse.generators.base.generator_base import generate_id
 from src.elt_lakehouse.generators.base.distribution_loader import (
     load_distribution,
-    weighted_choice,
     random_from_list,
+    weighted_choice,
 )
+from src.elt_lakehouse.generators.base.generator_base import generate_id
 
 CITY_DIST = load_distribution("city_distribution.json")
 SELLER_CITY_MAP = load_distribution("state_city_mapping.json")
@@ -15,7 +15,7 @@ def generate_seller() -> dict:
     """Generate a seller record with realistic location data."""
     state = weighted_choice(SELLER_STATE_DIST)
     try:
-        if state in CITY_DIST and CITY_DIST[state]:
+        if CITY_DIST.get(state):
             city = weighted_choice(CITY_DIST[state])
         else:
             city = random_from_list(SELLER_CITY_MAP[state])

@@ -1,11 +1,9 @@
-from src.elt_lakehouse.spark.common.logger import get_logger
+from contracts.schema_utils import field_extract, load_contract
 from src.elt_lakehouse.ingestion.core.reader import read_delta
-from contracts.schema_utils import load_contract, field_extract
-from src.elt_lakehouse.spark.utils.type_casting import cast_using_contract
+from src.elt_lakehouse.spark.common.logger import get_logger
 from src.elt_lakehouse.spark.common.schema_registry import get_schema_file
-from src.elt_lakehouse.spark.common.spark_session import create_spark_session
 from src.elt_lakehouse.spark.quality.schema_validation import check_validation
-
+from src.elt_lakehouse.spark.utils.type_casting import cast_using_contract
 
 logger = get_logger(__name__)
 
@@ -23,10 +21,11 @@ def validation_data(delta_path: str, schema_name: str):
     Returns:
         function: A decorated function that receives the validated DataFrame.
     """
+
     def decorator(func):
         def wrapper(spark, *args, **kwargs):
             try:
-                df = read_delta(spark,delta_path)
+                df = read_delta(spark, delta_path)
                 schema_file = get_schema_file(schema_name)
                 schema = load_contract(schema_file)
                 extract = field_extract(schema)
@@ -41,8 +40,10 @@ def validation_data(delta_path: str, schema_name: str):
 
                 return func(type_casted, *args, **kwargs)
 
-            except Exception as e:
+            except Exception:
                 logger.exception("Error during validation: %s", schema_name)
                 raise
+
         return wrapper
+
     return decorator

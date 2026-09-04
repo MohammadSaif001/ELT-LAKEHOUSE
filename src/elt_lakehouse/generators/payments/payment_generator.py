@@ -1,4 +1,5 @@
 from typing import Literal
+
 from config.config_loader import load_yaml
 from src.elt_lakehouse.generators.base.distribution_loader import (
     load_distribution,

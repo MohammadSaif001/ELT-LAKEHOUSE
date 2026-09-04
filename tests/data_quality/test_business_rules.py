@@ -1,4 +1,5 @@
 from datetime import datetime
+
 from src.elt_lakehouse.generators.base.data_loading import load_generated_data
 
 

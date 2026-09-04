@@ -1,5 +1,5 @@
-from src.elt_lakehouse.spark.common.logger import get_logger
 from src.elt_lakehouse.profiling.common import load_csv, save_profile
+from src.elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 

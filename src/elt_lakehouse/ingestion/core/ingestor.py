@@ -1,6 +1,6 @@
-from src.elt_lakehouse.spark.common.logger import get_logger
 from src.elt_lakehouse.ingestion.core.reader import read_json
 from src.elt_lakehouse.ingestion.core.writer import write_delta
+from src.elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -18,7 +18,6 @@ def ingestor(input_path: str, output_path: str, spark, mode: str = "overwrite"):
             "Ingestion completed successfully: output_path=%s",
             output_path,
         )
-        pass
     except Exception:
         logger.exception(
             "Error occurred while ingesting data: input_path=%s, output_path=%s",
