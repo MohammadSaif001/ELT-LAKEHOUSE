@@ -1,9 +1,9 @@
 # Generated data and profiling output
 /data/raw/
 /data/profiling/
-/storage/generated/
-/storage/bronze/
-/storage/generated/
+
+# Storage files for Delta Lake
+storage/
 
 # Local environment
 /.Elt-lakehouse/
