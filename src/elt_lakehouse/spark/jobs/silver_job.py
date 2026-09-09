@@ -1,7 +1,14 @@
 from datetime import datetime, timezone
 
+from pyspark.sql import DataFrame
+
+from src.elt_lakehouse.ingestion.core.writer import write_delta
 from src.elt_lakehouse.spark.common.logger import get_logger
+from src.elt_lakehouse.spark.common.paths import SILVER_DIR
 from src.elt_lakehouse.spark.common.spark_session import create_spark_session
+from src.elt_lakehouse.spark.quality.referential_integrity import (
+    check_referential_integrity,
+)
 from src.elt_lakehouse.spark.silver.customers_silver import process_customers
 from src.elt_lakehouse.spark.silver.geo_location_silver import process_geolocation
 from src.elt_lakehouse.spark.silver.order_item_silver import process_order_items
@@ -11,7 +18,7 @@ from src.elt_lakehouse.spark.silver.product_silver import process_products
 from src.elt_lakehouse.spark.silver.reviews_silver import process_reviews
 from src.elt_lakehouse.spark.silver.sellers_silver import process_sellers
 
-logger =  get_logger(__name__)
+logger = get_logger(__name__)
 
 
 def run_silver_processing() -> None:
@@ -20,21 +27,74 @@ def run_silver_processing() -> None:
     started_at: datetime = datetime.now(timezone.utc)
     spark = create_spark_session()
     try:
-        process_customers(spark)
-        process_payments(spark)
-        process_orders(spark)
-        process_reviews(spark)
-        process_order_items(spark)
-        process_sellers(spark)
-        process_products(spark)
-        process_geolocation(spark)
+        customers_df = process_customers(spark)
+        geolocation_df = process_geolocation(spark)
+        orders_df = process_orders(spark)
+        order_items_df = process_order_items(spark)
+        payments_df = process_payments(spark)
+        reviews_df = process_reviews(spark)
+        products_df = process_products(spark)
+        sellers_df = process_sellers(spark)
+
+        # Check referential integrity for each relationship
+
+        orders_df, invalid_df = check_referential_integrity(
+            orders_df, customers_df, "customer_id", "customer_id"
+        )
+        write_delta(invalid_df, str(SILVER_DIR / "quarantine/orders_missing_customer"))
+
+        order_items_df, invalid_df = check_referential_integrity(
+            order_items_df, orders_df, "order_id", "order_id"
+        )
+        write_delta(
+            invalid_df, str(SILVER_DIR / "quarantine/order_items_missing_order")
+        )
+
+        order_items_df, invalid_df = check_referential_integrity(
+            order_items_df, products_df, "product_id", "product_id"
+        )
+        write_delta(
+            invalid_df, str(SILVER_DIR / "quarantine/order_items_missing_product")
+        )
+
+        order_items_df, invalid_df = check_referential_integrity(
+            order_items_df, sellers_df, "seller_id", "seller_id"
+        )
+        write_delta(
+            invalid_df, str(SILVER_DIR / "quarantine/order_items_missing_seller")
+        )
+
+        payments_df, invalid_df = check_referential_integrity(
+            payments_df, orders_df, "order_id", "order_id"
+        )
+        write_delta(invalid_df, str(SILVER_DIR / "quarantine/payments_missing_order"))
+
+        reviews_df, invalid_df = check_referential_integrity(
+            reviews_df, orders_df, "order_id", "order_id"
+        )
+        write_delta(invalid_df, str(SILVER_DIR / "quarantine/reviews_missing_order"))
+
+        silver_outputs: dict[str, DataFrame] = {
+            "customers_silver": customers_df,
+            "geolocation_silver": geolocation_df,
+            "orders_silver": orders_df,
+            "order_items_silver": order_items_df,
+            "payments_silver": payments_df,
+            "reviews_silver": reviews_df,
+            "products_silver": products_df,
+            "sellers_silver": sellers_df,
+        }
+        for name, df in silver_outputs.items():
+            write_delta(df, str(SILVER_DIR / name))
 
         logger.info("Silver layer processing completed successfully.")
-        duration_seconds: float = (datetime.now(timezone.utc) - started_at).total_seconds()
+        duration_seconds: float = (
+            datetime.now(timezone.utc) - started_at
+        ).total_seconds()
         logger.info(
-                    "All data validations completed successfully in duration_s=%.2f",
-                    duration_seconds,
-                )
+            "All data validations completed successfully in duration_s=%.2f",
+            duration_seconds,
+        )
     except Exception:
         logger.exception("Silver layer processing failed.")
         raise

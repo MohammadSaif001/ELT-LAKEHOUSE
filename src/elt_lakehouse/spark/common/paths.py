@@ -34,3 +34,4 @@ GENERATED_DIR = PROJECT_ROOT / "storage" / "generated"
 # -------------------------
 STORAGE_DIR = PROJECT_ROOT / "storage"
 BRONZE_DIR = STORAGE_DIR / "bronze"
+SILVER_DIR = STORAGE_DIR / "silver"
