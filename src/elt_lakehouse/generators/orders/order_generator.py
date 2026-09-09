@@ -1,13 +1,14 @@
 import random
 from datetime import datetime, timedelta
+
 from config.config_loader import load_yaml
-from src.elt_lakehouse.generators.base.pool_manager import load_pool
-from src.elt_lakehouse.generators.base.generator_base import generate_id
 from src.elt_lakehouse.generators.base.distribution_loader import (
     load_distribution,
-    weighted_choice,
     random_from_list,
+    weighted_choice,
 )
+from src.elt_lakehouse.generators.base.generator_base import generate_id
+from src.elt_lakehouse.generators.base.pool_manager import load_pool
 
 # Order status distribution
 ORDER_STATUS_DIST = load_distribution("order_status_distribution.json")
@@ -47,6 +48,7 @@ GEN_CONFIG_STATUS = GEN_CONFIG["order_status"]
 
 DELAY_MODELS = GEN_CONFIG["delay_models"]
 
+
 def get_customer_pool() -> list[dict]:
     return load_pool("customer_pool.json")
 
@@ -75,7 +77,10 @@ def generate_order_purchase_timestamp() -> datetime:
     MINUTE: int = random.randint(0, 59)
     SECOND: int = random.randint(0, 59)
 
-    dt: datetime = datetime(YEARS, MONTH, DAYS, HOUR, MINUTE, SECOND)
+    # Olist timestamps are intentionally generated as naive datetimes.
+    dt: datetime = datetime(  # noqa: DTZ001
+    YEARS, MONTH, DAYS, HOUR, MINUTE, SECOND
+)
     current_val: int = dt.weekday()
     diff: int = target_val - current_val
     DATE: datetime = dt + timedelta(days=diff)
@@ -137,15 +142,12 @@ def generate_order() -> dict:
     estimated_delivery_date = generate_estimated_delivery_date(purchase_timestamp)
 
     if order_status in GEN_CONFIG_STATUS["approved_or_later"]:
-
         approved_at = generate_approved_timestamp(purchase_timestamp)
 
     if order_status in GEN_CONFIG_STATUS["shipped_or_later"]:
-
         delivered_carrier_date = generate_delivered_carrier_date(approved_at)
 
     if order_status in GEN_CONFIG_STATUS["delivered"]:
-
         delivered_customer_date = generate_delivered_customer_date(
             delivered_carrier_date
         )

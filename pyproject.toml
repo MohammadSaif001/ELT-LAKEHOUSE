@@ -8,6 +8,13 @@ version = "0.1.0"
 requires-python = ">=3.10"
 description = "ELT Lakehouse data engineering project"
 
+dependencies = [
+    "delta-spark",
+    "pyspark",
+    "pyyaml",
+    "pytest",
+    "flask>=3.1.3",
+]
 [tool.setuptools]
 package-dir = { "" = "src" }
 

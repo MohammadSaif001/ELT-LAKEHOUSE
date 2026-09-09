@@ -28,3 +28,10 @@ CONFIG_DIR = PROJECT_ROOT / "config"
 # Generated
 # -------------------------
 GENERATED_DIR = PROJECT_ROOT / "storage" / "generated"
+
+# -------------------------
+# Delta Tables
+# -------------------------
+STORAGE_DIR = PROJECT_ROOT / "storage"
+BRONZE_DIR = STORAGE_DIR / "bronze"
+SILVER_DIR = STORAGE_DIR / "silver"

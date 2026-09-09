@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+
 from src.elt_lakehouse.spark.common.paths import GENERATED_DIR
 
 

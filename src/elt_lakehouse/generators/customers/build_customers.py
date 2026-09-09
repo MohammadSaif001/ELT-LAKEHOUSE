@@ -1,7 +1,8 @@
-from datetime import datetime
-from src.elt_lakehouse.spark.common.logger import get_logger
-from src.elt_lakehouse.generators.base.pool_manager import load_pool
+from datetime import datetime, timezone
+
 from src.elt_lakehouse.generators.base.data_saving import save_generated_data
+from src.elt_lakehouse.generators.base.pool_manager import load_pool
+from src.elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 # ===========================
@@ -13,7 +14,7 @@ def build_customers(output_dir: str) -> None:
     """Load the customer pool and save it as a generated dataset."""
     pool_name = "customer_pool.json"
     output_name = "generated_customers_data.json"
-    started_at: datetime = datetime.now()
+    started_at: datetime = datetime.now(timezone.utc)
     try:
         logger.info("Loading customer pool from %s", pool_name)
         customers = load_pool(pool_name)
@@ -25,7 +26,7 @@ def build_customers(output_dir: str) -> None:
         )
 
         save_generated_data(customers, output_name, output_dir)
-        duration_seconds: float = (datetime.now() - started_at).total_seconds()
+        duration_seconds: float = (datetime.now(timezone.utc) - started_at).total_seconds()
         logger.info(
             "Customer dataset generated successfully: records=%d, path=%s/%s, duration_s=%.2f",
             len(customers),

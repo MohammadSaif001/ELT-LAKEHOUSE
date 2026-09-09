@@ -1,5 +1,6 @@
 import json
-from src.elt_lakehouse.generators.build_dataset import build_dataset
+
+from src.elt_lakehouse.spark.jobs.dataset_job import run_dataset_job
 
 
 # ========================
@@ -7,7 +8,7 @@ from src.elt_lakehouse.generators.build_dataset import build_dataset
 # ========================
 def test_build_pipeline(tmp_path):
 
-    build_dataset(output_dir=tmp_path)
+    run_dataset_job(output_dir=tmp_path)
     expected_files = [
         "generated_orders_data.json",
         "generated_order_items_data.json",

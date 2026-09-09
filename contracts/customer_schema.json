@@ -1,28 +1,33 @@
 {
-    "type": "object",
-    "properties": {
-        "customer_id": {
-            "type": "string"
-        },
-        "customer_unique_id": {
-            "type": "string"
-        },
-        "customer_zip_code_prefix": {
-            "type": "integer"
-        },
-        "customer_city": {
-            "type": "string"
-        },
-        "customer_state": {
-            "type": "string"
-        }
+  "type": "object",
+  "properties": {
+    "customer_id": {
+      "type": "string",
+      "nullable": false
     },
-    "required": [
-        "customer_id",
-        "customer_unique_id",
-        "customer_zip_code_prefix",
-        "customer_city",
-        "customer_state"
-    ],
-    "additionalProperties": false
+    "customer_unique_id": {
+      "type": "string",
+      "nullable": false
+    },
+    "customer_zip_code_prefix": {
+      "type": "string",
+      "nullable": false
+    },
+    "customer_city": {
+      "type": "string",
+      "nullable": false
+    },
+    "customer_state": {
+      "type": "string",
+      "nullable": false
+    }
+  },
+  "required": [
+    "customer_id",
+    "customer_unique_id",
+    "customer_zip_code_prefix",
+    "customer_city",
+    "customer_state"
+  ],
+  "additionalProperties": false
 }

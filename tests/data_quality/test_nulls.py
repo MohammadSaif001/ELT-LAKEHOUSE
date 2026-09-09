@@ -16,9 +16,9 @@ def test_orders_no_null():
 
     for order in orders:
         for column in REQUIRED_COLUMNS:
-            assert (
-                order[column] is not None
-            ), f"Column '{column}' in order {order['order_id']} is null"
+            assert order[column] is not None, (
+                f"Column '{column}' in order {order['order_id']} is null"
+            )
 
 
 # ========================================
@@ -37,9 +37,9 @@ def test_customers_no_null():
     ]
     for customer in customers:
         for column in REQUIRED_COLUMNS:
-            assert (
-                customer[column] is not None
-            ), f"Column '{column}' in customer {customer['customer_id']} is null"
+            assert customer[column] is not None, (
+                f"Column '{column}' in customer {customer['customer_id']} is null"
+            )
 
 
 # =========================================
@@ -50,7 +50,6 @@ def test_customers_no_null():
 def test_geolocations_no_null():
     geolocations = load_generated_data("generated_geolocation_data.json")
     REQUIRED_COLUMNS: list[str] = [
-        "customer_id",
         "geolocation_zip_code_prefix",
         "geolocation_city",
         "geolocation_state",
@@ -58,9 +57,9 @@ def test_geolocations_no_null():
 
     for geolocation in geolocations:
         for column in REQUIRED_COLUMNS:
-            assert (
-                geolocation[column] is not None
-            ), f"Column '{column}' in geolocation {geolocation['customer_id']} is null"
+            assert geolocation[column] is not None, (
+                f"Column '{column}' in geolocation {geolocation['geolocation_zip_code_prefix']} is null"
+            )
 
 
 # =========================================
@@ -79,9 +78,9 @@ def test_sellers_no_null():
 
     for seller in sellers:
         for column in REQUIRED_COLUMNS:
-            assert (
-                seller[column] is not None
-            ), f"Column '{column}' in seller {seller['seller_id']} is null"
+            assert seller[column] is not None, (
+                f"Column '{column}' in seller {seller['seller_id']} is null"
+            )
 
 
 # =========================================
@@ -94,9 +93,9 @@ def test_products_no_null():
     REQUIRED_COLUMNS: list[str] = ["product_id", "product_category_name"]
     for product in products:
         for column in REQUIRED_COLUMNS:
-            assert (
-                product[column] is not None
-            ), f"Column '{column}' in product {product['product_id']} is null"
+            assert product[column] is not None, (
+                f"Column '{column}' in product {product['product_id']} is null"
+            )
 
 
 # =========================================
@@ -107,9 +106,9 @@ def test_order_items_no_null():
     REQUIRED_COLUMNS: list[str] = ["order_id", "product_id"]
     for item in order_items:
         for column in REQUIRED_COLUMNS:
-            assert (
-                item[column] is not None
-            ), f"Column '{column}' in order item {item['order_id']} is null"
+            assert item[column] is not None, (
+                f"Column '{column}' in order item {item['order_id']} is null"
+            )
 
 
 # =========================================
@@ -127,9 +126,9 @@ def test_payments_no_null():
 
     for payment in payments:
         for column in REQUIRED_COLUMNS:
-            assert (
-                payment[column] is not None
-            ), f"Column '{column}' in payment {payment['order_id']} is null"
+            assert payment[column] is not None, (
+                f"Column '{column}' in payment {payment['order_id']} is null"
+            )
 
 
 # =========================================
@@ -141,6 +140,6 @@ def test_reviews_no_null() -> None:
 
     for review in reviews:
         for column in REQUIRED_COLUMNS:
-            assert (
-                review[column] is not None
-            ), f"Column '{column}' in review {review['review_id']} is null"
+            assert review[column] is not None, (
+                f"Column '{column}' in review {review['review_id']} is null"
+            )

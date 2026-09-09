@@ -1,7 +1,9 @@
 import csv
 import json
+
 import pandas as pd
-from src.elt_lakehouse.spark.common.paths import RAW_DATA_DIR, PROFILING_DIR
+
+from src.elt_lakehouse.spark.common.paths import PROFILING_DIR, RAW_DATA_DIR
 
 
 def load_csv(file_name: str) -> pd.DataFrame:

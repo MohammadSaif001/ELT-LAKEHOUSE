@@ -1,11 +1,12 @@
 import random
-from datetime import datetime, timedelta
-from src.elt_lakehouse.generators.base.generator_base import generate_id
-from src.elt_lakehouse.generators.base.pool_manager import load_pool
+from datetime import datetime, timedelta, timezone
+
 from src.elt_lakehouse.generators.base.distribution_loader import (
     load_distribution,
     weighted_choice,
 )
+from src.elt_lakehouse.generators.base.generator_base import generate_id
+from src.elt_lakehouse.generators.base.pool_manager import load_pool
 
 # Price statistics
 PRICE_STATS = load_distribution("order_price_stats.json")
@@ -58,7 +59,6 @@ def generate_shipping_delay() -> int:
     """
 
     while True:
-
         delay = round(
             random.normalvariate(SHIPPING_STATS["mean"], SHIPPING_STATS["std"])
         )
@@ -160,4 +160,4 @@ def generate_order_items(
 
 
 if __name__ == "__main__":
-    generate_order_items(order_id=generate_id(), purchase_timestamp=datetime.now())
+    generate_order_items(order_id=generate_id(), purchase_timestamp=datetime.now(timezone.utc))
