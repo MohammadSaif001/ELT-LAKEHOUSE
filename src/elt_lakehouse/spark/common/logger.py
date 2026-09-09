@@ -1,6 +1,10 @@
 import logging
 import logging.config
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
+from time import perf_counter
+from typing import Any
 
 import yaml
 
@@ -52,3 +56,42 @@ def get_logger(name: str) -> logging.Logger:
     """
     _setup_logging()
     return logging.getLogger(name)
+
+
+def kv(**fields: Any) -> str:
+    """Format keyword arguments as logfmt: key=value key2=value2."""
+    parts = []
+    for key, value in fields.items():
+        if value is None:
+            parts.append(f"{key}=")
+            continue
+        text = str(value)
+        if " " in text:
+            text = f'"{text}"'
+        parts.append(f"{key}={text}")
+    return " ".join(parts)
+
+
+@contextmanager
+def log_duration(logger: logging.Logger, action: str, **context: Any) -> Iterator[None]:
+    """
+    Logs one "started" line and one "completed"/"failed" line around a
+    block, with a consistent duration_s field. Re-raises on failure;
+    never swallows an exception.
+    """
+    extra = f" {kv(**context)}" if context else ""
+    logger.info("%s started%s", action, extra)
+    start = perf_counter()
+    try:
+        yield
+    except Exception:
+        duration = perf_counter() - start
+        logger.exception(
+            "%s failed %s", action, kv(duration_s=round(duration, 2), **context)
+        )
+        raise
+    else:
+        duration = perf_counter() - start
+        logger.info(
+            "%s completed %s", action, kv(duration_s=round(duration, 2), **context)
+        )
