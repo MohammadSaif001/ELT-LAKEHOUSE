@@ -22,9 +22,9 @@ def run_pool_job() -> None:
     logger.info("Starting pool generation...")
     generators: list[tuple[str, Callable]] = [
         ("customers", build_customers_pool),
+        ("products", build_product_pool),
         ("customer locations", build_customer_location_pool),
         ("sellers", build_seller_pool),
-        ("products", build_product_pool),
     ]
 
     try:
