@@ -40,7 +40,6 @@ def generate_customer_location(customer: dict) -> dict:
     jitter = config.get("jitter_degrees", 0.0)
 
     return {
-        "customer_id": customer["customer_id"],
         "geolocation_zip_code_prefix": customer["customer_zip_code_prefix"],
         "geolocation_city": city,
         "geolocation_state": customer["customer_state"],

@@ -26,11 +26,11 @@ def test_customer_geolocation_fk() -> None:  # 3
     geolocations = load_generated_data("generated_geolocation_data.json")
 
     geolocation_ids: set[str] = {
-        geolocation["customer_id"] for geolocation in geolocations
+        geolocation["geolocation_zip_code_prefix"] for geolocation in geolocations
     }
 
     for customer in customers:
-        assert customer["customer_id"] in geolocation_ids
+        assert customer["customer_zip_code_prefix"] in geolocation_ids
 
 
 def test_order_item_product_fk() -> None:  # 4

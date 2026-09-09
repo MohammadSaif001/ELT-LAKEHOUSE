@@ -50,7 +50,6 @@ def test_customers_no_null():
 def test_geolocations_no_null():
     geolocations = load_generated_data("generated_geolocation_data.json")
     REQUIRED_COLUMNS: list[str] = [
-        "customer_id",
         "geolocation_zip_code_prefix",
         "geolocation_city",
         "geolocation_state",
@@ -59,7 +58,7 @@ def test_geolocations_no_null():
     for geolocation in geolocations:
         for column in REQUIRED_COLUMNS:
             assert geolocation[column] is not None, (
-                f"Column '{column}' in geolocation {geolocation['customer_id']} is null"
+                f"Column '{column}' in geolocation {geolocation['geolocation_zip_code_prefix']} is null"
             )
 
 
