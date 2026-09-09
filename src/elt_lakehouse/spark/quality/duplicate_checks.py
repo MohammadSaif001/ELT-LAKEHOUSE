@@ -35,6 +35,15 @@ def check_duplicates(df: DataFrame, entity: str, key_columns: list[str]) -> tupl
 
 def check_and_deduplicate(df: DataFrame, entity: str) -> DataFrame:
     key_columns = DUPLICATE_KEY_COLUMNS.get(entity)
+    
+    if key_columns is None:
+        logger.warning(
+            "%s_deduplication_skipped %s",
+            entity,
+            kv(reason="No key columns defined for deduplication"),
+        )
+        return df
+    
     is_clean, duplicate_count = check_duplicates(df, entity, key_columns)
 
     if not is_clean:

@@ -3,9 +3,9 @@ from typing import NamedTuple
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 
-from src.elt_lakehouse.spark.common.logger import logging
+from src.elt_lakehouse.spark.common.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class NullCheckResult(NamedTuple):
