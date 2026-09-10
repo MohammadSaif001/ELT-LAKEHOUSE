@@ -47,16 +47,14 @@ def check_and_deduplicate(df: DataFrame, entity: str) -> DataFrame:
     is_clean, duplicate_count = check_duplicates(df, entity, key_columns)
 
     if not is_clean:
-        before_dedup_count = df.count()
         df = df.dropDuplicates(key_columns)
-        after_dedup_count = df.count()
+
         logger.warning(
             "%s_deduplicated %s",
             entity,
             kv(
                 duplicate_groups=duplicate_count,
-                rows_before=before_dedup_count,
-                rows_after=after_dedup_count,
+                keys=",".join(key_columns),
             ),
         )
 

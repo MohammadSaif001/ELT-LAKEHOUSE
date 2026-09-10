@@ -1,5 +1,7 @@
 from functools import wraps
 
+from pyspark.storagelevel import StorageLevel
+
 from contracts.schema_utils import field_extract, load_contract
 from src.elt_lakehouse.ingestion.core.reader import read_delta
 from src.elt_lakehouse.ingestion.core.writer import write_delta
@@ -52,18 +54,26 @@ def validation_data(delta_path: str, schema_name: str, entity: str, output_path:
 
                 extract = field_extract(schema)
 
-                type_casted = cast_using_contract(df, extract)
+                type_casted = cast_using_contract(df, extract).persist(
+                    StorageLevel.MEMORY_AND_DISK
+                )
 
                 clean_df, quarantine_df = check_nulls(type_casted, extract)
+                quarantine_df = quarantine_df.persist(StorageLevel.MEMORY_AND_DISK)
 
-                if not quarantine_df.rdd.isEmpty():
-                    print("\033[31mThe quarantine data is not empty!\033[0m")
-                    quarantine_df.show(truncate=False)
+                if quarantine_df.limit(1).count() > 0:
+                    logger.warning(
+                        "Quarantine data is not empty: entity=%s, output_path=%s",
+                        entity,
+                        output_path
+                    )
                     write_delta(
                         quarantine_df,
                         output_path=f"{output_path}/quarantine",
                         mode="overwrite",
                     )
+                quarantine_df.unpersist()
+                type_casted.unpersist()
 
                 if entity == "geolocation":
                     no_duplicate_df = clean_df
@@ -79,14 +89,17 @@ def validation_data(delta_path: str, schema_name: str, entity: str, output_path:
                     """
                 else:
                     no_duplicate_df = check_and_deduplicate(clean_df, entity=entity)
-
+                no_duplicate_df = no_duplicate_df.persist(StorageLevel.MEMORY_AND_DISK)
                 is_valid, errors = check_validation(no_duplicate_df, extract)
 
                 if not is_valid:
                     logger.error("Schema validation failed: %s", errors)
+                    no_duplicate_df.unpersist()
                     raise ValueError(f"Schema validation failed: {errors}")
 
                 logger.info("Schema validation passed: schema=%s", schema_name)
+
+                no_duplicate_df = no_duplicate_df.cache()
 
                 return func(no_duplicate_df, *args, **kwargs)
 
