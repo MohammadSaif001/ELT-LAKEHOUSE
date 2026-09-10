@@ -31,14 +31,6 @@ def check_nulls(df: DataFrame, extracted_schema: list[dict]) -> NullCheckResult:
             column_null_condition = F.col(column).isNull()
             null_condition = null_condition | column_null_condition
 
-        elif nullable is True:
-            null_count = df.filter(F.col(column).isNull()).limit(1).count()
-
-            if null_count > 0:
-                logger.warning(
-                    f"Column '{column}' is nullable and contains null values. This is allowed by the contract."
-                )
-
     if not non_nullable_columns:
         logger.info(
             "No non-nullable columns found. NULL handling check completed successfully."
@@ -51,8 +43,8 @@ def check_nulls(df: DataFrame, extracted_schema: list[dict]) -> NullCheckResult:
     quarantine_df = df.filter(null_condition)
 
     clean_df = df.filter(~null_condition)
-
-    if quarantine_df.count() > 0:
+    quarantine_exits = quarantine_df.limit(1).count() > 0
+    if quarantine_exits:
         logger.error(
             "NULL validation failed for non-nullable columns: %s",
             non_nullable_columns,
