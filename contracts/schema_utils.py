@@ -34,18 +34,31 @@ def field_extract(schema: dict) -> list:
     fields: list[dict] = []
 
     for column_name, definition in properties.items():
+        if not isinstance(definition, dict):
+            raise TypeError(f"Definition for '{column_name}' must be a dictionary.")
+
         field_type = definition.get("type")
 
         if isinstance(field_type, list):
+            nullable_from_type = "null" in field_type
             data_type = next((t for t in field_type if t != "null"), None)
         else:
+            nullable_from_type = field_type == "null"
             data_type = field_type
+
+        raw_nullable = definition.get("nullable", nullable_from_type)
+
+        if not isinstance(raw_nullable, bool):
+            raise TypeError(
+                f"'nullable' for '{column_name}' must be a boolean, got {type(raw_nullable).__name__}."
+            )
+        nullable = raw_nullable
 
         fields.append(
             {
                 "column_name": column_name,
                 "data_type": data_type,
-                "nullable": data_type,
+                "nullable": nullable,
                 "required": column_name in required_fields,
                 **{
                     key: definition[key]
