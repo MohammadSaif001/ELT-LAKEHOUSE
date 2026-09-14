@@ -6,9 +6,13 @@ spark:
     mode: overwrite
   delta:
     enable: true
-  master: local[*]
+  master: local[8]
+  memory:
+    driver: 4g
+    executor: 4g
   sql:
     shuffle_partitions: 4
+    maxPartitionBytes: 67108864
     timezone: UTC
   storage:
     bronze: storage/bronze
