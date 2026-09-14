@@ -2,6 +2,9 @@
 /data/raw/
 /data/profiling/
 
+# Metadata files
+/metadata/
+
 # Storage files for Delta Lake
 storage/
 
