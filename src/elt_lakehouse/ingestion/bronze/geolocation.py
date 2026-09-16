@@ -6,7 +6,7 @@ from src.elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 
-INPUT_PATH = "storage/generated/generated_geolocation_data.json"
+INPUT_PATH = "storage/generated/generated_geolocation_data.parquet"
 OUTPUT_PATH = "storage/bronze/geolocation_delta"
 GEN_CONFIG = load_yaml("spark_config.yaml")["spark"]["bronze"]
 

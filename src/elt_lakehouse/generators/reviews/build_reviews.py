@@ -15,8 +15,8 @@ logger = get_logger(__name__)
 def build_reviews(output_dir: str) -> None:
     """Generates reviews only for delivered orders and saves to generated storage."""
 
-    orders_file: str = "generated_orders_data.json"
-    output_file: str = "generated_reviews_data.json"
+    orders_file: str = "generated_orders_data.parquet"
+    output_file: str = "generated_reviews_data.parquet"
     started_at: datetime = datetime.now(timezone.utc)
 
     try:
@@ -44,7 +44,9 @@ def build_reviews(output_dir: str) -> None:
 
         save_generated_data(reviews, output_file, output_dir)
 
-        duration_seconds: float = (datetime.now(timezone.utc) - started_at).total_seconds()
+        duration_seconds: float = (
+            datetime.now(timezone.utc) - started_at
+        ).total_seconds()
         logger.info(
             "Review dataset generated successfully: records=%d, path=%s/%s, duration_s=%.2f",
             len(reviews),

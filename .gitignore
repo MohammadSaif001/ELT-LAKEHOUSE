@@ -45,3 +45,6 @@ dbt/logs/
 /lib/
 visual/
 /dashboard/
+.ivy2/
+ram_report.csv
+

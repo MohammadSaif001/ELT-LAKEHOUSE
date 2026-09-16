@@ -19,7 +19,7 @@ def generate_seller() -> dict:
             city = weighted_choice(CITY_DIST[state])
         else:
             city = random_from_list(SELLER_CITY_MAP[state])
-        zip_code = random_from_list(SELLER_ZIP_MAP.get(city, ["01000"]))
+        zip_code = str(random_from_list(SELLER_ZIP_MAP.get(city, ["01000"])))
 
         return {
             "seller_id": generate_id(),

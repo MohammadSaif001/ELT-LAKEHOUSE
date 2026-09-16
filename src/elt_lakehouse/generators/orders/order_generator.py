@@ -50,7 +50,7 @@ DELAY_MODELS = GEN_CONFIG["delay_models"]
 
 
 def get_customer_pool() -> list[dict]:
-    return load_pool("customer_pool.json")
+    return load_pool("customer_pool.parquet")
 
 
 def generate_order_purchase_timestamp() -> datetime:
@@ -78,9 +78,7 @@ def generate_order_purchase_timestamp() -> datetime:
     SECOND: int = random.randint(0, 59)
 
     # Olist timestamps are intentionally generated as naive datetimes.
-    dt: datetime = datetime(  # noqa: DTZ001
-    YEARS, MONTH, DAYS, HOUR, MINUTE, SECOND
-)
+    dt: datetime = datetime(YEARS, MONTH, DAYS, HOUR, MINUTE, SECOND)  # noqa: DTZ001
     current_val: int = dt.weekday()
     diff: int = target_val - current_val
     DATE: datetime = dt + timedelta(days=diff)

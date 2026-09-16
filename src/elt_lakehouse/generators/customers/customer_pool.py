@@ -15,7 +15,7 @@ POOL_CONFIG = GEN_CONFIG.get("pool_sizes") or GEN_CONFIG.get("pool_size")
 
 def build_customers_pool() -> list:
     """Generate and persist the configured customer pool."""
-    pool_name = "customer_pool.json"
+    pool_name = "customer_pool.parquet"
     customer_pool_size = POOL_CONFIG["customers"]
 
     try:

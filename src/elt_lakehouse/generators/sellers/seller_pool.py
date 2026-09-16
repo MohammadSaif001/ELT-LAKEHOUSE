@@ -15,7 +15,7 @@ POOL_CONFIG = GEN_CONFIG.get("pool_sizes") or GEN_CONFIG.get("pool_size")
 
 def build_seller_pool() -> list:
     """Generate and persist the configured seller pool."""
-    pool_name = "seller_pool.json"
+    pool_name = "seller_pool.parquet"
     seller_pool_size = None
 
     try:

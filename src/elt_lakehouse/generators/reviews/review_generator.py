@@ -54,7 +54,7 @@ def generate_review(order: dict) -> dict:
             f"Cannot generate review for order {order.get('order_id')}: missing delivery timestamp"
         )
     # Olist source timestamps are intentionally naive.
-    delivered_dt: datetime = datetime.strptime( #noqa: DTZ007
+    delivered_dt: datetime = datetime.strptime(  # noqa: DTZ007
         delivered_date_str, "%Y-%m-%d %H:%M:%S"
     )
 

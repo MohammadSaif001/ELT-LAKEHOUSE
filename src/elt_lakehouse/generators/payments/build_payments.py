@@ -17,9 +17,9 @@ GEN_CONFIG = load_yaml("generator_config.yaml")["payments"]
 
 def build_payments(output_dir: str) -> None:
     """Generate payment records for generated orders and save them."""
-    orders_file: str = "generated_orders_data.json"
-    order_items_file: str = "generated_order_items_data.json"
-    output_file: str = "generated_payments_data.json"
+    orders_file: str = "generated_orders_data.parquet"
+    order_items_file: str = "generated_order_items_data.parquet"
+    output_file: str = "generated_payments_data.parquet"
     started_at: datetime = datetime.now(timezone.utc)
     FALLBACK_TOTAL: int = GEN_CONFIG["fallback_total_value"]
 
@@ -65,7 +65,9 @@ def build_payments(output_dir: str) -> None:
         )
         save_generated_data(payments, output_file, output_dir)
 
-        duration_seconds: float = (datetime.now(timezone.utc) - started_at).total_seconds()
+        duration_seconds: float = (
+            datetime.now(timezone.utc) - started_at
+        ).total_seconds()
         logger.info(
             "Payment dataset generated successfully: records=%d, path=%s/%s, duration_s=%.2f",
             len(payments),

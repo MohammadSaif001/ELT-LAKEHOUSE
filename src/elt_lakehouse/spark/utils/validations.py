@@ -65,7 +65,7 @@ def validation_data(delta_path: str, schema_name: str, entity: str, output_path:
                     logger.warning(
                         "Quarantine data is not empty: entity=%s, output_path=%s",
                         entity,
-                        output_path
+                        output_path,
                     )
                     write_delta(
                         quarantine_df,
