@@ -33,31 +33,23 @@ def check_validation(
             )
 
         if contract["nullable"] is False:
-
-           nullability_checks[column] = column
-           aggregate_expressions.append(
-               F.sum(
-                   F.when(
-                       F.col(column).isNull(), 1
-                   )
-                   .otherwise(0).alias(
-                       f"{column}_null_count"
-                   )
-               )
-           )
+            nullability_checks[column] = column
+            aggregate_expressions.append(
+                F.sum(
+                    F.when(F.col(column).isNull(), 1)
+                    .otherwise(0)
+                    .alias(f"{column}_null_count")
+                )
+            )
 
         minimum = contract.get("minimum")
         if minimum is not None:
             minimum_checks[column] = minimum
             aggregate_expressions.append(
                 F.sum(
-                    F.when(
-                        (F.col(column).isNotNull()) &
-                        (F.col(column) < minimum), 1
-                    )
-                    .otherwise(0).alias(
-                        f"{column}_below_minimum_count"
-                    )
+                    F.when((F.col(column).isNotNull()) & (F.col(column) < minimum), 1)
+                    .otherwise(0)
+                    .alias(f"{column}_below_minimum_count")
                 )
             )
 
@@ -66,41 +58,23 @@ def check_validation(
             maximum_checks[column] = maximum
             aggregate_expressions.append(
                 F.sum(
-                    F.when(
-                        (F.col(column).isNotNull()) &
-                        (F.col(column) > maximum), 1
-                    )
-                    .otherwise(0).alias(
-                        f"{column}_above_maximum_count"
-                    )
+                    F.when((F.col(column).isNotNull()) & (F.col(column) > maximum), 1)
+                    .otherwise(0)
+                    .alias(f"{column}_above_maximum_count")
                 )
             )
     if aggregate_expressions:
-        aggregate_results = (
-            df.agg(*aggregate_expressions)
-            .collect()[0]
-            .asDict()
-        )
+        aggregate_results = df.agg(*aggregate_expressions).collect()[0].asDict()
 
         for column in nullability_checks:
             if aggregate_results.get(f"{column}_null_count", 0) > 0:
-                errors.append(
-                    f"{column}: contains null values but nullable=False"
-                )
+                errors.append(f"{column}: contains null values but nullable=False")
 
         for column, minimum in minimum_checks.items():
-            if aggregate_results.get(
-                f"{column}_below_minimum_count", 0
-            ) > 0:
-                errors.append(
-                    f"{column}: contains less than minimum={minimum}"
-                )
+            if aggregate_results.get(f"{column}_below_minimum_count", 0) > 0:
+                errors.append(f"{column}: contains less than minimum={minimum}")
 
         for column, maximum in maximum_checks.items():
-            if aggregate_results.get(
-                f"{column}_above_maximum_count", 0
-            ) > 0:
-                errors.append(
-                    f"{column}: contains greater than maximum={maximum}"
-                )
+            if aggregate_results.get(f"{column}_above_maximum_count", 0) > 0:
+                errors.append(f"{column}: contains greater than maximum={maximum}")
     return len(errors) == 0, errors

@@ -15,19 +15,20 @@ def build_customer_location_pool() -> None:
     """Generate a pool of customer locations based on the customer pool."""
     try:
         logger.info("Generating customer location pool from customer pool")
-        customers: list = load_pool("customer_pool.json")
+        customers: list = load_pool("customer_pool.parquet")
 
         locations: list = []
         for customer in customers:
             locations.append(generate_customer_location(customer))
 
-        save_pool(locations, "customer_location_pool.json")
+        save_pool(locations, "customer_location_pool.parquet")
         logger.info(
             "Customer location pool generated and saved successfully to %s",
-            "customer_location_pool.json",
+            "customer_location_pool.parquet",
         )
     except Exception:
         logger.exception(
-            "Customer location pool generation failed : pool=%s", "customer_pool.json"
+            "Customer location pool generation failed : pool=%s",
+            "customer_pool.parquet",
         )
         raise

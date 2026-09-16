@@ -13,6 +13,7 @@ from src.elt_lakehouse.generators.products.build_products import build_products
 from src.elt_lakehouse.generators.reviews.build_reviews import build_reviews
 from src.elt_lakehouse.generators.sellers.build_sellers import build_sellers
 from src.elt_lakehouse.spark.common.logger import get_logger
+from src.elt_lakehouse.spark.utils.memory import monitor_memory
 
 logger = get_logger(__name__)
 
@@ -21,9 +22,11 @@ logger = get_logger(__name__)
 # =======================
 
 
+@monitor_memory
 def run_dataset_job(output_dir: str = "storage/generated") -> None:
     start_time: datetime = datetime.now(timezone.utc)
     output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
     logger.info(
         "Starting dataset generation. Output directory=%s",
         output_path,

@@ -1,11 +1,10 @@
 import random
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 from src.elt_lakehouse.generators.base.distribution_loader import (
     load_distribution,
     weighted_choice,
 )
-from src.elt_lakehouse.generators.base.generator_base import generate_id
 from src.elt_lakehouse.generators.base.pool_manager import load_pool
 
 # Price statistics
@@ -20,11 +19,13 @@ ITEMS_PER_ORDER_DIST = load_distribution("items_per_order_distribution.json")
 # Shipping delay statistics
 SHIPPING_STATS = load_distribution("order_shipping_delay_stats.json")
 
-# Product pool
-PRODUCT_POOL = load_pool("product_pool.json")
 
-# Seller pool
-SELLER_POOL = load_pool("seller_pool.json")
+def get_product_pool() -> list[dict]:
+    return load_pool("product_pool.parquet")
+
+
+def get_seller_pool() -> list[dict]:
+    return load_pool("seller_pool.parquet")
 
 
 def price_generator() -> float:
@@ -91,7 +92,7 @@ def freight_value_generator() -> float:
 
 
 def get_product(products: list[dict] | None = None):
-    pool = products if products is not None else PRODUCT_POOL
+    pool = products if products is not None else get_product_pool()
     return random.choice(pool)
 
 
@@ -107,7 +108,7 @@ def generate_order_item(
     Generates a single order item record.
     """
     product = product if product is not None else get_product(products)
-    seller_pool = sellers if sellers is not None else SELLER_POOL
+    seller_pool = sellers if sellers is not None else get_seller_pool()
     seller = random.choice(seller_pool)
     return {
         "order_id": order_id,
@@ -140,7 +141,7 @@ def generate_order_items(
 
     num_items = int(weighted_choice(ITEMS_PER_ORDER_DIST))
 
-    product_pool: list[dict] = products if products is not None else PRODUCT_POOL
+    product_pool: list[dict] = products if products is not None else get_product_pool()
     selected_products: list[dict] = random.sample(
         product_pool,
         k=min(num_items, len(product_pool)),
@@ -157,7 +158,3 @@ def generate_order_items(
         )
         for item_id, product in enumerate(selected_products, start=1)
     ]
-
-
-if __name__ == "__main__":
-    generate_order_items(order_id=generate_id(), purchase_timestamp=datetime.now(timezone.utc))

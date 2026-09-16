@@ -2,6 +2,7 @@ import argparse
 from datetime import datetime, timezone
 
 from src.elt_lakehouse.spark.common.logger import get_logger
+from src.elt_lakehouse.spark.utils.memory import monitor_memory
 
 logger = get_logger(__name__)
 
@@ -22,6 +23,7 @@ def send_pipeline_report() -> None:
         logger.exception("Failed to generate or send the pipeline report.")
 
 
+@monitor_memory
 def orchestrate(args, send_report: bool = False) -> None:
     """Run the ELT pipeline."""
     try:
@@ -33,13 +35,21 @@ def orchestrate(args, send_report: bool = False) -> None:
 
             run_pool_job()
 
+            from src.elt_lakehouse.spark.common.spark_session import (
+                create_spark_session,
+            )
             from src.elt_lakehouse.spark.jobs.bronze_job import run_bronze_ingestion
             from src.elt_lakehouse.spark.jobs.dataset_job import run_dataset_job
             from src.elt_lakehouse.spark.jobs.silver_job import run_silver_processing
 
             run_dataset_job()
-            run_bronze_ingestion()
-            run_silver_processing()
+            spark = create_spark_session()
+            try:
+                run_bronze_ingestion(spark=spark)
+                run_silver_processing(spark=spark)
+            finally:
+                spark.stop()
+
         elif args.silver_runner:
             from src.elt_lakehouse.spark.jobs.silver_job import run_silver_processing
 
@@ -112,6 +122,12 @@ def main() -> None:
         "--send-report",
         action="store_true",
         help="Send the pipeline report via email after execution.",
+    )
+
+    parser.add_argument(
+        "--setup",
+        action="store_true",
+        help="Download the dataset.",
     )
 
     args = parser.parse_args()

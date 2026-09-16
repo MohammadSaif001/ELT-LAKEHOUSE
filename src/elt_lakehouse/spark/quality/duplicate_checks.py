@@ -9,13 +9,15 @@ DUPLICATE_KEY_COLUMNS: dict[str, list[str]] = {
     "orders": ["order_id"],
     "products": ["product_id"],
     "order_items": ["order_id", "order_item_id"],
-    "payments": ["order_id","payment_sequential"],
+    "payments": ["order_id", "payment_sequential"],
     "reviews": ["review_id"],
     "sellers": ["seller_id"],
 }
 
 
-def check_duplicates(df: DataFrame, entity: str, key_columns: list[str]) -> tuple[bool, int]:
+def check_duplicates(
+    df: DataFrame, entity: str, key_columns: list[str]
+) -> tuple[bool, int]:
 
     with log_duration(logger, f"{entity}_duplicate_check", keys=",".join(key_columns)):
         duplicate_count = df.groupBy(key_columns).count().filter("count > 1").count()
