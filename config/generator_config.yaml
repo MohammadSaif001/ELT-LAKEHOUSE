@@ -23,12 +23,12 @@ payments:
   fallback_total_value: 20.0
 
 pool_size:
-  customers: 1000000
-  products: 100000
-  sellers: 200000
+  customers: 100000
+  products: 10000
+  sellers: 20000
 
 dataset_volume:
-    orders: 800000
+    orders: 80000
   
 product_dimensions:
     min_value: 1
