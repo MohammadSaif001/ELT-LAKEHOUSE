@@ -5,7 +5,7 @@ from src.elt_lakehouse.generators.base.distribution_loader import (
     load_distribution,
     weighted_choice,
 )
-from src.elt_lakehouse.generators.base.pool_manager import load_pool
+from src.elt_lakehouse.generators.base.pool_manager import load_pool_column
 
 # Price statistics
 PRICE_STATS = load_distribution("order_price_stats.json")
@@ -20,12 +20,12 @@ ITEMS_PER_ORDER_DIST = load_distribution("items_per_order_distribution.json")
 SHIPPING_STATS = load_distribution("order_shipping_delay_stats.json")
 
 
-def get_product_pool() -> list[dict]:
-    return load_pool("product_pool.parquet")
+def get_product_pool() -> list[str]:
+    return load_pool_column("product_pool.parquet", "product_id")
 
 
-def get_seller_pool() -> list[dict]:
-    return load_pool("seller_pool.parquet")
+def get_seller_pool() -> list[str]:
+    return load_pool_column("seller_pool.parquet", "seller_id")
 
 
 def price_generator() -> float:
@@ -102,7 +102,7 @@ def generate_order_item(
     purchase_timestamp: datetime,
     products: list[dict] | None = None,
     sellers: list[dict] | None = None,
-    product: dict | None = None,
+    product: dict | str | None = None,
 ) -> dict:
     """
     Generates a single order item record.
@@ -110,11 +110,13 @@ def generate_order_item(
     product = product if product is not None else get_product(products)
     seller_pool = sellers if sellers is not None else get_seller_pool()
     seller = random.choice(seller_pool)
+    product_id = product if isinstance(product, str) else product["product_id"]
+    seller_id = seller if isinstance(seller, str) else seller["seller_id"]
     return {
         "order_id": order_id,
         "order_item_id": order_item_id,
-        "product_id": product["product_id"],
-        "seller_id": seller["seller_id"],
+        "product_id": product_id,
+        "seller_id": seller_id,
         "shipping_limit_date": generate_shipping_limit_date(
             purchase_timestamp
         ).strftime("%Y-%m-%d %H:%M:%S"),
@@ -141,7 +143,7 @@ def generate_order_items(
 
     num_items = int(weighted_choice(ITEMS_PER_ORDER_DIST))
 
-    product_pool: list[dict] = products if products is not None else get_product_pool()
+    product_pool = products if products is not None else get_product_pool()
     selected_products: list[dict] = random.sample(
         product_pool,
         k=min(num_items, len(product_pool)),
