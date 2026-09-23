@@ -16,6 +16,7 @@ logger = get_logger(__name__)
 
 def build_geolocations(output_dir: str) -> None:
     """Load the customer location pool and save it as a generated dataset."""
+    
     pool_name = "customer_location_pool.parquet"
     output_name = "generated_geolocation_data.parquet"
 

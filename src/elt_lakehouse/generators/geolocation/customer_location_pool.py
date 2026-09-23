@@ -1,5 +1,8 @@
-from src.elt_lakehouse.generators.base.pool_manager import load_pool, save_pool
-from src.elt_lakehouse.generators.customers.customer_location_generator import (
+from src.elt_lakehouse.generators.base.pool_manager import (
+    iter_pool_batches,
+    save_pool_batches,
+)
+from elt_lakehouse.generators.geolocation.customer_location_generator import (
     generate_customer_location,
 )
 from src.elt_lakehouse.spark.common.logger import get_logger
@@ -15,15 +18,17 @@ def build_customer_location_pool() -> None:
     """Generate a pool of customer locations based on the customer pool."""
     try:
         logger.info("Generating customer location pool from customer pool")
-        customers: dict = load_pool("customer_pool.parquet")
 
-        locations: list = []
-        for customer in customers:
-            locations.append(generate_customer_location(customer))
+        def location_batches():
+            for customers in iter_pool_batches("customer_pool.parquet"):
+                yield [generate_customer_location(customer) for customer in customers]
 
-        save_pool(locations, "customer_location_pool.parquet")
+        location_count = save_pool_batches(
+            location_batches(), "customer_location_pool.parquet"
+        )
         logger.info(
-            "Customer location pool generated and saved successfully to %s",
+            "Customer location pool generated successfully: records=%d, file=%s",
+            location_count,
             "customer_location_pool.parquet",
         )
     except Exception:
