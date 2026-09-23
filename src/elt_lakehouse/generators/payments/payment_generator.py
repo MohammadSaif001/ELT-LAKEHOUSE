@@ -17,7 +17,7 @@ PAYMENT_SEQUENCE_DIST = load_distribution("payment_sequence_distribution.json")
 GEN_CONFIG = load_yaml("generator_config.yaml")["payments"]
 
 
-def generate_payment(order: dict, total_value: float) -> dict:
+def generate_payment(order: str, total_value: float) -> dict:
     """Generate payment record for an order with aligned payment value."""
 
     payment_type = weighted_choice(PAYMENT_TYPE_DIST)
@@ -31,7 +31,7 @@ def generate_payment(order: dict, total_value: float) -> dict:
     payment_sequential: Literal[1] = 1
 
     return {
-        "order_id": order["order_id"],
+        "order_id": order,
         "payment_sequential": payment_sequential,
         "payment_type": payment_type,
         "payment_installments": installments,

@@ -11,9 +11,24 @@ logger = get_logger(__name__)
 class NullCheckResult(NamedTuple):
     clean_df: DataFrame
     quarantine_df: DataFrame
+    has_quarantine: bool
 
 
 def check_nulls(df: DataFrame, extracted_schema: list[dict]) -> NullCheckResult:
+    """Separate rows with nulls in non-nullable columns from clean rows.
+
+    Args:
+        df: Input DataFrame to check.
+        extracted_schema: List of field dicts from the contract, each containing
+            at least ``column_name`` and ``nullable`` keys.
+
+    Returns:
+        A ``NullCheckResult`` with:
+        - ``clean_df``: rows where all non-nullable columns are non-null.
+        - ``quarantine_df``: rows that violate at least one non-nullable column.
+        - ``has_quarantine``: ``True`` if the quarantine DataFrame is non-empty.
+          This avoids a second Spark action in the caller.
+    """
 
     null_condition = F.lit(False)
     non_nullable_columns: list[str] = []
@@ -38,13 +53,13 @@ def check_nulls(df: DataFrame, extracted_schema: list[dict]) -> NullCheckResult:
 
         empty_quarantine_df = df.limit(0)
 
-        return NullCheckResult(df, empty_quarantine_df)
+        return NullCheckResult(df, empty_quarantine_df, has_quarantine=False)
 
     quarantine_df = df.filter(null_condition)
 
     clean_df = df.filter(~null_condition)
-    quarantine_exits = quarantine_df.limit(1).count() > 0
-    if quarantine_exits:
+    quarantine_exists = quarantine_df.limit(1).count() > 0
+    if quarantine_exists:
         logger.error(
             "NULL validation failed for non-nullable columns: %s",
             non_nullable_columns,
@@ -55,4 +70,4 @@ def check_nulls(df: DataFrame, extracted_schema: list[dict]) -> NullCheckResult:
             non_nullable_columns,
         )
 
-    return NullCheckResult(clean_df, quarantine_df)
+    return NullCheckResult(clean_df, quarantine_df, has_quarantine=quarantine_exists)

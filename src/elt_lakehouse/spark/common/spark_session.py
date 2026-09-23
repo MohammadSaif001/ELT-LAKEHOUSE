@@ -1,4 +1,5 @@
 import os
+
 from pyspark.sql import SparkSession
 
 from config.config_loader import load_yaml

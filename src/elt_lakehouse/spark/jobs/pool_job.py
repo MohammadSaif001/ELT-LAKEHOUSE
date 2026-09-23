@@ -1,10 +1,10 @@
 from collections.abc import Callable
 from datetime import datetime, timezone
 
-from src.elt_lakehouse.generators.customers.customer_location_pool import (
+from src.elt_lakehouse.generators.customers.customer_pool import build_customers_pool
+from src.elt_lakehouse.generators.geolocation.customer_location_pool import (
     build_customer_location_pool,
 )
-from src.elt_lakehouse.generators.customers.customer_pool import build_customers_pool
 from src.elt_lakehouse.generators.products.product_pool import build_product_pool
 from src.elt_lakehouse.generators.sellers.seller_pool import build_seller_pool
 from src.elt_lakehouse.spark.common.logger import get_logger

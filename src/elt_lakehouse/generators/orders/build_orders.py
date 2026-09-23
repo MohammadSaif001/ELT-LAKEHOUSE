@@ -30,7 +30,9 @@ def build_orders(output_dir: str) -> None:
             output_dir,
         )
 
-        orders: list = [generate_order() for _ in range(record_count)]
+        orders: list = []
+        for _ in range(1, record_count + 1):
+            orders.append(generate_order())
 
         logger.info(
             "Saving generated order dataset: records=%d , file=%s, output_dir=%s",
