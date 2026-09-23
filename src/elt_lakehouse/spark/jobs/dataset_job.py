@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from src.elt_lakehouse.generators.customers.build_customers import build_customers
-from src.elt_lakehouse.generators.customers.build_geolocations import build_geolocations
+from src.elt_lakehouse.generators.geolocation.build_geolocations import build_geolocations
 from src.elt_lakehouse.generators.orders.build_orders import (
     build_order_items,
     build_orders,

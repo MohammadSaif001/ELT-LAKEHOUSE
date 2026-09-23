@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from datetime import datetime, timezone
 
-from src.elt_lakehouse.generators.customers.customer_location_pool import (
+from src.elt_lakehouse.generators.geolocation.customer_location_pool import (
     build_customer_location_pool,
 )
 from src.elt_lakehouse.generators.customers.customer_pool import build_customers_pool
