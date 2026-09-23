@@ -1,7 +1,10 @@
 from datetime import datetime, timezone
 
 from config.config_loader import load_yaml
-from src.elt_lakehouse.generators.base.data_loading import load_generated_data
+from src.elt_lakehouse.generators.base.data_loading import (
+    load_generated_data,
+    load_generated_data_column,
+)
 from src.elt_lakehouse.generators.base.data_saving import save_generated_data
 from src.elt_lakehouse.generators.payments.payment_generator import generate_payment
 from src.elt_lakehouse.spark.common.logger import get_logger
@@ -17,9 +20,9 @@ GEN_CONFIG = load_yaml("generator_config.yaml")["payments"]
 
 def build_payments(output_dir: str) -> None:
     """Generate payment records for generated orders and save them."""
-    orders_file: str = "generated_orders_data.json"
-    order_items_file: str = "generated_order_items_data.json"
-    output_file: str = "generated_payments_data.json"
+    orders_file: str = "generated_orders_data.parquet"
+    order_items_file: str = "generated_order_items_data.parquet"
+    output_file: str = "generated_payments_data.parquet"
     started_at: datetime = datetime.now(timezone.utc)
     FALLBACK_TOTAL: int = GEN_CONFIG["fallback_total_value"]
 
@@ -29,12 +32,14 @@ def build_payments(output_dir: str) -> None:
             orders_file,
             order_items_file,
         )
-        orders = load_generated_data(orders_file, base_dir=output_dir)
+        orders_ids = load_generated_data_column(
+            orders_file, "order_id", base_dir=output_dir
+        )
         order_items = load_generated_data(order_items_file, base_dir=output_dir)
 
         logger.info(
             "Calculating order totals: orders = %d, order_items = %d",
-            len(orders),
+            len(orders_ids),
             len(order_items),
         )
         order_totals: dict[str, float] = {}
@@ -47,8 +52,8 @@ def build_payments(output_dir: str) -> None:
         payments: list = []
         fallback_count = 0
 
-        for order in orders:
-            order_id = order["order_id"]
+        for order in orders_ids:
+            order_id = order
             total_value = order_totals.get(order_id, 0.0)
 
             if total_value <= 0:
@@ -65,7 +70,9 @@ def build_payments(output_dir: str) -> None:
         )
         save_generated_data(payments, output_file, output_dir)
 
-        duration_seconds: float = (datetime.now(timezone.utc) - started_at).total_seconds()
+        duration_seconds: float = (
+            datetime.now(timezone.utc) - started_at
+        ).total_seconds()
         logger.info(
             "Payment dataset generated successfully: records=%d, path=%s/%s, duration_s=%.2f",
             len(payments),

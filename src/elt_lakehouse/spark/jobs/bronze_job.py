@@ -11,14 +11,20 @@ from src.elt_lakehouse.ingestion.bronze.reviews import ingest_reviews
 from src.elt_lakehouse.ingestion.bronze.sellers import ingest_sellers
 from src.elt_lakehouse.spark.common.logger import get_logger
 from src.elt_lakehouse.spark.common.spark_session import create_spark_session
+from src.elt_lakehouse.spark.utils.memory import monitor_memory
 
 logger = get_logger(__name__)
 
 
-def run_bronze_ingestion() -> None:
+@monitor_memory
+def run_bronze_ingestion(spark=None) -> None:
     """Run all ingestion functions."""
     started_at: datetime = datetime.now(timezone.utc)
-    spark = create_spark_session()
+    own_spark = False
+    if spark is None:
+        spark = create_spark_session()
+        own_spark = True
+
     logger.info("Starting bronze ingestion.")
     generators: list[tuple[str, Callable]] = [
         ("customers", ingest_customers),
@@ -35,7 +41,9 @@ def run_bronze_ingestion() -> None:
             logger.info("Ingesting dataset:%s", dataset_name)
             ingestion_function(spark)
 
-        duration_seconds: float = (datetime.now(timezone.utc) - started_at).total_seconds()
+        duration_seconds: float = (
+            datetime.now(timezone.utc) - started_at
+        ).total_seconds()
         logger.info(
             "All ingestion functions completed successfully in duration_s=%.2f",
             duration_seconds,
@@ -44,7 +52,8 @@ def run_bronze_ingestion() -> None:
         logger.exception("Ingestion failed.")
         raise
     finally:
-        spark.stop()
+        if own_spark:
+            spark.stop()
 
 
 def main():

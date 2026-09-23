@@ -58,14 +58,16 @@ def validation_data(delta_path: str, schema_name: str, entity: str, output_path:
                     StorageLevel.MEMORY_AND_DISK
                 )
 
-                clean_df, quarantine_df = check_nulls(type_casted, extract)
+                clean_df, quarantine_df, has_quarantine = check_nulls(
+                    type_casted, extract
+                )
                 quarantine_df = quarantine_df.persist(StorageLevel.MEMORY_AND_DISK)
 
-                if quarantine_df.limit(1).count() > 0:
+                if has_quarantine:
                     logger.warning(
                         "Quarantine data is not empty: entity=%s, output_path=%s",
                         entity,
-                        output_path
+                        output_path,
                     )
                     write_delta(
                         quarantine_df,
@@ -98,8 +100,6 @@ def validation_data(delta_path: str, schema_name: str, entity: str, output_path:
                     raise ValueError(f"Schema validation failed: {errors}")
 
                 logger.info("Schema validation passed: schema=%s", schema_name)
-
-                no_duplicate_df = no_duplicate_df.cache()
 
                 return func(no_duplicate_df, *args, **kwargs)
 

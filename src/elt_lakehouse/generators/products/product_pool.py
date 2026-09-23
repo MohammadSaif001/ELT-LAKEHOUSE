@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 
 
 def build_product_pool() -> list:
-    pool_name: str = "product_pool.json"
+    pool_name: str = "product_pool.parquet"
     PRODUCT_POOL: int = POOL_CONFIG["products"]
     try:
         logger.info("Generating product pool : size=%d ", PRODUCT_POOL)

@@ -20,7 +20,7 @@ def build_orders(output_dir: str) -> None:
     """Generates order records and saves them to generated storage."""
     GEN_CONFIG = load_yaml("generator_config.yaml")["dataset_volume"]
     record_count: int = GEN_CONFIG["orders"]
-    output_name: str = "generated_orders_data.json"
+    output_name: str = "generated_orders_data.parquet"
     started_at: datetime = datetime.now(timezone.utc)
 
     try:
@@ -30,7 +30,10 @@ def build_orders(output_dir: str) -> None:
             output_dir,
         )
 
-        orders: list = [generate_order() for _ in range(record_count)]
+        orders: list = []
+        progress_interval = max(1, record_count // 10)
+        for _ in range(1, record_count + 1):
+            orders.append(generate_order())
 
         logger.info(
             "Saving generated order dataset: records=%d , file=%s, output_dir=%s",
@@ -40,7 +43,9 @@ def build_orders(output_dir: str) -> None:
         )
         save_generated_data(orders, output_name, output_dir)
 
-        duration_seconds: float = (datetime.now(timezone.utc) - started_at).total_seconds()
+        duration_seconds: float = (
+            datetime.now(timezone.utc) - started_at
+        ).total_seconds()
 
         logger.info(
             "Order dataset generated successfully: records=%d, path=%s/%s, duration_s=%.2f",
@@ -66,10 +71,10 @@ def build_orders(output_dir: str) -> None:
 def build_order_items(output_dir: str) -> None:
     """Generates order item records corresponding to existing orders and saves them."""
 
-    orders_file: str = "generated_orders_data.json"
-    products_file: str = "generated_products_data.json"
-    output_file: str = "generated_order_items_data.json"
-    sellers_file: str = "generated_sellers_data.json"
+    orders_file: str = "generated_orders_data.parquet"
+    products_file: str = "generated_products_data.parquet"
+    output_file: str = "generated_order_items_data.parquet"
+    sellers_file: str = "generated_sellers_data.parquet"
     started_at: datetime = datetime.now(timezone.utc)
 
     try:
@@ -84,7 +89,7 @@ def build_order_items(output_dir: str) -> None:
         all_order_items: list = []
         for order in orders:
             # Source timestamps are intentionally naive and follow the Olist format.
-            purchase_timestamp: datetime = datetime.strptime(   # noqa: DTZ007
+            purchase_timestamp: datetime = datetime.strptime(  # noqa: DTZ007
                 order["order_purchase_timestamp"], "%Y-%m-%d %H:%M:%S"
             )
             items: list = generate_order_items(
@@ -104,7 +109,9 @@ def build_order_items(output_dir: str) -> None:
         )
         save_generated_data(all_order_items, output_file, output_dir)
 
-        duration_seconds: float = (datetime.now(timezone.utc) - started_at).total_seconds()
+        duration_seconds: float = (
+            datetime.now(timezone.utc) - started_at
+        ).total_seconds()
         logger.info(
             "Order item dataset generated successfully: records=%d, path=%s/%s, duration_s=%.2f",
             len(all_order_items),

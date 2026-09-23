@@ -1,13 +1,15 @@
 from collections.abc import Callable
 from datetime import datetime, timezone
 
-from src.elt_lakehouse.generators.customers.customer_location_pool import (
+from src.elt_lakehouse.generators.geolocation.customer_location_pool import (
     build_customer_location_pool,
 )
 from src.elt_lakehouse.generators.customers.customer_pool import build_customers_pool
 from src.elt_lakehouse.generators.products.product_pool import build_product_pool
 from src.elt_lakehouse.generators.sellers.seller_pool import build_seller_pool
 from src.elt_lakehouse.spark.common.logger import get_logger
+from src.elt_lakehouse.spark.common.paths import POOLS_DIR
+from src.elt_lakehouse.spark.utils.memory import monitor_memory
 
 logger = get_logger(__name__)
 
@@ -17,8 +19,10 @@ logger = get_logger(__name__)
 # ==========================
 
 
+@monitor_memory
 def run_pool_job() -> None:
     start_time: datetime = datetime.now(timezone.utc)
+    POOLS_DIR.mkdir(parents=True, exist_ok=True)
     logger.info("Starting pool generation...")
     generators: list[tuple[str, Callable]] = [
         ("customers", build_customers_pool),

@@ -1,6 +1,7 @@
 from pyspark.sql import DataFrame
 
 from src.elt_lakehouse.spark.common.logger import get_logger
+from src.elt_lakehouse.spark.utils.memory import monitor_memory
 
 logger = get_logger(__name__)
 
@@ -11,6 +12,7 @@ logger = get_logger(__name__)
 
 
 # currently using overwrite because we are not using kafka to stream data, so we are not appending data to the delta table.
+@monitor_memory
 def write_delta(df: DataFrame, output_path: str, mode: str = "overwrite") -> None:
     """Write a Spark DataFrame to Delta Lake format."""
     try:

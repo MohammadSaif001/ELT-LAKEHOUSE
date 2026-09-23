@@ -1,7 +1,12 @@
+import os
+
 from pyspark.sql import SparkSession
 
 from config.config_loader import load_yaml
 from src.elt_lakehouse.spark.common.logger import get_logger
+from src.elt_lakehouse.spark.common.paths import PROJECT_ROOT
+
+os.environ.setdefault("SPARK_LOCAL_IP", "127.0.0.1")
 
 logger = get_logger("spark.common.spark_session")
 
@@ -31,7 +36,11 @@ def create_spark_session(app_name: str | None = None) -> SparkSession:
 
         builder = (
             SparkSession.builder.appName(resolved_app_name)
-            .master(spark_config.get("master", "local[*]"))
+            .master(spark_config.get("master", "local[8]"))
+            .config("spark.driver.memory", spark_config["memory"].get("driver", "4g"))
+            .config(
+                "spark.executor.memory", spark_config["memory"].get("executor", "4g")
+            )
             .config(
                 "spark.sql.extensions",
                 "io.delta.sql.DeltaSparkSessionExtension",
@@ -40,8 +49,15 @@ def create_spark_session(app_name: str | None = None) -> SparkSession:
                 "spark.sql.catalog.spark_catalog",
                 "org.apache.spark.sql.delta.catalog.DeltaCatalog",
             )
+            .config(
+                "spark.sql.files.maxPartitionBytes",
+                spark_config["sql"].get("maxPartitionBytes", "67108864"),
+            )
             .config("spark.sql.shuffle.partitions", shuffle_partitions)
             .config("spark.sql.session.timeZone", session_timezone)
+            .config("spark.driver.host", "127.0.0.1")
+            .config("spark.driver.bindAddress", "127.0.0.1")
+            .config("spark.jars.ivy", str(PROJECT_ROOT / ".ivy2"))
         )
 
         try:

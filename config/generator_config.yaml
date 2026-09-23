@@ -24,7 +24,7 @@ payments:
 
 pool_size:
   customers: 100000
-  products: 100000
+  products: 10000
   sellers: 20000
 
 dataset_volume:

@@ -6,7 +6,7 @@ from src.elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 
-INPUT_PATH = "storage/generated/generated_orders_data.json"
+INPUT_PATH = "storage/generated/generated_orders_data.parquet"
 OUTPUT_PATH = "storage/bronze/orders_delta"
 GEN_CONFIG = load_yaml("spark_config.yaml")["spark"]["bronze"]
 

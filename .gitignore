@@ -2,6 +2,9 @@
 /data/raw/
 /data/profiling/
 
+# Metadata files
+/metadata/
+
 # Storage files for Delta Lake
 storage/
 
@@ -42,3 +45,6 @@ dbt/logs/
 /lib/
 visual/
 /dashboard/
+.ivy2/
+ram_report.csv
+
