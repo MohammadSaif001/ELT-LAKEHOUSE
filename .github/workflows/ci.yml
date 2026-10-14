@@ -1,24 +1,36 @@
----
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - "**"
+  pull_request:
+    branches:
+      - main
+      - "**"
+
 jobs:
   import-smoke-test:
     name: Import Smoke Test
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
+          python-version: "3.11"
           cache: pip
-          python-version: "3.14"
-      - name: Install dependencies
+
+      - name: Install project dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirement.txt
-          pip install -e .
-          pip install pytest
+          python -m pip install -e .
 
-      - name: Import all core modules
+      - name: Import core modules
         run: |
           export PYTHONPATH="$GITHUB_WORKSPACE:$GITHUB_WORKSPACE/src"
           python - <<'PY'
@@ -26,24 +38,30 @@ jobs:
           import pkgutil
           import sys
 
-          PACKAGES = ["config", "elt_lakehouse.spark", "elt_lakehouse.ingestion"]
+          packages = [
+              "config",
+              "elt_lakehouse.spark",
+              "elt_lakehouse.ingestion",
+          ]
+
           failures = []
 
-          for package_name in PACKAGES:
+          for package_name in packages:
               try:
                   package = importlib.import_module(package_name)
               except Exception as exc:
                   failures.append(f"{package_name}: {exc!r}")
                   continue
 
-              for _, module_name, _ in pkgutil.walk_packages(
-                  package.__path__,
-                  prefix=f"{package_name}."
-              ):
-                  try:
-                      importlib.import_module(module_name)
-                  except Exception as exc:
-                      failures.append(f"{module_name}: {exc!r}")
+              if hasattr(package, "__path__"):
+                  for _, module_name, _ in pkgutil.walk_packages(
+                      package.__path__,
+                      prefix=f"{package_name}.",
+                  ):
+                      try:
+                          importlib.import_module(module_name)
+                      except Exception as exc:
+                          failures.append(f"{module_name}: {exc!r}")
 
           if failures:
               print("Import failures:")
@@ -51,37 +69,40 @@ jobs:
                   print(f"  - {failure}")
               sys.exit(1)
 
-          print(f"All modules in {PACKAGES} imported successfully.")
+          print("Core module import check completed.")
           PY
+
   test:
-    name: Data Quality & Unit Tests
+    name: Data Quality and Unit Tests
     needs: import-smoke-test
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          cache: pip
           python-version: "3.11"
-      - name: Install dependencies
+          cache: pip
+
+      - name: Set up Java for Spark
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install project dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirement.txt
-          pip install -e .
-          pip install pytest
+          python -m pip install -e .
 
-      - name: Run test suite
-        run: |
-          pytest -v
-name: CI
-"on":
-  pull_request:
-    branches:
-      - main
-      - "**"
-  push:
-    branches:
-      - main
-      - "**"
+      - name: Generate test pools
+        run: python elt_pipeline.py --build-pool
+
+      - name: Generate test datasets
+        run: python elt_pipeline.py --build-dataset
+
+      - name: Run tests
+        run: python -m pytest -v
