@@ -147,3 +147,4 @@ monitoring/   Prometheus and Grafana configuration
 - Kafka, Airflow, dbt, and PostgreSQL workflows should be treated as
   development integrations until their local infrastructure and end-to-end
   tests are enabled.
+
