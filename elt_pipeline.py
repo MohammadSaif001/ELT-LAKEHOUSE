@@ -1,4 +1,6 @@
 import argparse
+import subprocess
+import sys
 from datetime import datetime, timezone
 
 from src.elt_lakehouse.spark.common.logger import get_logger
@@ -67,6 +69,23 @@ def orchestrate(args, send_report: bool = False) -> None:
 
             run_bronze_ingestion()
 
+        elif args.launch_dashboard:
+
+            import webbrowser
+
+            webbrowser.open("http://127.0.0.1:5000")
+
+            subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "flask",
+                    "--app",
+                    "dashboard.app",
+                    "run",
+                ]
+            )
+
         duration: float = (datetime.now(timezone.utc) - start_time).total_seconds()
 
         logger.info("ELT pipeline completed successfully in %.2f seconds.", duration)
@@ -128,6 +147,12 @@ def main() -> None:
         "--setup",
         action="store_true",
         help="Download the dataset.",
+    )
+
+    run_group.add_argument(
+        "--launch-dashboard",
+        action="store_true",
+        help="Launch the dashboard after execution.",
     )
 
     args = parser.parse_args()

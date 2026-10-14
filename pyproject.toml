@@ -17,6 +17,7 @@ dependencies = [
     "dotenv>=0.9.9",
     "kaggle>=1.7.4.5",
     "pyarrow>=25.0.1",
+    "fastapi[standard]>=0.141.1",
 ]
 [tool.setuptools]
 package-dir = { "" = "src" }
