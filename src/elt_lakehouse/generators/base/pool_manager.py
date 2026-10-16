@@ -1,4 +1,3 @@
-from functools import cache
 from pathlib import Path
 
 import pyarrow as pa
@@ -15,25 +14,36 @@ class PoolLoader:
 
     def __init__(self, pools_dir: Path = POOLS_DIR):
         self.pools_dir = pools_dir
+        self._pool_cache: dict[str, list[dict]] = {}
+        self._column_cache: dict[tuple[str, str], list] = {}
 
-    @cache
     def load_pool(self, file_name: str) -> list[dict]:
+        if file_name in self._pool_cache:
+            return self._pool_cache[file_name]
+
         name_no_ext = Path(file_name).stem
         parquet_path = self.pools_dir / f"{name_no_ext}.parquet"
         if parquet_path.exists():
             table = pq.read_table(parquet_path)
-            return table.to_pylist()
+            pool = table.to_pylist()
+            self._pool_cache[file_name] = pool
+            return pool
 
         raise FileNotFoundError(f"Pool file not found: {parquet_path}")
 
-    @cache
     def pool_column(self, file_name: str, column_name: str) -> list:
         """Load a specific column from a pool parquet file."""
+        cache_key = (file_name, column_name)
+        if cache_key in self._column_cache:
+            return self._column_cache[cache_key]
+
         name_no_ext = Path(file_name).stem
         parquet_path = self.pools_dir / f"{name_no_ext}.parquet"
         if parquet_path.exists():
             table = pq.read_table(parquet_path, columns=[column_name])
-            return table[column_name].to_pylist()
+            column = table[column_name].to_pylist()
+            self._column_cache[cache_key] = column
+            return column
 
         raise FileNotFoundError(f"Pool file not found: {parquet_path}")
 

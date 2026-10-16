@@ -3,6 +3,7 @@ import functools
 import gc
 import tracemalloc
 
+from py4j.protocol import Py4JError
 from pyspark.sql import SparkSession
 
 
@@ -34,7 +35,7 @@ def monitor_memory(func):
                 if isinstance(arg, SparkSession):
                     try:
                         arg.catalog.clearCache()
-                    except Exception as spark_err:
+                    except Py4JError as spark_err:
                         print(f"[Warning] Failed to clear Spark cache: {spark_err}")
                     break
 

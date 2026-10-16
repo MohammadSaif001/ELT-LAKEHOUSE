@@ -83,7 +83,8 @@ def orchestrate(args, send_report: bool = False) -> None:
                     "--app",
                     "dashboard.app",
                     "run",
-                ]
+                ],
+                check=True,
             )
 
         duration: float = (datetime.now(timezone.utc) - start_time).total_seconds()

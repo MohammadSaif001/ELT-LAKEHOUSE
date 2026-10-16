@@ -88,7 +88,7 @@ def build_order_items(output_dir: str) -> None:
         all_order_items: list = []
         for order in orders:
             # Source timestamps are intentionally naive and follow the Olist format.
-            purchase_timestamp: datetime = datetime.strptime(  # noqa: DTZ007
+            purchase_timestamp: datetime = datetime.strptime(
                 order["order_purchase_timestamp"], "%Y-%m-%d %H:%M:%S"
             )
             items: list = generate_order_items(

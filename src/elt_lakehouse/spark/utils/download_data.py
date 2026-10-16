@@ -19,7 +19,7 @@ def download_dataset(
         print(
             f"Dataset '{DATASET_ID}' downloaded and extracted to '{DATASET_DOWNLOAD_PATH}'"
         )
-    except Exception as e:
+    except (OSError, RuntimeError, ValueError) as e:
         print(f"Error occurred while downloading dataset: {e}")
 
 
