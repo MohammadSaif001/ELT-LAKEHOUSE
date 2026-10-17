@@ -18,6 +18,8 @@ dependencies = [
     "kaggle>=1.7.4.5",
     "pyarrow>=25.0.1",
     "fastapi[standard]>=0.141.1",
+    "pandas>=2.3.3",
+    "numpy>=2.2.6",
 ]
 [tool.setuptools]
 package-dir = { "" = "src" }

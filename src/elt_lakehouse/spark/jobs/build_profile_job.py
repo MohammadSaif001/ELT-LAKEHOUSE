@@ -8,7 +8,7 @@ from src.elt_lakehouse.profiling.review_profile import build_review_profiles
 from src.elt_lakehouse.profiling.seller_profile import build_seller_profiles
 
 
-def build_profiles() -> None:
+def run_profile_job() -> None:
     """
     Build profiling metadata for Olist datasets.
 
@@ -33,7 +33,7 @@ def build_profiles() -> None:
 
 
 def main():
-    build_profiles()
+    run_profile_job()
 
 
 if __name__ == "__main__":

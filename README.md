@@ -85,7 +85,18 @@ cd ELT-LAKEHOUSE
 uv sync
 ```
 
-Generate the source data and run each layer independently:
+The project uses the public Olist dataset from Kaggle for profiling and source
+data. To download it and build the profiling metadata, configure Kaggle API
+credentials on your machine (see the
+[Kaggle API setup guide](https://www.kaggle.com/docs/api)), then run:
+
+```bash
+uv run python elt_pipeline.py --setup
+```
+
+The setup step reuses a complete local dataset. The raw CSV files and generated
+profiles are local artifacts and are excluded from Git. After setup, generate
+synthetic data and run each layer independently:
 
 ```bash
 uv run python elt_pipeline.py --build-pool
@@ -94,11 +105,16 @@ uv run python elt_pipeline.py --bronze-runner
 uv run python elt_pipeline.py --silver-runner
 ```
 
-Or run the pool, dataset, Bronze, and Silver stages in sequence:
+Or run setup, profiling, pool generation, dataset generation, Bronze, and
+Silver in sequence:
 
 ```bash
 uv run python elt_pipeline.py --run-pipeline
 ```
+
+`--run-pipeline` requires Kaggle credentials only when the complete raw dataset
+is not already present locally. You can also combine stage flags; they always
+run in dependency order.
 
 The current generator configuration creates pools of up to 1,000,000
 customers, 100,000 products, and 200,000 sellers, with a configured dataset

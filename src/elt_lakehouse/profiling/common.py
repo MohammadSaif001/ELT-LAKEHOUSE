@@ -39,6 +39,7 @@ def load_csv(file_name: str) -> pd.DataFrame:
 def save_profile(data: dict, file_name: str) -> None:
     """Save profiling metadata as formatted JSON."""
     output_path = PROFILING_DIR / file_name
+    output_path.parent.mkdir(parents=True, exist_ok=True)
 
     with open(output_path, "w", encoding="utf-8") as file:
         json.dump(data, file, indent=4, ensure_ascii=False)
