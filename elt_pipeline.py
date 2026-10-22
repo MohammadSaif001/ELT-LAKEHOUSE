@@ -8,6 +8,10 @@ from src.elt_lakehouse.spark.utils.memory import monitor_memory
 
 logger = get_logger(__name__)
 
+# ==========================
+# ELT Pipeline
+# ==========================
+
 
 def send_pipeline_report() -> None:
     """Build and send the latest pipeline report."""
@@ -23,15 +27,61 @@ def send_pipeline_report() -> None:
 
 @monitor_memory
 def orchestrate(args, send_report: bool = False) -> None:
-    """Run the requested pipeline stages in dependency order."""
+    """Run the ELT pipeline."""
     try:
         logger.info("Starting ELT pipeline...")
-        start_time = datetime.now(timezone.utc)
+        start_time: datetime = datetime.now(timezone.utc)
 
-        if args.launch_dashboard:
+        if args.setup:
+            from src.elt_lakehouse.spark.jobs.download_data import download_dataset
+            from src.elt_lakehouse.spark.jobs.build_profile_job import run_profile_job
+
+            download_dataset()
+            run_profile_job()
+
+        elif args.run_pipeline:
+            from src.elt_lakehouse.spark.jobs.pool_job import run_pool_job
+
+            run_pool_job()
+
+            from src.elt_lakehouse.spark.common.spark_session import (
+                create_spark_session,
+            )
+            from src.elt_lakehouse.spark.jobs.bronze_job import run_bronze_ingestion
+            from src.elt_lakehouse.spark.jobs.dataset_job import run_dataset_job
+            from src.elt_lakehouse.spark.jobs.silver_job import run_silver_processing
+
+            run_dataset_job()
+            spark = create_spark_session()
+            try:
+                run_bronze_ingestion(spark=spark)
+                run_silver_processing(spark=spark)
+            finally:
+                spark.stop()
+
+        elif args.silver_runner:
+            from src.elt_lakehouse.spark.jobs.silver_job import run_silver_processing
+
+            run_silver_processing()
+        elif args.build_pool:
+            from src.elt_lakehouse.spark.jobs.pool_job import run_pool_job
+
+            run_pool_job()
+        elif args.build_dataset:
+            from src.elt_lakehouse.spark.jobs.dataset_job import run_dataset_job
+
+            run_dataset_job()
+        elif args.bronze_runner:
+            from src.elt_lakehouse.spark.jobs.bronze_job import run_bronze_ingestion
+
+            run_bronze_ingestion()
+
+        elif args.launch_dashboard:
+
             import webbrowser
 
             webbrowser.open("http://127.0.0.1:5000")
+
             subprocess.run(
                 [
                     sys.executable,
@@ -43,55 +93,9 @@ def orchestrate(args, send_report: bool = False) -> None:
                 ],
                 check=True,
             )
-        else:
-            run_all = args.run_pipeline
 
-            if run_all or args.setup:
-                from src.elt_lakehouse.spark.jobs.download_data import download_dataset
+        duration: float = (datetime.now(timezone.utc) - start_time).total_seconds()
 
-                download_dataset()
-
-            if run_all or args.setup or args.build_profiling:
-                from src.elt_lakehouse.spark.jobs.build_profile_job import (
-                    run_profile_job,
-                )
-
-                run_profile_job()
-
-            if run_all or args.build_pool:
-                from src.elt_lakehouse.spark.jobs.pool_job import run_pool_job
-
-                run_pool_job()
-
-            if run_all or args.build_dataset:
-                from src.elt_lakehouse.spark.jobs.dataset_job import run_dataset_job
-
-                run_dataset_job()
-
-            if run_all or args.bronze_runner or args.silver_runner:
-                from src.elt_lakehouse.spark.common.spark_session import (
-                    create_spark_session,
-                )
-
-                spark = create_spark_session()
-                try:
-                    if run_all or args.bronze_runner:
-                        from src.elt_lakehouse.spark.jobs.bronze_job import (
-                            run_bronze_ingestion,
-                        )
-
-                        run_bronze_ingestion(spark=spark)
-
-                    if run_all or args.silver_runner:
-                        from src.elt_lakehouse.spark.jobs.silver_job import (
-                            run_silver_processing,
-                        )
-
-                        run_silver_processing(spark=spark)
-                finally:
-                    spark.stop()
-
-        duration = (datetime.now(timezone.utc) - start_time).total_seconds()
         logger.info("ELT pipeline completed successfully in %.2f seconds.", duration)
 
         if send_report:
@@ -99,63 +103,67 @@ def orchestrate(args, send_report: bool = False) -> None:
 
     except Exception:
         logger.exception("Pipeline failed with a critical error.")
+
         if send_report:
             send_pipeline_report()
         raise
 
 
 def main() -> None:
-    """Parse command-line arguments and run the ELT pipeline."""
-    parser = argparse.ArgumentParser(description="Run selected ELT pipeline stages.")
-    parser.add_argument(
+    """Main function to run the ELT pipeline."""
+    parser = argparse.ArgumentParser(description="Run the ELT pipeline.")
+
+    run_group = parser.add_mutually_exclusive_group(required=True)
+
+    run_group.add_argument(
         "--setup",
         action="store_true",
-        help="Download the dataset and build profiling metadata.",
+        help="Download the source dataset and build its profiling metadata.",
     )
-    parser.add_argument(
-        "--build-profiling", action="store_true", help="Build dataset profiles."
+
+    run_group.add_argument(
+        "--build-pool",
+        action="store_true",
+        help="Run only the build_pool step of the ELT pipeline.",
     )
-    parser.add_argument("--build-pool", action="store_true", help="Build pools.")
-    parser.add_argument(
-        "--build-dataset", action="store_true", help="Generate datasets."
+
+    run_group.add_argument(
+        "--build-dataset",
+        action="store_true",
+        help="Run only the build_dataset step of the ELT pipeline.",
     )
-    parser.add_argument(
-        "--bronze-runner", action="store_true", help="Run bronze ingestion."
+
+    run_group.add_argument(
+        "--silver-runner",
+        action="store_true",
+        help="Run only the silver_runner step of the ELT pipeline.",
     )
-    parser.add_argument(
-        "--silver-runner", action="store_true", help="Run silver processing."
+
+    run_group.add_argument(
+        "--bronze-runner",
+        action="store_true",
+        help="Run only the bronze_runner step of the ELT pipeline.",
     )
-    parser.add_argument(
+
+    run_group.add_argument(
         "--run-pipeline",
         action="store_true",
-        help="Run every stage: setup, profiling, pool, dataset, bronze, and silver.",
+        help="Run the entire ELT pipeline.",
     )
-    parser.add_argument(
-        "--launch-dashboard", action="store_true", help="Launch the dashboard."
-    )
+
     parser.add_argument(
         "--send-report",
         action="store_true",
-        help="Send the pipeline report after execution.",
+        help="Send the pipeline report via email after execution.",
+    )
+
+    run_group.add_argument(
+        "--launch-dashboard",
+        action="store_true",
+        help="Launch the dashboard after execution.",
     )
 
     args = parser.parse_args()
-    selected_stages = any(
-        (
-            args.setup,
-            args.build_profiling,
-            args.build_pool,
-            args.build_dataset,
-            args.bronze_runner,
-            args.silver_runner,
-            args.run_pipeline,
-        )
-    )
-    if args.launch_dashboard and selected_stages:
-        parser.error("--launch-dashboard cannot be combined with pipeline stages.")
-    if not args.launch_dashboard and not selected_stages:
-        parser.error("Choose at least one pipeline stage or --launch-dashboard.")
-
     orchestrate(args=args, send_report=args.send_report)
 
 
