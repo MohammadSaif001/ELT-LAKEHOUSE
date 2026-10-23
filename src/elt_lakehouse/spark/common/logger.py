@@ -1,5 +1,7 @@
 import logging
 import logging.config
+from copy import copy
+import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
@@ -11,6 +13,24 @@ import yaml
 from src.elt_lakehouse.spark.common.paths import PROJECT_ROOT
 
 _CONFIG_LOADED = False
+
+
+class ColorFormatter(logging.Formatter):
+    COLORS = {
+        logging.INFO: "\x1b[32m",
+        logging.WARNING: "\x1b[33m",
+        logging.ERROR: "\x1b[31m",
+        logging.CRITICAL: "\x1b[31m",
+    }
+
+    def format(self, record: logging.LogRecord) -> str:
+        color = self.COLORS.get(record.levelno)
+        if color is None or not sys.stderr.isatty():
+            return super().format(record)
+
+        colored_record = copy(record)
+        colored_record.levelname = f"{color}{record.levelname}\x1b[0m"
+        return super().format(colored_record)
 
 
 def _setup_logging() -> None:

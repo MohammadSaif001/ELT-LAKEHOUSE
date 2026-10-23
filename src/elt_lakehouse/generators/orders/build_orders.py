@@ -7,6 +7,7 @@ from src.elt_lakehouse.generators.orders.order_generator import generate_order
 from src.elt_lakehouse.generators.orders.order_item_generator import (
     generate_order_items,
 )
+from src.elt_lakehouse.generators.base.pool_manager import load_pool_column
 from src.elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
@@ -29,10 +30,10 @@ def build_orders(output_dir: str) -> None:
             record_count,
             output_dir,
         )
-
+        customer_id = load_pool_column("customer_pool.parquet", "customer_id")
         orders: list = []
         for _ in range(1, record_count + 1):
-            orders.append(generate_order())
+            orders.append(generate_order(customer_ids=customer_id))
 
         logger.info(
             "Saving generated order dataset: records=%d , file=%s, output_dir=%s",
@@ -70,39 +71,36 @@ def build_orders(output_dir: str) -> None:
 def build_order_items(output_dir: str) -> None:
     """Generates order item records corresponding to existing orders and saves them."""
 
-    orders_file: str = "generated_orders_data.parquet"
-    products_file: str = "generated_products_data.parquet"
+    orders_file: str = "generated_orders_data.parquet" 
     output_file: str = "generated_order_items_data.parquet"
-    sellers_file: str = "generated_sellers_data.parquet"
     started_at: datetime = datetime.now(timezone.utc)
 
     try:
         logger.info("Loading orders: file=%s", orders_file)
         orders = load_generated_data(orders_file, base_dir=output_dir)
-        logger.info("Loading products: file=%s", products_file)
-        products = load_generated_data(products_file, base_dir=output_dir)
-        logger.info("Loading sellers: file=%s", sellers_file)
-        sellers = load_generated_data(sellers_file, base_dir=output_dir)
+        logger.info("Loading product and seller IDs form pools")
+        product_pool = load_pool_column("product_pool.parquet", "product_id")
+        seller_pool = load_pool_column("seller_pool.parquet", "seller_id")
 
         logger.info("Generating order items : records=%d", len(orders))
         all_order_items: list = []
         for order in orders:
             # Source timestamps are intentionally naive and follow the Olist format.
-            purchase_timestamp: datetime = datetime.strptime(
-                order["order_purchase_timestamp"], "%Y-%m-%d %H:%M:%S"
+            purchase_timestamp: datetime = datetime.fromisoformat(
+                order["order_purchase_timestamp"]
             )
             items: list = generate_order_items(
                 order_id=order["order_id"],
                 purchase_timestamp=purchase_timestamp,
-                products=products,
-                sellers=sellers,
+                products=product_pool,
+                sellers=seller_pool,
             )
             all_order_items.extend(items)
 
         logger.info(
             "Saving order-item dataset: orders=%d , records=%d , file=%s, output_dir=%s",
-            len(all_order_items),
             len(orders),
+            len(all_order_items),
             output_file,
             output_dir,
         )

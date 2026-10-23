@@ -119,7 +119,7 @@ def generate_order_item(
         "seller_id": seller_id,
         "shipping_limit_date": generate_shipping_limit_date(
             purchase_timestamp
-        ).strftime("%Y-%m-%d %H:%M:%S"),
+        ).isoformat(sep=" ", timespec="seconds"),
         "price": price_generator(),
         "freight_value": freight_value_generator(),
     }

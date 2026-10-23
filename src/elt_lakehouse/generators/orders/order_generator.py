@@ -1,5 +1,6 @@
 import random
 from datetime import datetime, timedelta
+from turtle import st
 
 from config.config_loader import load_yaml
 from src.elt_lakehouse.generators.base.distribution_loader import (
@@ -48,47 +49,46 @@ GEN_CONFIG_STATUS = GEN_CONFIG["order_status"]
 
 DELAY_MODELS = GEN_CONFIG["delay_models"]
 
+WEEKDAY_MAP: dict[str,int]= {
+    "Monday": 0,
+    "Tuesday": 1,
+    "Wednesday": 2,
+    "Thursday": 3,
+    "Friday": 4,
+    "Saturday": 5,
+    "Sunday": 6,
+}
+
+GENERATION_YEARS = GEN_CONFIG["generation"]["years"]
+GENERATION_DAY_RANGE = GEN_CONFIG["generation"]["day_of_month"]
+CUTOFF_DATE = datetime.fromisoformat(GEN_CONFIG["generation"]["cutoff"])
+CUTOFF_STEP_DAYS = GEN_CONFIG["generation"]["cutoff_step_days"]
 
 def get_customer_pool() -> list[str]:
     return load_pool_column("customer_pool.parquet", "customer_id")
 
 
 def generate_order_purchase_timestamp() -> datetime:
-    target_weekday = weighted_choice(ORDER_PURCHASE_TIMESTAMP_WEEKDAYS)
-    weekday_map: dict[str, int] = {
-        "Monday": 0,
-        "Tuesday": 1,
-        "Wednesday": 2,
-        "Thursday": 3,
-        "Friday": 4,
-        "Saturday": 5,
-        "Sunday": 6,
-    }
-    target_val: int = weekday_map[target_weekday]
+    target_weekday: str = weighted_choice(ORDER_PURCHASE_TIMESTAMP_WEEKDAYS)
+    target_value: int = WEEKDAY_MAP[target_weekday]
 
-    YEARS: int = random_from_list(GEN_CONFIG["generation"]["years"])
-    MONTH: int = int(weighted_choice(ORDER_PURCHASE_TIMESTAMP_MONTHS))
-    DAYS: int = random.randint(
-        GEN_CONFIG["generation"]["day_of_month"][0],
-        GEN_CONFIG["generation"]["day_of_month"][1],
-    )
+    year: int = int(random_from_list(GENERATION_YEARS))
+    month: int = int(weighted_choice(ORDER_PURCHASE_TIMESTAMP_MONTHS))
+    day  :int = random.randint(*GENERATION_DAY_RANGE)
 
-    HOUR = int(weighted_choice(ORDER_PURCHASE_TIMESTAMP_HOURS))
-    MINUTE: int = random.randint(0, 59)
-    SECOND: int = random.randint(0, 59)
+    hour = int(weighted_choice(ORDER_PURCHASE_TIMESTAMP_HOURS))
+    minute: int = random.randint(0, 59)
+    second: int = random.randint(0, 59)
 
-    # Olist timestamps are intentionally generated as naive datetimes.
-    dt: datetime = datetime(YEARS, MONTH, DAYS, HOUR, MINUTE, SECOND)
-    current_val: int = dt.weekday()
-    diff: int = target_val - current_val
-    DATE: datetime = dt + timedelta(days=diff)
-    DAYS: int = GEN_CONFIG["generation"]["cutoff_step_days"]
-    # Cutoff at current local time June 21, 2026
-    CUTOFF: datetime = datetime.fromisoformat(GEN_CONFIG["generation"]["cutoff"])
-    while DATE > CUTOFF:
-        DATE = DATE - timedelta(days=DAYS)  # 52 weeks preserves weekday
+    dt = datetime(year, month, day, hour, minute, second)
+    diff = target_value - dt.weekday()
 
-    return DATE
+    date = dt + timedelta(days=diff)
+
+    while date > CUTOFF_DATE:
+        date -= timedelta(days=CUTOFF_STEP_DAYS)
+
+    return date
 
 
 def generate_approved_timestamp(purchase_timestamp: datetime) -> datetime:
@@ -120,13 +120,12 @@ def generate_estimated_delivery_date(purchase_timestamp: datetime) -> datetime:
     return purchase_timestamp + timedelta(days=delay)
 
 
-def get_customer_id() -> str:
-    customer_ids = get_customer_pool()
+def get_customer_id(customer_ids: list[str]) -> str:
     customer: str = random.choice(customer_ids)
     return customer
 
 
-def generate_order() -> dict:
+def generate_order(customer_ids: list[str]) -> dict:
 
     order_status = weighted_choice(ORDER_STATUS_DIST)
 
@@ -155,24 +154,24 @@ def generate_order() -> dict:
 
     return {
         "order_id": generate_id(),
-        "customer_id": get_customer_id(),
+        "customer_id": get_customer_id(customer_ids),
         "order_status": order_status,
-        "order_purchase_timestamp": purchase_timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+        "order_purchase_timestamp": purchase_timestamp.isoformat(sep=" ", timespec="seconds"),
         "order_approved_at": (
-            approved_at.strftime("%Y-%m-%d %H:%M:%S") if approved_at else None
+            approved_at.isoformat(sep=" ", timespec="seconds") if approved_at else None
         ),
         "order_delivered_carrier_date": (
-            delivered_carrier_date.strftime("%Y-%m-%d %H:%M:%S")
+            delivered_carrier_date.isoformat(sep=" ", timespec="seconds")
             if delivered_carrier_date
             else None
         ),
         "order_delivered_customer_date": (
-            delivered_customer_date.strftime("%Y-%m-%d %H:%M:%S")
+            delivered_customer_date.isoformat(sep=" ", timespec="seconds")
             if delivered_customer_date
             else None
         ),
         "order_estimated_delivery_date": (
-            estimated_delivery_date.strftime("%Y-%m-%d %H:%M:%S")
+            estimated_delivery_date.isoformat(sep=" ", timespec="seconds")
             if estimated_delivery_date
             else None
         ),
