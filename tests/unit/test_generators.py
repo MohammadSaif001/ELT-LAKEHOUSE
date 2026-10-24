@@ -14,7 +14,7 @@ def test_generate_order_purchase_timestamp() -> None:
 
 def test_generate_order() -> None:
 
-    order: dict = generate_order()
+    order: dict = generate_order(customer_ids=["customer-1"])
     assert "order_id" in order
     assert "customer_id" in order
     assert "order_status" in order
