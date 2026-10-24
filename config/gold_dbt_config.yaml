@@ -1,0 +1,31 @@
+dbt:
+  project_dir: dbt_gold
+  profile_name: elt_lakehouse_gold
+  target: local
+  command: build
+  adapter_type: spark
+  connection_method: session
+  connection_host: local
+  temporary_profile_prefix: elt-lakehouse-dbt-
+  file_format: delta
+  silver_schema: silver
+  gold_schema: gold
+  gold_location: storage/gold
+  threads: 1
+
+spark:
+  app_name: ELT Lakehouse Gold dbt
+  local_ip: 127.0.0.1
+  session_parameters:
+    spark.sql.extensions: io.delta.sql.DeltaSparkSessionExtension
+    spark.sql.catalog.spark_catalog: org.apache.spark.sql.delta.catalog.DeltaCatalog
+
+silver_tables:
+  customers_silver: storage/silver/customers_silver
+  sellers_silver: storage/silver/sellers_silver
+  products_silver: storage/silver/products_silver
+  geolocation_silver: storage/silver/geolocation_silver
+  orders_silver: storage/silver/orders_silver
+  order_items_silver: storage/silver/order_items_silver
+  payments_silver: storage/silver/payments_silver
+  reviews_silver: storage/silver/reviews_silver

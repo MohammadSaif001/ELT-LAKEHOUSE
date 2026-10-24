@@ -1,0 +1,16 @@
+name: elt_lakehouse_gold
+version: '1.0.0'
+config-version: 2
+
+profile: "{{ env_var('DBT_PROFILE_NAME', 'elt_lakehouse_gold') }}"
+
+model-paths: ['models']
+test-paths: ['tests']
+macro-paths: ['macros']
+clean-targets: ['target', 'dbt_packages']
+
+models:
+  elt_lakehouse_gold:
+    +file_format: "{{ env_var('DBT_FILE_FORMAT', 'delta') }}"
+
+

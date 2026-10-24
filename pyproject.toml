@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "elt-lakehouse"
 version = "0.1.0"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.14"
 description = "ELT Lakehouse data engineering project"
 
 dependencies = [
@@ -20,6 +20,7 @@ dependencies = [
     "fastapi[standard]>=0.141.1",
     "pandas>=2.3.3",
     "numpy>=2.2.6",
+    "dbt-spark[session]",
 ]
 [tool.setuptools]
 package-dir = { "" = "src" }
