@@ -10,6 +10,8 @@ os.environ.setdefault("SPARK_LOCAL_IP", "127.0.0.1")
 
 logger = get_logger("spark.common.spark_session")
 
+spark_tmp_dir = os.path.expanduser("~/.spark_tmp")
+os.makedirs(spark_tmp_dir, exist_ok=True)
 
 # ===============================
 # Create Spark Session
@@ -57,6 +59,7 @@ def create_spark_session(app_name: str | None = None) -> SparkSession:
             .config("spark.sql.session.timeZone", session_timezone)
             .config("spark.driver.host", "127.0.0.1")
             .config("spark.driver.bindAddress", "127.0.0.1")
+            .config("spark.local.dir", spark_tmp_dir)
             .config("spark.jars.ivy", str(PROJECT_ROOT / ".ivy2"))
         )
 
