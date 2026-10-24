@@ -32,7 +32,8 @@ def load_csv(file_name: str) -> pd.DataFrame:
     return pd.read_csv(
         csv_path,
         on_bad_lines="skip",
-        engine="python",
+        engine="c",
+        skipinitialspace=True,
     )
 
 
