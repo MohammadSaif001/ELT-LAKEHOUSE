@@ -16,6 +16,8 @@ logger = get_logger(__name__)
 def send_pipeline_report() -> None:
     """Build and send the latest pipeline report."""
     try:
+        # Keep reporting dependencies optional so normal pipeline stages do not
+        # require the email configuration to be available.
         from report_sender.email_configure import format_report, send_email
         from report_sender.log_parsing import generate_report
 
@@ -33,6 +35,8 @@ def orchestrate(args, send_report: bool = False) -> None:
         start_time: datetime = datetime.now(timezone.utc)
 
         if args.setup:
+            # Setup is intentionally separate from generation so profiling can
+            # be refreshed without creating a new synthetic dataset.
             from src.elt_lakehouse.spark.jobs.download_data import download_dataset
             from src.elt_lakehouse.spark.jobs.build_profile_job import run_profile_job
 
@@ -40,6 +44,8 @@ def orchestrate(args, send_report: bool = False) -> None:
             run_profile_job()
 
         elif args.run_pipeline:
+            # The full run follows the dependency order: pools, generated
+            # files, Bronze, Silver, and finally the dbt-backed Gold layer.
             from src.elt_lakehouse.spark.jobs.pool_job import run_pool_job
 
             run_pool_job()
@@ -50,14 +56,21 @@ def orchestrate(args, send_report: bool = False) -> None:
             from src.elt_lakehouse.spark.jobs.bronze_job import run_bronze_ingestion
             from src.elt_lakehouse.spark.jobs.dataset_job import run_dataset_job
             from src.elt_lakehouse.spark.jobs.silver_job import run_silver_processing
+            from src.elt_lakehouse.spark.jobs.gold_job import main as run_gold_processing
 
             run_dataset_job()
             spark = create_spark_session()
             try:
+                # Bronze and Silver share one session to avoid starting
+                # separate Spark applications during the full pipeline run.
                 run_bronze_ingestion(spark=spark)
                 run_silver_processing(spark=spark)
             finally:
+                # Always release the Spark resources, including after a stage
+                # raises an exception.
                 spark.stop()
+
+            run_gold_processing()
 
         elif args.silver_runner:
             from src.elt_lakehouse.spark.jobs.silver_job import run_silver_processing
@@ -80,19 +93,36 @@ def orchestrate(args, send_report: bool = False) -> None:
 
             import webbrowser
 
+            # Open the local UI before handing control to Uvicorn's development
+            # server. The dashboard only reports existing pipeline state.
             webbrowser.open("http://127.0.0.1:5000")
 
             subprocess.run(
                 [
                     sys.executable,
                     "-m",
-                    "flask",
-                    "--app",
-                    "dashboard.app",
-                    "run",
+                    "uvicorn",
+                    "dashboard.app:app",
+                    "--host",
+                    "127.0.0.1",
+                    "--port",
+                    "5000",
                 ],
                 check=True,
             )
+        elif args.run_tests:
+            # Run tests through the active interpreter so the selected uv
+            # environment is used instead of a system pytest executable.
+            subprocess.run(
+                [sys.executable, "-m", "pytest"],
+                check=True,
+            )
+        elif args.gold_runner:
+            # Gold depends on completed Silver tables and is exposed as a
+            # standalone stage for reruns without repeating ingestion.
+            from src.elt_lakehouse.spark.jobs.gold_job import main as run_gold_processing
+
+            run_gold_processing()
 
         duration: float = (datetime.now(timezone.utc) - start_time).total_seconds()
 
@@ -113,6 +143,8 @@ def main() -> None:
     """Main function to run the ELT pipeline."""
     parser = argparse.ArgumentParser(description="Run the ELT pipeline.")
 
+    # Each invocation runs one pipeline action; --send-report remains a
+    # modifier and can be combined with any action.
     run_group = parser.add_mutually_exclusive_group(required=True)
 
     run_group.add_argument(
@@ -161,6 +193,18 @@ def main() -> None:
         "--launch-dashboard",
         action="store_true",
         help="Launch the dashboard after execution.",
+    )
+
+    run_group.add_argument(
+        "--run-tests",
+        action="store_true",
+        help="Run the test suite for the ELT pipeline.",
+    )
+
+    run_group.add_argument(
+        "--gold-runner",
+        action="store_true",
+        help="Run the build_gold step of the ELT pipeline.",
     )
 
     args = parser.parse_args()

@@ -14,7 +14,7 @@ medallion layout.
 | Silver layer | Implemented | Contract-based casting, validation, referential-integrity checks, Delta outputs, and quarantine tables |
 | Data quality | Implemented | Null, duplicate, freshness, schema, business-rule, and referential-integrity checks |
 | Incremental processing | Available in code | CDC, merge, and watermark helpers are present and can be extended for production workloads |
-| Monitoring dashboard | Implemented | Read-only Flask dashboard for pipeline status, data quality, storage health, logs, and `/api/health` |
+| Monitoring dashboard | Implemented | Read-only FastAPI dashboard for pipeline status, data quality, storage health, logs, and `/api/health` |
 | Kafka ingestion | In development | Producer, consumer, topic-management, and Kafka-to-Bronze modules are present but require a running Kafka environment |
 | Airflow orchestration | In development | DAGs, callbacks, alerts, and custom operators are present under `airflow/` |
 | dbt Gold modeling | Implemented | Gold dimensions, facts, sources, and tests are defined under `dbt_gold/` and run through the Spark/dbt Gold job |
@@ -152,7 +152,7 @@ Focused suites are organized under:
 ```text
 config/       Runtime, generator, Spark, and service configuration
 contracts/    JSON schema contracts and schema utilities
-dashboard/    Read-only Flask monitoring dashboard
+dashboard/    Read-only FastAPI monitoring dashboard
 dbt_gold/     dbt Gold models, sources, macros, and tests
 docs/         Architecture, ADRs, lineage, plans, and runbooks
 src/          Generators, ingestion, Spark jobs, quality checks, and loaders
