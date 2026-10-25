@@ -2,7 +2,7 @@
   "type": "object",
   "properties": {
     "geolocation_zip_code_prefix": {
-      "type": "integer",
+      "type": "string",
       "nullable": false
     },
     "geolocation_lat": {
