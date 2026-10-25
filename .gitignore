@@ -1,54 +1,68 @@
 # Generated data and profiling output
 /data/raw/
 /data/profiling/
+/storage/
 
-# Metadata files
-/metadata/
+# Generated metadata and pipeline state
+/metadata/pools/
+/metadata/checkpoints/
+/metadata/pipeline_state/
+/metadata/watermarks/
 
-# Storage files for Delta Lake
-storage/
-
-# Local environment
+# Local environment and credentials
 /.Elt-lakehouse/
 /.env
 /.env.*
+/.venv/
 
-# Notebooks and notebook-generated files
+# Notebook-generated files
 /notebooks/
 *.ipynb
 
 # Python caches and build artifacts
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
 *.egg-info/
 .pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+build/
+dist/
 
-# IDE
+# IDE and editor files
 .vscode/
 .idea/
 
-# OS
+# OS and temporary editor files
 .DS_Store
 *.swp
 *.swo
 
-# Logs
-dbt/logs/
-/logs/
+# Logs and generated tool output
+**/logs/
+dbt_gold/target/
+dbt_packages/
+/lib/
+/visual/
+/.ivy2/
+ram_report.csv
 
 # Patch files
 *.diff
 
-# Local/generated tooling output
-/lib/
+# Databricks local state
+/.databricks/
+
+# Visual and dashboard files
 visual/
 /dashboard/
 .ivy2/
 ram_report.csv
 
+# Jaffle generated files
+/jaffle_shop/
 
-.databricks
-
-.databricks
+# Plans 
+/plans/
