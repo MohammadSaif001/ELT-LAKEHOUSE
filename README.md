@@ -17,8 +17,8 @@ medallion layout.
 | Monitoring dashboard | Implemented | Read-only Flask dashboard for pipeline status, data quality, storage health, logs, and `/api/health` |
 | Kafka ingestion | In development | Producer, consumer, topic-management, and Kafka-to-Bronze modules are present but require a running Kafka environment |
 | Airflow orchestration | In development | DAGs, callbacks, alerts, and custom operators are present under `airflow/` |
-| dbt modeling | In development | dbt project and model/test directories are present; Gold models still need to be completed |
-| Gold and warehouse loading | In development | Postgres schema/loaders exist, but the Gold-layer contract and end-to-end load need completion |
+| dbt Gold modeling | Implemented | Gold dimensions, facts, sources, and tests are defined under `dbt_gold/` and run through the Spark/dbt Gold job |
+| Gold and warehouse loading | Available in code | Gold Delta outputs and a PostgreSQL writer are available; deployment-specific warehouse configuration and end-to-end validation remain |
 
 ## Architecture
 
@@ -48,7 +48,7 @@ medallion layout.
                                           +----------------------+
                                           | Gold / warehouse     |
                                           | dbt + PostgreSQL     |
-                                          | in development       |
+                                          | available in code    |
                                           +----------------------+
 ```
 
@@ -116,6 +116,16 @@ uv run python elt_pipeline.py --run-pipeline
 is not already present locally. You can also combine stage flags; they always
 run in dependency order.
 
+Build the Gold layer after Silver has completed:
+
+```bash
+uv run python scripts/run_gold_dbt.py
+```
+
+The Gold job registers the Silver Delta tables with Spark, creates a temporary
+dbt profile, and writes Gold Delta tables under `storage/gold/`. It does not
+require a user-managed `~/.dbt/profiles.yml`.
+
 The current generator configuration creates pools of up to 1,000,000
 customers, 100,000 products, and 200,000 sellers, with a configured dataset
 volume of up to 800,000 orders. Adjust
@@ -140,13 +150,13 @@ Focused suites are organized under:
 ## Repository layout
 
 ```text
-config/       Runtime and generator configuration
+config/       Runtime, generator, Spark, and service configuration
 contracts/    JSON schema contracts and schema utilities
 dashboard/    Read-only Flask monitoring dashboard
-dbt/          dbt project and transformation models
-docs/         Architecture, ADRs, lineage, and runbooks
+dbt_gold/     dbt Gold models, sources, macros, and tests
+docs/         Architecture, ADRs, lineage, plans, and runbooks
 src/          Generators, ingestion, Spark jobs, quality checks, and loaders
-storage/      Generated data and Bronze/Silver Delta output locations
+storage/      Generated data and Bronze/Silver/Gold Delta output locations
 tests/        Unit, data-quality, integration, and performance tests
 airflow/      Airflow DAGs, callbacks, alerts, and custom operators
 docker/       Service configuration for local infrastructure
@@ -155,12 +165,16 @@ monitoring/   Prometheus and Grafana configuration
 
 ## Development notes
 
+- The [Gold layer catalog](docs/catalog.md) documents Gold model grains,
+  keys, sources, published columns, and validation rules.
 - Spark jobs use structured logging and memory-monitoring helpers.
 - Invalid records identified during Silver referential-integrity checks are
   written to `storage/silver/quarantine/`.
+- The monitoring dashboard is read-only; it reports pipeline state but does not
+  start jobs or write data.
 - Generated data and pipeline state are local runtime artifacts; review the
   configured paths before running high-volume jobs.
-- Kafka, Airflow, dbt, and PostgreSQL workflows should be treated as
-  development integrations until their local infrastructure and end-to-end
-  tests are enabled.
-
+- Kafka and Airflow workflows should be treated as development integrations
+  until their local infrastructure and end-to-end tests are enabled.
+- The dbt Gold job and PostgreSQL writer are available in code, but production
+  deployment still requires environment-specific configuration and validation.

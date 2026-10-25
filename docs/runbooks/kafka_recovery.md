@@ -13,6 +13,8 @@
 > Kafka streaming is a **planned feature** (see [ADR 002](../adr/002_why_kafka.md)).
 > This runbook documents the intended recovery procedures for when the streaming
 > mode is active. The current pipeline is batch-only (Parquet files → Spark).
+> The commands below are future command examples and are not supported by the
+> current `elt_pipeline.py` CLI.
 
 ---
 
@@ -79,8 +81,8 @@ kafka-server-start.sh config/kraft/server.properties &
 # Wait for the broker to be ready
 kafka-broker-api-versions.sh --bootstrap-server localhost:9092
 
-# Restart the Spark streaming job
-uv run python3 -m elt_pipeline --run-pipeline --mode streaming
+# Future action: restart the Spark streaming job after streaming support exists
+uv run python elt_pipeline.py --run-pipeline --mode streaming
 ```
 
 ---
@@ -118,7 +120,7 @@ On restart, it automatically resumes from the last committed offset.
 **Fix**:
 ```bash
 # Simply restart — Spark will resume from the checkpoint
-uv run python3 -m elt_pipeline --run-pipeline --mode streaming
+uv run python elt_pipeline.py --run-pipeline --mode streaming
 ```
 
 **If the checkpoint is corrupted**:
@@ -126,7 +128,7 @@ uv run python3 -m elt_pipeline --run-pipeline --mode streaming
 # WARNING: This will reprocess all messages from the beginning of the topic
 rm -rf checkpoints/
 
-uv run python3 -m elt_pipeline --run-pipeline --mode streaming
+uv run python elt_pipeline.py --run-pipeline --mode streaming
 ```
 
 > [!CAUTION]
@@ -231,4 +233,3 @@ kafka-configs.sh \
     --entity-type brokers \
     --entity-default
 ```
-

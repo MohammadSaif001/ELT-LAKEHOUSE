@@ -72,19 +72,21 @@ is tracked separately and is not yet active in the codebase.
   starts.
 - Message serialisation format must be agreed upon (JSON vs Avro vs Protobuf).
   Avro with Schema Registry is preferred for schema evolution.
-- Current batch pipeline is simpler and faster for CI — Kafka mode would be an
-  opt-in flag (`--mode streaming`).
+- The current batch pipeline is simpler and faster for CI. Kafka will require a
+  separate streaming entry point when implementation begins; the current
+  `elt_pipeline.py` CLI has no streaming mode.
 
 ---
 
 ## Current State
 
-Kafka is **not yet implemented**. The pipeline currently uses:
+Kafka is **not yet implemented**. The current CLI supports batch execution
+only, using:
 
 ```
-Generators → Parquet files → Bronze Spark jobs → Silver Delta → Gold Delta
+Generators → Parquet files → Bronze Delta → Silver Delta → Gold Delta
 ```
 
-This ADR records the intent and rationale so that the streaming migration has
-documented context.
-
+This ADR records the intent and rationale so that a future streaming migration
+has documented context. The Kafka recovery runbook is therefore a design
+reference, not an operational procedure for the current batch pipeline.

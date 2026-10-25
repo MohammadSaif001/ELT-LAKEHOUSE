@@ -22,7 +22,7 @@ table format for the Silver and Gold layers that could satisfy:
 4. **Upsert / merge support** — the Silver layer deduplicates incoming rows;
    `MERGE INTO` is the cleanest way to express this.
 5. **Local development** — the pipeline must run fully offline (no cloud
-   object store) using `local[8]` Spark master.
+   object store) using a local Spark master.
 
 ---
 
@@ -32,9 +32,9 @@ We use **Delta Lake** (via `delta-spark`) as the table format for the Silver
 and Gold layers.
 
 ```
-Bronze  → raw Parquet files (append-only, no schema enforcement)
+Bronze  → Delta tables     (ingested generated Parquet, auditable transaction log)
 Silver  → Delta tables     (schema-enforced, deduplicated, quarantine output)
-Gold    → Delta tables     (aggregated, business-ready)
+Gold    → Delta tables     (dbt-modeled, aggregated, business-ready)
 ```
 
 ---
@@ -55,7 +55,7 @@ Gold    → Delta tables     (aggregated, business-ready)
 ### Positive
 - Schema contracts are enforced at write time — bad data is routed to quarantine
   tables automatically by the validation decorator.
-- `MERGE INTO` in the Gold layer enables idempotent re-runs.
+- Delta transaction logs support auditable and repeatable layer writes.
 - `DESCRIBE HISTORY` gives a full audit trail for every Silver/Gold table.
 - The `_delta_log/` transaction log means partial writes never leave tables in
   a corrupt state.
@@ -65,8 +65,8 @@ Gold    → Delta tables     (aggregated, business-ready)
   `DeltaCatalog` — slightly more complex session setup.
 - Delta table directories accumulate `_delta_log/` JSON files; periodic
   `VACUUM` is required in production to manage storage.
-- Local reads via `read_delta()` are slightly slower than raw Parquet for the
-  Bronze layer, which is why Bronze stays as plain Parquet.
+- Generated source files remain Parquet, but Bronze ingestion converts them to
+  Delta tables for downstream processing.
 
 ---
 
@@ -75,6 +75,6 @@ Gold    → Delta tables     (aggregated, business-ready)
 - Session configuration lives in [`config/spark_config.yaml`](../../config/spark_config.yaml).
 - `DeltaSparkSessionExtension` and `io.delta.sql.DeltaSparkSessionExtension`
   are applied in the shared `create_spark_session()` helper.
-- Silver writes use `write_delta(df, path, mode="overwrite")`.
+- Bronze and Silver writes use the shared Delta writer with the configured
+  output paths.
 - Quarantine writes use `mode="append"` so historical bad rows are preserved.
-

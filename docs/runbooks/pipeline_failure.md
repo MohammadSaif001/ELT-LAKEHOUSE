@@ -17,22 +17,22 @@ ELT-Lakehouse batch pipeline. The pipeline runs in four sequential stages:
 Pool Generation → Dataset Generation → Bronze Ingestion → Silver Processing
 ```
 
-A failure in any stage aborts all subsequent stages. An email report is sent
-automatically on both success and failure.
+A failure in any stage aborts all subsequent stages. Add
+`--send-report` when an email report is required on success or failure.
 
 ---
 
 ## Quick Triage
 
 ```bash
-# Re-run the full pipeline with verbose output
-uv run python3 -m elt_pipeline --run-pipeline --send-report
+# Re-run the full batch pipeline and send a report
+uv run python elt_pipeline.py --run-pipeline --send-report
 
 # Run only a specific stage (useful for partial re-runs)
-uv run python3 -m elt_pipeline --run-pool
-uv run python3 -m elt_pipeline --run-dataset
-uv run python3 -m elt_pipeline --run-bronze
-uv run python3 -m elt_pipeline --run-silver
+uv run python elt_pipeline.py --build-pool
+uv run python elt_pipeline.py --build-dataset
+uv run python elt_pipeline.py --bronze-runner
+uv run python elt_pipeline.py --silver-runner
 ```
 
 ---
@@ -52,7 +52,7 @@ clone** or after `metadata/` is cleaned up.
 ### Fix
 ```bash
 mkdir -p metadata/pools
-uv run python3 -m elt_pipeline --run-pool
+uv run python elt_pipeline.py --build-pool
 ```
 
 ### Prevention
@@ -84,18 +84,18 @@ A code change altered the pool schema without re-generating the pools.
 **Fix**:
 ```bash
 rm -f metadata/pools/*.parquet
-uv run python3 -m elt_pipeline --run-pool
-uv run python3 -m elt_pipeline --run-dataset
+uv run python elt_pipeline.py --build-pool
+uv run python elt_pipeline.py --build-dataset
 ```
 
 ### Cause C — Output directory missing
 ```
-FileNotFoundError: metadata/generated/
+FileNotFoundError: storage/generated/
 ```
 
 **Fix**:
 ```bash
-mkdir -p metadata/generated
+mkdir -p storage/generated
 ```
 
 ---
@@ -109,21 +109,21 @@ AnalysisException: cannot resolve 'seller_id' given input columns
 ```
 
 ### Cause A — Generated Parquet schema drift
-The Bronze ingestion scripts (`customers_bronze.py`, `orders_bronze.py`, etc.)
-have a hardcoded `INPUT_PATH` pointing to `metadata/generated/*.parquet`.
+The Bronze ingestion scripts (`customers.py`, `orders.py`, etc.)
+have a hardcoded `INPUT_PATH` pointing to `storage/generated/*.parquet`.
 If the generator added/removed columns, the Bronze schema contract is broken.
 
 **Fix**:
 1. Check the generator output schema:
    ```python
    import pyarrow.parquet as pq
-   print(pq.read_schema("metadata/generated/orders.parquet"))
+   print(pq.read_schema("storage/generated/generated_orders_data.parquet"))
    ```
 2. Update the Bronze script's schema contract or the generator to match.
 
 ### Cause B — SparkSession not shared
 Bronze and Silver share a SparkSession (passed through `elt_pipeline.py`). If
-Bronze is run standalone with `--run-bronze`, it creates its own session. This
+Bronze is run standalone with `--bronze-runner`, it creates its own session. This
 is expected behaviour.
 
 ### Cause C — Delta table already locked
@@ -134,8 +134,8 @@ ConcurrentAppendException: Files were added to the root of the table
 **Fix**:
 ```bash
 # Remove the Delta table and re-run Bronze to recreate it
-rm -rf delta/bronze/orders/
-uv run python3 -m elt_pipeline --run-bronze
+rm -rf storage/bronze/orders_delta/
+uv run python elt_pipeline.py --bronze-runner
 ```
 
 ---
@@ -175,8 +175,33 @@ java.lang.OutOfMemoryError: GC overhead limit exceeded
 # driver_memory: 4g → 8g
 # Then clear Spark's local temp directory:
 rm -rf /tmp/spark-*
-uv run python3 -m elt_pipeline --run-silver
+uv run python elt_pipeline.py --silver-runner
 ```
+
+## Stage 5 — Gold Build Failures
+
+Gold is built separately after Silver completes:
+
+```bash
+uv run python scripts/run_gold_dbt.py
+```
+
+### Symptom — Missing Silver Delta table
+
+The Gold job reports the Silver table paths that are missing. Run the Bronze
+and Silver stages first, then retry the Gold build:
+
+```bash
+uv run python elt_pipeline.py --bronze-runner
+uv run python elt_pipeline.py --silver-runner
+uv run python scripts/run_gold_dbt.py
+```
+
+### Symptom — dbt profile or adapter error
+
+The Gold job creates a temporary profile automatically. Do not create or edit
+`~/.dbt/profiles.yml` for this project. Run `uv sync` if the dbt-spark adapter
+is unavailable, then retry the command.
 
 ### Symptom D — Delta transaction conflict
 ```
@@ -199,11 +224,11 @@ If the pipeline state is completely corrupted:
 ```bash
 # Remove all generated data, pools, and Delta tables
 rm -rf metadata/pools/
-rm -rf metadata/generated/
-rm -rf delta/
+rm -rf metadata/pools/
+rm -rf storage/generated/ storage/bronze/ storage/silver/ storage/gold/
 
 # Re-run from scratch
-uv run python3 -m elt_pipeline --run-pipeline --send-report
+uv run python elt_pipeline.py --run-pipeline --send-report
 ```
 
 > [!WARNING]
@@ -231,7 +256,6 @@ points directly to the broken component.
 |------|-------|
 | Pipeline stdout | Terminal / `--send-report` email |
 | Spark driver logs | `spark-warehouse/` (local mode) |
-| Delta transaction log | `delta/<layer>/<table>/_delta_log/` |
+| Delta transaction log | `storage/<layer>/<table>/_delta_log/` |
 | Pool files | `metadata/pools/*.parquet` |
-| Generated data | `metadata/generated/*.parquet` |
-
+| Generated data | `storage/generated/*.parquet` |

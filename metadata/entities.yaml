@@ -1,0 +1,170 @@
+version: 1
+
+entities:
+  customers:
+    enabled: true
+    stages: [bronze, silver]
+    contract: customer_schema.json
+    bronze:
+      handler: ingest_customers
+      source: storage/generated/generated_customers_data.parquet
+      target: storage/bronze/customers_delta
+    silver:
+      handler: process_customers
+      source: storage/bronze/customers_delta
+      target: storage/silver/customers_silver
+    deduplication:
+      enabled: true
+      keys: [customer_id]
+      policy: drop_duplicates
+
+  geolocation:
+    enabled: true
+    stages: [bronze, silver]
+    contract: geolocation_schema.json
+    bronze:
+      handler: ingest_geolocation
+      source: storage/generated/generated_geolocation_data.parquet
+      target: storage/bronze/geolocation_delta
+    silver:
+      handler: process_geolocation
+      source: storage/bronze/geolocation_delta
+      target: storage/silver/geolocation_silver
+    deduplication:
+      enabled: false
+      keys: []
+      policy: none
+
+  orders:
+    enabled: true
+    stages: [bronze, silver]
+    contract: order_schema.json
+    bronze:
+      handler: ingest_orders
+      source: storage/generated/generated_orders_data.parquet
+      target: storage/bronze/orders_delta
+    silver:
+      handler: process_orders
+      source: storage/bronze/orders_delta
+      target: storage/silver/orders_silver
+    deduplication:
+      enabled: true
+      keys: [order_id]
+      policy: drop_duplicates
+
+  order_items:
+    enabled: true
+    stages: [bronze, silver]
+    contract: order_item_schema.json
+    bronze:
+      handler: ingest_order_items
+      source: storage/generated/generated_order_items_data.parquet
+      target: storage/bronze/order_items_delta
+    silver:
+      handler: process_order_items
+      source: storage/bronze/order_items_delta
+      target: storage/silver/order_items_silver
+    deduplication:
+      enabled: true
+      keys: [order_id, order_item_id]
+      policy: drop_duplicates
+
+  payments:
+    enabled: true
+    stages: [bronze, silver]
+    contract: payment_schema.json
+    bronze:
+      handler: ingest_payments
+      source: storage/generated/generated_payments_data.parquet
+      target: storage/bronze/payments_delta
+    silver:
+      handler: process_payments
+      source: storage/bronze/payments_delta
+      target: storage/silver/payments_silver
+    deduplication:
+      enabled: true
+      keys: [order_id, payment_sequential]
+      policy: drop_duplicates
+
+  reviews:
+    enabled: true
+    stages: [bronze, silver]
+    contract: review_schema.json
+    bronze:
+      handler: ingest_reviews
+      source: storage/generated/generated_reviews_data.parquet
+      target: storage/bronze/reviews_delta
+    silver:
+      handler: process_reviews
+      source: storage/bronze/reviews_delta
+      target: storage/silver/reviews_silver
+    deduplication:
+      enabled: true
+      keys: [review_id]
+      policy: drop_duplicates
+
+  sellers:
+    enabled: true
+    stages: [bronze, silver]
+    contract: seller_schema.json
+    bronze:
+      handler: ingest_sellers
+      source: storage/generated/generated_sellers_data.parquet
+      target: storage/bronze/sellers_delta
+    silver:
+      handler: process_sellers
+      source: storage/bronze/sellers_delta
+      target: storage/silver/sellers_silver
+    deduplication:
+      enabled: true
+      keys: [seller_id]
+      policy: drop_duplicates
+
+  products:
+    enabled: true
+    stages: [bronze, silver]
+    contract: products_schema.json
+    bronze:
+      handler: ingest_products
+      source: storage/generated/generated_products_data.parquet
+      target: storage/bronze/products_delta
+    silver:
+      handler: process_products
+      source: storage/bronze/products_delta
+      target: storage/silver/products_silver
+    deduplication:
+      enabled: true
+      keys: [product_id]
+      policy: drop_duplicates
+
+referential_integrity:
+  - child: orders
+    parent: customers
+    child_key: customer_id
+    parent_key: customer_id
+    quarantine: quarantine/orders_missing_customer
+  - child: order_items
+    parent: orders
+    child_key: order_id
+    parent_key: order_id
+    quarantine: quarantine/order_items_missing_order
+  - child: order_items
+    parent: products
+    child_key: product_id
+    parent_key: product_id
+    quarantine: quarantine/order_items_missing_product
+  - child: order_items
+    parent: sellers
+    child_key: seller_id
+    parent_key: seller_id
+    quarantine: quarantine/order_items_missing_seller
+  - child: payments
+    parent: orders
+    child_key: order_id
+    parent_key: order_id
+    quarantine: quarantine/payments_missing_order
+  - child: reviews
+    parent: orders
+    child_key: order_id
+    parent_key: order_id
+    quarantine: quarantine/reviews_missing_order
