@@ -1,0 +1,36 @@
+{# Shared template pieces. Status values map to the muted dot colours in report.css. #}
+{% set HEALTH_DOT = {'OK': 'ok', 'WARN': 'warn', 'FAIL': 'bad', 'UNKNOWN': 'idle'} %}
+{% set RUN_DOT = {'SUCCESS': 'ok', 'FAILED': 'bad', 'RUNNING': 'run', 'WARNING': 'warn', 'UNKNOWN': 'idle', 'NO_DATA': 'idle'} %}
+
+{% macro head(title, lede=none) %}
+<header class="page-head">
+  <div>
+    <h1>{{ title }}</h1>
+    {% if lede %}<p>{{ lede }}</p>{% endif %}
+  </div>
+  <div class="page-head__meta">
+    {% if health is defined and health %}<span class="pill pill--lg pill--{{ {'OK':'ok','WARN':'warn','FAIL':'bad','UNKNOWN':'idle'}[health.overall] }}"><i></i>Health: {{ health.report_label | capitalize }}</span>{% endif %}
+    <span>Updated {{ now }}</span>
+  </div>
+</header>
+{% endmacro %}
+
+{% macro kpi(label, value, sub=none, unit=none, small=false) %}
+<div class="kpi">
+  <span class="kpi__label">{{ label }}</span>
+  <span class="kpi__value{{ ' kpi__value--sm' if small }}">{{ value }}{% if unit %}<span class="unit">{{ unit }}</span>{% endif %}</span>
+  {% if sub %}<span class="kpi__sub" title="{{ sub }}">{{ sub }}</span>{% endif %}
+  {{ caller() if caller is defined }}
+</div>
+{% endmacro %}
+
+{% macro panel_head(title, note=none, aside=none) %}
+<div class="panel__head">
+  <div><h2>{{ title }}</h2>{% if note %}<p>{{ note }}</p>{% endif %}</div>
+  {% if aside %}<span class="panel__aside">{{ aside }}</span>{% endif %}
+</div>
+{% endmacro %}
+
+{% macro chart(name, label) %}
+<div class="chart" data-chart="{{ name }}" role="group" aria-label="{{ label }}"></div>
+{% endmacro %}

@@ -1,0 +1,41 @@
+# Generated data and profiling output
+/data/raw/
+/data/profiling/
+/storage/bronze/
+/logs/
+
+# Local environment
+/.Elt-lakehouse/
+/.env
+/.env.*
+
+# Notebooks and notebook-generated files
+/notebooks/
+*.ipynb
+
+# Python caches and build artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+*.swp
+*.swo
+
+# Logs
+/logs/
+
+# Patch files
+*.diff
+
+# Local/generated tooling output
+/lib/
+/visual/

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}Data quality{% endblock %}
+{% block content %}
+{{ m.head('Data quality', 'Test results that show whether data is fit for downstream use.') }}
+
+<div class="notice">
+  <h2>What this page shows</h2>
+  <p>Gold <code>dbt build</code> writes its latest test results to <code>dbt_gold/target/run_results.json</code>. The numbers below describe that saved invocation, which may be older than the latest pipeline run. Python quality suites are listed as definitions only.</p>
+</div>
+
+{% if dbt_summary %}
+<div class="grid">
+  <section class="panel span-5">
+    {{ m.panel_head('dbt test results', dbt_check.status | capitalize ~ ': ' ~ dbt_check.message) }}
+    {{ m.chart('dbttests', 'dbt test results') }}
+  </section>
+  <section class="panel span-7">
+    {{ m.panel_head('Saved run', none, dbt_summary.generated_at or 'time not recorded') }}
+    <div class="stat-row">
+      <div class="stat"><b>{{ dbt_summary.tests_passed }}</b><span>passed</span></div>
+      <div class="stat"><b>{{ dbt_summary.tests_warned }}</b><span>warnings</span></div>
+      <div class="stat"><b>{{ dbt_summary.tests_failed }}</b><span>failed</span></div>
+      <div class="stat"><b>{{ dbt_summary.tests_errored }}</b><span>errored</span></div>
+      <div class="stat"><b>{{ dbt_summary.tests_skipped }}</b><span>skipped</span></div>
+    </div>
+    <p class="muted" style="margin:0 0 12px">Invocation started {{ dbt_summary.invocation_started_at or 'not recorded' }} (UTC).</p>
+    {% if dbt_summary.failed_tests %}
+    <div class="table-wrap"><table>
+      <thead><tr><th>Failing test</th><th>Status</th><th class="num">Failing rows</th></tr></thead>
+      <tbody>{% for test in dbt_summary.failed_tests %}
+        <tr><td><code>{{ test.name }}</code></td><td>{{ test.status | upper | status_badge | safe }}</td><td class="num">{{ test.failures if test.failures is not none else 'N/A' }}</td></tr>
+      {% endfor %}</tbody>
+    </table></div>
+    {% else %}
+    <p class="muted" style="margin:0">No failing or errored tests in this run.</p>
+    {% endif %}
+  </section>
+</div>
+{% else %}
+<div class="empty panel">No dbt run-results file found, so test outcomes are unknown. Run <code>uv run python scripts/run_gold_dbt.py</code>.</div>
+{% endif %}
+
+<h2 class="section-title">Python test suites <small>tests/data_quality</small></h2>
+<section class="panel">
+  {% if dq_test_files %}
+  <div class="table-wrap"><table>
+    <thead><tr><th style="width:45%">File</th><th>Status</th></tr></thead>
+    <tbody>{% for f in dq_test_files %}
+      <tr><td><code>tests/data_quality/{{ f }}</code></td><td>{{ 'NO_DATA' | status_badge | safe }} <span class="muted">Defined, not wired to a live run</span></td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {% else %}<div class="empty">No test files found under tests/data_quality/.</div>{% endif %}
+</section>
+
+<h2 class="section-title">Gold dbt test definitions <small>dbt_gold/tests</small></h2>
+<section class="panel">
+  {% if dbt_test_files %}
+  <div class="table-wrap"><table>
+    <thead><tr><th style="width:45%">Test</th><th>Note</th></tr></thead>
+    <tbody>{% for f in dbt_test_files %}
+      <tr><td><code>dbt_gold/tests/{{ f }}</code></td><td class="muted">Run by dbt build. Per-test results are summarized above.</td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {% else %}<div class="empty">No dbt SQL tests found under dbt_gold/tests/.</div>{% endif %}
+</section>
+
+<div class="notice notice--warn" style="margin-top:16px">
+  <h2>Python results are not published</h2>
+  <p>The dashboard does not run tests. To show Python results here, a test run would need to write a machine-readable summary.</p>
+</div>
+{% endblock %}

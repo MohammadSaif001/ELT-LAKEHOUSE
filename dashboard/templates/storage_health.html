@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}Storage{% endblock %}
+{% block content %}
+{% set layers = telemetry.storage %}
+{{ m.head('Storage', 'Whether each local layer holds output. Presence says nothing about freshness or whether the latest run succeeded.') }}
+
+{% set empty_layers = overview.storage_layers | rejectattr('has_data') | list %}
+{% if empty_layers %}
+<div class="notice notice--warn"><h2>Layers without output</h2><p>{{ empty_layers | map(attribute='label') | join(', ') }}. Expected before the first pipeline run. This is not a connection failure because there is no separate database service.</p></div>
+{% else %}
+<div class="notice notice--ok"><h2>All layers hold output</h2><p>Source, Bronze, Silver and Gold directories are populated.</p></div>
+{% endif %}
+
+<div class="grid">
+  <section class="panel span-5">
+    {{ m.panel_head('Size by layer', none, telemetry.kpi.storage_total_mb ~ ' MB total') }}
+    {{ m.chart('storage', 'Storage size per layer') }}
+  </section>
+  <section class="panel span-7">
+    {{ m.panel_head('Layer details') }}
+    <div class="table-wrap"><table>
+      <thead><tr><th>Layer</th><th>Status</th><th class="num">Files</th><th class="num">Size</th><th>Last modified</th></tr></thead>
+      <tbody>
+        {% for layer in overview.storage_layers %}
+        <tr>
+          <td>{{ layer.label | capitalize }}<br><small><code>storage/{{ 'generated' if layer.key == 'source' else layer.key }}</code></small></td>
+          <td>{{ ('PRESENT' if layer.has_data else 'EMPTY') | status_badge | safe }}</td>
+          <td class="num">{{ layer.file_count if layer.file_count is not none else 'N/A' }}</td>
+          <td class="num">{{ layer.size_bytes | fmt_bytes }}</td>
+          <td class="muted">{{ layer.modified_at.strftime('%Y-%m-%d %H:%M:%S') if layer.modified_at else 'N/A' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table></div>
+  </section>
+</div>
+
+<p class="muted" style="font-size:12px">Row counts and Delta versions are not tracked. PostgreSQL availability is not reported because the serving writer is not part of the orchestrated pipeline.</p>
+
+<h2 class="section-title">Metadata state files <small>metadata/*.json, secrets masked</small></h2>
+<div class="grid">
+  {% for title, path, data in [('Pipeline state', 'metadata/pipeline_state/state.json', overview.pipeline_state_raw), ('Watermark', 'metadata/watermarks/watermark.json', overview.watermark_raw), ('Bronze checkpoint', 'metadata/checkpoints/bronze_checkpoint.json', overview.checkpoint_raw)] %}
+  <section class="panel span-4">
+    {{ m.panel_head(title, path) }}
+    {% if data %}<pre class="log-box">{{ data | safe_json }}</pre>{% else %}<div class="empty">Not written yet.</div>{% endif %}
+  </section>
+  {% endfor %}
+</div>
+{% endblock %}

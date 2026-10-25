@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}Pipeline runs{% endblock %}
+{% block content %}
+{% set k = telemetry.kpi %}
+{{ m.head('Pipeline runs', 'Stage and job execution derived from logs/application.log. Output on disk is shown separately under Storage.') }}
+
+{% if overview.latest_run_detail %}
+<div class="notice"><h2>Latest run detail</h2><p>{{ overview.latest_run_detail }}</p></div>
+{% endif %}
+
+<section class="kpis" aria-label="Run summary">
+  {% call m.kpi('Latest execution', overview.latest_run_status | status_badge | safe, overview.last_run_started[:19] if overview.last_run_started else 'No run recorded') %}{% endcall %}
+  {% call m.kpi('Last success', overview.last_successful_run[:19] if overview.last_successful_run else 'N/A', none, none, true) %}{% endcall %}
+  {% call m.kpi('Runs in log', k.runs_total, k.runs_success ~ ' succeeded, ' ~ k.runs_failed ~ ' failed') %}{% endcall %}
+  {% call m.kpi('Median duration', telemetry.duration_stats_label.median, 'Fastest ' ~ telemetry.duration_stats_label.min ~ ', slowest ' ~ telemetry.duration_stats_label.max) %}{% endcall %}
+  {% call m.kpi('Stages and jobs', (overview.stages | length) ~ ' / ' ~ k.jobs_total, 'Configured stages / jobs') %}{% endcall %}
+</section>
+
+<div class="grid">
+  <section class="panel span-7">
+    {{ m.panel_head('Latest run timeline', none, telemetry.gantt.total_label ~ ' total' if telemetry.gantt else none) }}
+    {{ m.chart('gantt', 'Latest run timeline') }}
+  </section>
+  <section class="panel span-5">
+    {{ m.panel_head('Stage duration per run') }}
+    {{ m.chart('stagetrend', 'Stage duration per run') }}
+  </section>
+</div>
+
+<div class="grid">
+  <section class="panel span-7">
+    {{ m.panel_head('Stage duration trend', 'One line per stage across recent runs.') }}
+    {{ m.chart('stagelines', 'Stage duration trend') }}
+  </section>
+  <section class="panel span-5">
+    {{ m.panel_head('Typical stage duration', 'Range across successful runs. The circle is the latest run.') }}
+    {{ m.chart('stagerange', 'Stage duration range') }}
+  </section>
+</div>
+<div class="grid">
+  <section class="panel span-6">
+    {{ m.panel_head('Job status', 'One square per job. Hover for details.') }}
+    {{ m.chart('jobmatrix', 'Job status grid') }}
+  </section>
+  <section class="panel span-6">
+    {{ m.panel_head('Warnings and errors per run') }}
+    {{ m.chart('runissues', 'Warnings and errors per run') }}
+  </section>
+</div>
+
+<h2 class="section-title">Stages</h2>
+{% for stage in overview.stages %}
+{% set g = telemetry.gantt.stages[loop.index0] if telemetry.gantt else none %}
+<section class="panel" style="margin-bottom:12px">
+  <div class="panel__head">
+    <div>
+      <h2>{{ loop.index }}. {{ telemetry.stage_meta[loop.index0].label }} {{ stage.status | status_badge | safe }}</h2>
+      <p>Logger <code>{{ stage.stage.logger_name }}</code>{% if stage.duration %}. Duration {{ stage.duration | duration_label }}{% endif %}</p>
+    </div>
+    {% if g and g.events %}<span class="panel__aside">{{ g.events | plural('event') }}, {{ g.warnings | plural('warning') }}, {{ g.errors | plural('error') }}</span>{% endif %}
+  </div>
+  {% if stage.detail and stage.status != 'SUCCESS' %}<p class="muted" style="margin:0 0 10px">{{ stage.detail }}</p>{% endif %}
+  <div class="table-wrap"><table>
+    <thead><tr><th style="width:22%">Job</th><th style="width:16%">Status</th><th style="width:20%">Last activity</th><th>Detail</th></tr></thead>
+    <tbody>
+      {% for js in stage.jobs %}
+      <tr>
+        <td>{{ js.job.label }}</td>
+        <td>{{ js.status | status_badge | safe }}</td>
+        <td class="muted">{{ js.last_activity.strftime('%Y-%m-%d %H:%M:%S') if js.last_activity else 'Not available' }}</td>
+        <td class="muted">{{ js.detail | sanitize_sensitive }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endfor %}
+
+<h2 class="section-title">Run history</h2>
+<section class="panel">
+  {% if telemetry.runs %}
+  <div class="table-wrap"><table>
+    <thead><tr><th>Started (local)</th><th>Status</th><th class="num">Duration</th><th class="num">Events</th><th class="num">Warnings</th><th class="num">Errors</th></tr></thead>
+    <tbody>
+      {% for r in telemetry.runs | reverse %}
+      <tr>
+        <td>{{ r.full }}</td>
+        <td>{{ r.status | status_badge | safe }}</td>
+        <td class="num">{{ r.duration_label }}</td><td class="num">{{ r.events }}</td>
+        <td class="num">{{ r.warnings }}</td><td class="num">{{ r.errors }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+  <div class="empty">No runs recorded yet. Start the pipeline with <code>uv run python3 -m elt_pipeline --run-pipeline</code>.</div>
+  {% endif %}
+</section>
+
+{% if overview.recent_runs %}
+<h2 class="section-title">Pipeline events <small>start and completion messages from the elt_pipeline logger</small></h2>
+<section class="panel">
+  <div class="table-wrap"><table>
+    <thead><tr><th style="width:24%">Time (local)</th><th style="width:16%">Status</th><th>Message</th></tr></thead>
+    <tbody>
+      {% for run in overview.recent_runs %}
+      <tr><td>{{ run.timestamp[:19] }}</td><td>{{ run.status | status_badge | safe }}</td><td class="muted">{{ run.message | sanitize_sensitive }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endif %}
+{% endblock %}

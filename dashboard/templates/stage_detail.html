@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ stage.stage.label | title }}{% endblock %}
+{% block content %}
+{{ m.head(stage.stage.label | title, 'Logger ' ~ stage.stage.logger_name) }}
+<p style="margin:-8px 0 16px"><a href="{{ url_for('pipeline_run') }}">Back to pipeline runs</a></p>
+
+<section class="kpis">
+  {% call m.kpi('Status', stage.status | status_badge | safe) %}{% endcall %}
+  {% call m.kpi('Duration', (stage.duration | duration_label) if stage.duration else 'N/A') %}{% endcall %}
+  {% call m.kpi('Last activity', stage.last_activity.strftime('%Y-%m-%d %H:%M:%S') if stage.last_activity else 'N/A') %}{% endcall %}
+</section>
+
+{% if stage.detail and stage.status != 'SUCCESS' %}
+<div class="notice notice--{{ 'bad' if stage.status == 'FAILED' else 'warn' }}">
+  <h2>Why this stage is {{ stage.status | lower }}</h2>
+  <p>{{ stage.detail }}</p>
+  <p><a href="{{ url_for('technical_details') }}">Open logs</a></p>
+</div>
+{% endif %}
+
+<section class="panel">
+  <div class="table-wrap"><table>
+    <thead><tr><th style="width:22%">Job</th><th style="width:16%">Status</th><th style="width:22%">Last activity</th><th>Detail</th></tr></thead>
+    <tbody>
+      {% for js in stage.jobs %}
+      <tr>
+        <td>{{ js.job.label }}</td><td>{{ js.status | status_badge | safe }}</td>
+        <td class="muted">{{ js.last_activity.strftime('%Y-%m-%d %H:%M:%S') if js.last_activity else 'Not available' }}</td>
+        <td class="muted">{{ js.detail | sanitize_sensitive }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endblock %}

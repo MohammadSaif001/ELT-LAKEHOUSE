@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}Logs and config{% endblock %}
+{% block content %}
+{{ m.head('Logs and config', 'Application log, runtime configuration and where the dashboard reads its data.') }}
+
+<section class="panel">
+  {{ m.panel_head('Application log', 'logs/application.log, latest ' ~ (log_tail | length) ~ ' events of up to 500, newest first. Secrets are masked.') }}
+  {% if log_tail %}
+  <div class="toolbar">
+    <button class="chip" type="button" data-level="INFO" aria-pressed="true">Info {{ log_levels.INFO }}</button>
+    <button class="chip" type="button" data-level="WARNING" aria-pressed="true">Warnings {{ log_levels.WARNING }}</button>
+    <button class="chip" type="button" data-level="ERROR" aria-pressed="true">Errors {{ log_levels.ERROR }}</button>
+    <input type="search" id="log-search" placeholder="Search messages and stages" aria-label="Search log events">
+    <span class="muted" id="log-count" style="font-size:12px"></span>
+  </div>
+  <div class="log-box" role="log">{% for e in log_tail %}<div class="log-line lvl-{{ e.level | lower }}" data-level="{{ e.level | upper if e.level | upper in ('WARNING', 'ERROR') else 'INFO' }}">{{ e.timestamp }} | {{ e.level }} | {{ e.logger_name }} | {{ e.message }}</div>{% endfor %}</div>
+  {% else %}
+  <div class="empty">logs/application.log does not exist yet. Run the pipeline to create it.</div>
+  {% endif %}
+</section>
+
+<div class="grid" style="margin-top:16px">
+  <section class="panel span-5">
+    {{ m.panel_head('Runtime configuration', 'config/*.yaml') }}
+    {% if config_files %}
+    <div class="table-wrap"><table><tbody>{% for f in config_files %}<tr><td><code>config/{{ f }}</code></td></tr>{% endfor %}</tbody></table></div>
+    {% else %}<div class="empty">No YAML files found under config/.</div>{% endif %}
+  </section>
+  <section class="panel span-7">
+    {{ m.panel_head('Dashboard data sources') }}
+    <div class="table-wrap"><table><tbody>
+      <tr><td>Logs</td><td class="muted"><code>logs/application.log</code>, format from <code>config/logging_config.yaml</code></td></tr>
+      <tr><td>State</td><td class="muted"><code>metadata/pipeline_state</code>, <code>metadata/watermarks</code>, <code>metadata/checkpoints</code></td></tr>
+      <tr><td>Storage</td><td class="muted"><code>storage/generated</code>, <code>bronze</code>, <code>silver</code>, <code>gold</code></td></tr>
+      <tr><td>dbt</td><td class="muted"><code>dbt_gold/target/run_results.json</code></td></tr>
+      <tr><td>API</td><td class="muted"><a href="/api/health">/api/health</a> (200, or 503 on failure) and <a href="/api/telemetry">/api/telemetry</a> (chart data as JSON)</td></tr>
+    </tbody></table></div>
+  </section>
+</div>
+{% endblock %}

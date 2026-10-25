@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}Gold layer{% endblock %}
+{% block content %}
+{% set gold_stage = overview.stages | selectattr('stage.key', 'equalto', 'gold_transformation') | first %}
+{% set max_rt = (dbt_summary.models | map(attribute='execution_seconds') | select | max) if dbt_summary and dbt_summary.models else 1 %}
+{{ m.head('Gold layer', 'Business-ready dbt models built from validated Silver Delta tables.') }}
+
+<section class="kpis">
+  {% call m.kpi('Models defined', model_count, dimension_count ~ ' dimensions, ' ~ fact_count ~ ' facts') %}{% endcall %}
+  {% call m.kpi('Gold processing', gold_stage.status | status_badge | safe, 'From the last run log') %}{% endcall %}
+  {% call m.kpi('Gold storage', ('PRESENT' if gold.has_data else 'EMPTY') | status_badge | safe, (gold.size_bytes | fmt_bytes) ~ (', ' ~ gold.file_count ~ ' files' if gold.file_count is not none else '')) %}{% endcall %}
+  {% call m.kpi('dbt tests passed', (dbt_summary.tests_passed ~ ' / ' ~ dbt_summary.tests_total) if dbt_summary else 'N/A', ((dbt_summary.tests_failed + dbt_summary.tests_errored) ~ ' failed, ' ~ dbt_summary.tests_skipped ~ ' skipped') if dbt_summary else 'No saved results') %}{% endcall %}
+</section>
+
+{% if dbt_summary and dbt_summary.failed_tests %}
+<div class="notice notice--bad"><h2>Failing dbt tests</h2>
+  <div class="table-wrap"><table><thead><tr><th>Test</th><th>Status</th><th class="num">Failing rows</th></tr></thead><tbody>
+  {% for test in dbt_summary.failed_tests %}<tr><td><code>{{ test.name }}</code></td><td>{{ test.status | upper | status_badge | safe }}</td><td class="num">{{ test.failures if test.failures is not none else 'N/A' }}</td></tr>{% endfor %}
+  </tbody></table></div></div>
+{% endif %}
+
+<div class="grid">
+  <section class="panel span-8">
+    {{ m.panel_head('Star schema', 'Four fact tables connect to reusable dimensions.') }}
+    <div class="schema" role="img" aria-label="Star schema: fact_orders and fact_order_items relate to customer, date, seller and product dimensions. fact_seller and fact_product are monthly facts. dim_location and dim_review are supporting dimensions.">
+      <div class="schema__col"><h3>Core dimensions</h3><code>dim_customer</code><code>dim_date</code><code>dim_seller</code><code>dim_product</code></div>
+      <div class="schema__col schema__col--fact"><h3>Transaction facts</h3><code>fact_orders</code><code>fact_order_items</code><small>Order, customer, date, seller and product keys</small></div>
+      <div class="schema__col"><h3>Monthly facts</h3><code>fact_seller</code><code>fact_product</code><small>Month plus entity key</small></div>
+      <div class="schema__support">Supporting dimensions <code>dim_location</code> <code>dim_review</code></div>
+    </div>
+  </section>
+  <section class="panel span-4">
+    {{ m.panel_head('dbt tests', none, dbt_summary.generated_at[:16].replace('T', ' ') ~ ' UTC' if dbt_summary and dbt_summary.generated_at else none) }}
+    {{ m.chart('dbttests', 'dbt test results') }}
+    {% if dbt_summary %}<p class="muted" style="font-size:12px;margin:10px 0 0">Current-run comparison: {{ dbt_check_status | capitalize }}. {{ dbt_check_message }}</p>{% endif %}
+  </section>
+</div>
+
+{% for heading, rows, note in [('Dimension models', dimensions, 'Descriptive entities and reporting context.'), ('Fact models', facts, 'Measures at transaction and monthly grains.')] %}
+<h2 class="section-title">{{ heading }} <small>{{ note }}</small></h2>
+<section class="panel">
+  <div class="table-wrap"><table>
+    <thead><tr><th>Model</th><th>Status</th><th>Runtime</th><th>Grain</th><th>Purpose</th></tr></thead>
+    <tbody>
+      {% for name, description in rows %}
+      {% set r = dbt_models.get(name) %}
+      <tr>
+        <td><code>gold.{{ name }}</code></td>
+        <td>{{ (r.status | upper if r else 'UNKNOWN') | status_badge | safe }}</td>
+        <td>{% if r and r.execution_seconds is not none %}<div class="runtime-cell"><span class="bar" style="width:{{ (r.execution_seconds / max_rt * 80) | round(0) }}px"></span>{{ '%.2f s' | format(r.execution_seconds) }}</div>{% else %}<span class="muted">N/A</span>{% endif %}</td>
+        <td class="muted">{{ 'One row per order item' if name == 'fact_order_items' else ('One row per order' if name == 'fact_orders' else ('One row per entity per month' if name.startswith('fact_') else 'One row per dimension key')) }}</td>
+        <td class="muted">{{ description }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endfor %}
+
+<p class="muted" style="font-size:12px;margin-top:14px">Build with <code>uv run python scripts/run_gold_dbt.py</code> after Silver is ready. The dashboard reads existing output and never launches the build. Row counts are not available from run_results.json.</p>
+{% endblock %}

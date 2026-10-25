@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Overview{% endblock %} | ELT Pipeline</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}?v=4" />
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">ELT Lakehouse<span>Pipeline monitoring</span></div>
+
+      <nav aria-label="Pages">
+        <ul class="nav">
+          <li><a href="{{ url_for('index') }}" class="{{ 'active' if active_page == 'home' }}">Overview</a></li>
+          <li><a href="{{ url_for('pipeline_run') }}" class="{{ 'active' if active_page == 'pipeline_run' }}">Pipeline runs</a></li>
+          <li><a href="{{ url_for('data_quality') }}" class="{{ 'active' if active_page == 'data_quality' }}">Data quality</a></li>
+          <li><a href="{{ url_for('storage_health') }}" class="{{ 'active' if active_page == 'storage_health' }}">Storage</a></li>
+          <li><a href="{{ url_for('gold_layer') }}" class="{{ 'active' if active_page == 'gold_layer' }}">Gold layer</a></li>
+          <li><a href="{{ url_for('technical_details') }}" class="{{ 'active' if active_page == 'technical_details' }}">Logs and config</a></li>
+        </ul>
+      </nav>
+
+      <div class="side-group">
+        <h4 style="display:flex;justify-content:space-between"><span>Storage layers</span><span title="Left dot: output on disk. Right dot: processing in the last run.">Disk, run</span></h4>
+        {% for layer in sidebar_layers %}
+        {% set processing = sidebar_processing.get(layer.key) %}
+        <div class="side-row" title="{{ 'Output present' if layer.has_data else 'No output' }}{% if processing %}; processing {{ processing.status | lower }}{% endif %}">
+          <span>{{ layer.label | capitalize }}</span>
+          <span style="display:flex;gap:6px;align-items:center">
+            <span class="dot {{ 'dot--ok' if layer.has_data }}" aria-hidden="true"></span>
+            <span class="dot dot--{{ {'SUCCESS':'ok','FAILED':'bad','RUNNING':'run'}.get(processing.status if processing else '', '') }}" aria-hidden="true"></span>
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="side-foot">
+        <button class="btn" type="button" id="refresh-report" aria-describedby="refresh-status">Refresh</button>
+        <label class="toggle"><input type="checkbox" id="auto-refresh"> Auto-refresh every 30 s</label>
+        <div id="refresh-status" aria-live="polite">Reads logs and files only. Never starts pipeline work.</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      {% block content %}{% endblock %}
+      <footer class="footer">
+        <span>Read-only view of local logs, metadata and storage. Times are server local time.</span>
+        <span>Dashboard by Mohammad Saif</span>
+      </footer>
+    </main>
+  </div>
+  <script>window.TELEMETRY = {{ telemetry | tojson }};</script>
+  <script src="{{ url_for('static', path='/js/charts.js') }}?v=4"></script>
+  <script src="{{ url_for('static', path='/js/ui.js') }}?v=4"></script>
+</body>
+</html>

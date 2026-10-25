@@ -120,11 +120,13 @@ def test_dashboard_routes_render_with_unknown_metrics(tmp_path, monkeypatch):
     assert health_response.json()["dbt_tests"]["failed"] == 1
 
     home = client.get("/").text
-    assert "Last successful run" in home
+    assert "Pipeline overview" in home
     assert "PostgreSQL writer exists" in home
-    assert "LAST SAVED DBT RESULTS" in home
+    assert "dbt tests" in home
     assert "failed_check" in home
-    assert "/static/css/style.css?v=3" in home
+    assert "Latest run timeline" in home
+    assert "Data flow status" in home
+    assert "/static/css/style.css?v=4" in home
     storage = client.get("/storage-health").text
     assert "[REDACTED]" in storage
     assert "do-not-render" not in storage
@@ -181,3 +183,71 @@ def test_old_dbt_failures_are_not_attributed_to_a_newer_execution():
 
     assert check.status == health_service.HEALTH_UNKNOWN
     assert "predates" in check.message
+
+
+def test_identified_completion_does_not_pair_with_different_run_start(tmp_path):
+    _write_log(tmp_path, [
+        _log_line(
+            "2026-10-26 00:00:00", "INFO", "__main__",
+            "Starting ELT pipeline... execution_id=run-new",
+        ),
+        _log_line(
+            "2026-10-26 00:00:01", "INFO", "__main__",
+            "Starting ELT pipeline... execution_id=run-old",
+        ),
+        _log_line(
+            "2026-10-26 00:00:02", "INFO", "__main__",
+            "ELT pipeline completed successfully in 2.00 seconds. execution_id=run-new",
+        ),
+    ])
+
+    overview = status_service.get_overview(tmp_path)
+
+    assert overview.latest_run_status == status_service.STATUS_SUCCESS
+    assert overview.last_run_started == "2026-10-26 00:00:00"
+    assert overview.last_run_duration == "2.00s"
+
+
+def test_out_of_order_completion_timestamp_has_no_duration(tmp_path):
+    _write_log(tmp_path, [
+        _log_line("2026-10-26 00:00:10", "INFO", "__main__", "Starting ELT pipeline..."),
+        _log_line(
+            "2026-10-26 00:00:05", "INFO", "__main__",
+            "ELT pipeline completed successfully in 5.00 seconds.",
+        ),
+    ])
+
+    overview = status_service.get_overview(tmp_path)
+
+    assert overview.latest_run_status == status_service.STATUS_SUCCESS
+    assert overview.last_run_duration is None
+
+
+def test_homepage_does_not_show_health_checks_as_data_quality_checks(tmp_path, monkeypatch):
+    monkeypatch.setattr(dashboard_app, "PROJECT_ROOT", tmp_path)
+    client = TestClient(dashboard_app.app)
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "dbt tests" in response.text
+    assert ">N/A<" in response.text
+
+
+def test_dashboard_redacts_secret_values_from_logs(tmp_path, monkeypatch):
+    _write_log(tmp_path, [
+        _log_line(
+            "2026-10-26 01:00:00", "INFO", "test",
+            "password=secret-pass token='secret-token' "
+            "connection_string=postgresql://user:secret-db@localhost/db",
+        ),
+    ])
+    monkeypatch.setattr(dashboard_app, "PROJECT_ROOT", tmp_path)
+
+    response = TestClient(dashboard_app.app).get("/technical-details")
+
+    assert response.status_code == 200
+    assert "secret-pass" not in response.text
+    assert "secret-token" not in response.text
+    assert "secret-db" not in response.text
+    assert "[REDACTED]" in response.text

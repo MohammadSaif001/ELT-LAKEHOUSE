@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}Overview{% endblock %}
+{% block content %}
+{% set k = telemetry.kpi %}
+{% set runs = telemetry.runs %}
+{% set latest = runs[-1] if runs else none %}
+{% set stages_ok = overview.stages | selectattr('status', 'equalto', 'SUCCESS') | list | length %}
+{% set dbt_ok = dbt_summary and dbt_check.status != 'UNKNOWN' %}
+
+{{ m.head('Pipeline overview', 'Bronze to Silver to Gold. Run status comes from the application log; storage is checked on disk and reported separately.') }}
+
+{% if primary_alert %}
+<section class="notice notice--{{ {'WARN':'warn','FAIL':'bad','UNKNOWN':'idle'}[primary_alert.status] }}" aria-labelledby="alert-title">
+  <h2 id="alert-title">{{ primary_alert.label }} {{ primary_alert.status | status_badge | safe }}</h2>
+  <p>{{ primary_alert.message | sanitize_sensitive }}</p>
+  {% if primary_alert.next_step %}<div class="next"><b>Next step:</b> {{ primary_alert.next_step | sanitize_sensitive }}</div>{% endif %}
+  <details>
+    <summary>Evidence</summary>
+    <p>Timestamp: {{ primary_alert.timestamp | fmt_ts if primary_alert.timestamp else 'not available' }}{% if primary_alert.stage %}. Stage: {{ primary_alert.stage }}{% endif %}. See <a href="{{ url_for('technical_details') }}">logs</a> for sanitized entries.</p>
+  </details>
+</section>
+{% endif %}
+
+<section class="kpis" aria-label="Pipeline summary">
+  {% call m.kpi('Latest run', overview.latest_run_status | status_badge | safe, overview.last_run_started[:19] if overview.last_run_started else 'No run recorded') %}{% endcall %}
+  {% call m.kpi('Last run duration', (latest.duration_label if latest else 'N/A'), 'Median ' ~ telemetry.duration_stats_label.median) %}
+    <div class="spark" data-chart="spark" data-values="{{ runs | selectattr('duration') | map(attribute='duration') | join(',') }}"></div>
+  {% endcall %}
+  {% call m.kpi('Success rate', (k.success_rate ~ '%') if k.success_rate is not none else 'N/A', k.runs_success ~ ' of ' ~ (k.runs_success + k.runs_failed) ~ ' finished') %}{% endcall %}
+  {% call m.kpi('Stages completed', stages_ok ~ ' / ' ~ (overview.stages | length), k.jobs_success ~ ' of ' ~ k.jobs_total ~ ' jobs confirmed') %}{% endcall %}
+  {% call m.kpi('Log events', '{:,}'.format(k.events_total), k.events_24h ~ ' in 24h, ' ~ (k.errors | plural('error'))) %}{% endcall %}
+  {% call m.kpi('dbt tests', (dbt_summary.tests_passed ~ ' / ' ~ dbt_summary.tests_total) if dbt_summary else 'N/A', ((dbt_summary.tests_failed + dbt_summary.tests_errored) ~ ' failed, ' ~ (dbt_summary.tests_warned | plural('warning'))) if dbt_summary else 'No saved results') %}{% endcall %}
+</section>
+
+<div class="grid">
+  <section class="panel span-12">
+    {{ m.panel_head('Latest run timeline', 'Each bar spans one stage, measured from the start of the run.', telemetry.gantt.total_label ~ ' total' if telemetry.gantt else none) }}
+    {{ m.chart('gantt', 'Latest run timeline') }}
+  </section>
+</div>
+
+<section class="panel pipeline-flow-panel">
+  {{ m.panel_head('Data flow status', 'Execution-linked evidence only. A stage stops at its first confirmed failure or remains unverified when logs are incomplete.') }}
+  <div class="data-flow" aria-label="Pipeline data flow and stage status">
+    {% for stage in overview.stages %}
+    {% set stage_dot = 'ok' if stage.status == 'SUCCESS' else ('bad' if stage.status == 'FAILED' else ('run' if stage.status == 'RUNNING' else 'idle')) %}
+    <div class="data-flow__node data-flow__node--{{ stage_dot }}">
+      <div class="data-flow__title">{{ stage.stage.label }}</div>
+      {{ stage.status | status_badge | safe }}
+      <small>{{ stage.duration | duration_label if stage.duration else 'Duration unavailable' }}</small>
+      {% if stage.status == 'FAILED' %}
+      <p class="data-flow__failure">{{ stage.detail or 'Failure evidence recorded; inspect logs for details.' }}</p>
+      {% elif stage.status == 'RUNNING' %}
+      <p class="data-flow__failure data-flow__failure--warn">Started, but no completion evidence is recorded yet.</p>
+      {% elif stage.status == 'UNKNOWN' %}
+      <p class="data-flow__failure data-flow__failure--idle">No reliable completion evidence in the selected log window.</p>
+      {% endif %}
+    </div>
+    {% if not loop.last %}<div class="data-flow__arrow" aria-hidden="true">&rarr;</div>{% endif %}
+    {% endfor %}
+  </div>
+</section>
+
+<div class="grid">
+  <section class="panel span-7">
+    {{ m.panel_head('Run duration', 'Most recent runs, newest on the right.', 'Avg ' ~ telemetry.duration_stats_label.avg ~ ', fastest ' ~ telemetry.duration_stats_label.min ~ ', slowest ' ~ telemetry.duration_stats_label.max) }}
+    {{ m.chart('runs', 'Run duration chart') }}
+  </section>
+  <section class="panel span-5">
+    {{ m.panel_head('Run outcomes', 'Across ' ~ k.runs_total ~ ' runs found in the log.') }}
+    {{ m.chart('outcomes', 'Run outcome chart') }}
+  </section>
+</div>
+
+<div class="grid">
+  <section class="panel span-7">
+    {{ m.panel_head('Where the time goes', 'Stage duration per run. Exact when the log records duration_s, otherwise from timestamps.') }}
+    {{ m.chart('stagetrend', 'Stage duration per run') }}
+  </section>
+  <section class="panel span-5">
+    {{ m.panel_head('Log activity', 'Events per ' ~ telemetry.event_buckets.unit ~ ' by level.', k.log_first ~ ' to ' ~ k.log_last if k.log_first else none) }}
+    {{ m.chart('events', 'Log events over time') }}
+  </section>
+</div>
+
+<div class="grid">
+  <section class="panel span-7">
+    {{ m.panel_head('Stage duration trend', 'One line per stage across recent runs. Spot a stage that is slowing down.') }}
+    {{ m.chart('stagelines', 'Stage duration trend') }}
+  </section>
+  <section class="panel span-5">
+    {{ m.panel_head('Share of latest run', 'How the latest run split its time across stages.') }}
+    {{ m.chart('timeshare', 'Share of latest run time per stage') }}
+  </section>
+</div>
+
+<div class="grid">
+  <section class="panel span-5">
+    {{ m.panel_head('Typical stage duration', 'Range across successful runs. The circle is the latest run.') }}
+    {{ m.chart('stagerange', 'Stage duration range') }}
+  </section>
+  <section class="panel span-7">
+    {{ m.panel_head('Warnings and errors per run') }}
+    {{ m.chart('runissues', 'Warnings and errors per run') }}
+  </section>
+</div>
+
+<div class="grid">
+  <section class="panel span-7">
+    {{ m.panel_head('Run cadence', 'Hours between consecutive run starts.') }}
+    {{ m.chart('cadence', 'Hours between runs') }}
+  </section>
+  <section class="panel span-5">
+    {{ m.panel_head('Job status', 'One square per job, grouped by stage. Hover for the job name.') }}
+    {{ m.chart('jobmatrix', 'Job status grid') }}
+  </section>
+</div>
+
+<div class="grid">
+  <section class="panel span-5">
+    {{ m.panel_head('Events by stage', 'Whole log, grouped by the logger that wrote them.') }}
+    {{ m.chart('bylogger', 'Events by stage') }}
+  </section>
+  <section class="panel span-7">
+    {{ m.panel_head('Health checks', none, (health.checks | rejectattr('status', 'equalto', 'OK') | list | length) ~ ' need attention') }}
+    <ul class="checks">
+      {% for check in health.checks %}
+      <li>
+        <span class="dot dot--{{ m.HEALTH_DOT[check.status] }}" aria-hidden="true"></span>
+        <b>{{ check.label }}</b>
+        <span class="pill pill--{{ m.HEALTH_DOT[check.status] }}"><i></i>{{ check.report_label | capitalize }}</span>
+        <p>{{ check.message | sanitize_sensitive }}</p>
+        {% if check.next_step and check.status != 'OK' %}<div class="next">{{ check.next_step }}{% if check.key in ('last_run', 'job_failures') %} <a href="{{ url_for('technical_details') }}">Open logs</a>{% elif check.key == 'dbt_tests' %} <a href="{{ url_for('data_quality') }}">Review tests</a>{% endif %}</div>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+
+<div class="grid">
+  <section class="panel span-4">
+    {{ m.panel_head('dbt tests', 'Last saved run_results.json', dbt_summary.generated_at[:16].replace('T', ' ') ~ ' UTC' if dbt_summary and dbt_summary.generated_at else none) }}
+    {{ m.chart('dbttests', 'dbt test results') }}
+  </section>
+  <section class="panel span-8">
+    {{ m.panel_head('dbt model runtime', 'Slowest first.', telemetry.dbt.model_seconds_total ~ ' s combined' if telemetry.dbt else none) }}
+    {{ m.chart('dbtmodels', 'dbt model runtime') }}
+  </section>
+</div>
+
+<div class="grid">
+  <section class="panel span-5">
+    {{ m.panel_head('Storage size', 'Presence on disk does not confirm the latest run wrote it.', k.storage_total_mb ~ ' MB total') }}
+    {{ m.chart('storage', 'Storage size per layer') }}
+  </section>
+  <section class="panel span-7">
+    {{ m.panel_head('Recent events', 'Newest first.') }}
+    {% if recent_events %}
+    <ul class="events">
+      {% for e in recent_events %}
+      <li class="lvl-{{ e.level | lower }}">
+        <time>{{ e.timestamp[11:19] }}</time>
+        <span class="dot {{ {'ERROR':'dot--bad','WARNING':'dot--warn'}.get(e.level | upper, '') }}" aria-hidden="true"></span>
+        <span class="src">{{ e.logger_name.split('.')[-1] }}</span>
+        <span class="msg" title="{{ e.message.splitlines()[0] }}">{{ e.message.splitlines()[0] }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    <p style="margin:10px 0 0"><a href="{{ url_for('technical_details') }}">Filter and search all logs</a></p>
+    {% else %}
+    <div class="empty">No log events yet. Start the pipeline to populate this feed.</div>
+    {% endif %}
+  </section>
+</div>
+
+<section class="panel">
+  {{ m.panel_head('Gold models', gold_dimension_count ~ ' dimensions and ' ~ gold_fact_count ~ ' facts built by dbt. Status is from the last saved dbt run.', 'Gold storage: ' ~ ('output present' if gold.has_data else 'no output')) }}
+  <div class="models">
+    {% for name, description in gold_dimensions + gold_facts %}
+    {% set r = dbt_models.get(name) %}
+    {% set st = (r.status | upper) if r else 'UNKNOWN' %}
+    <div class="model" title="{{ description }}">
+      <span class="dot dot--{{ 'ok' if st == 'SUCCESS' else ('bad' if st in ('ERROR', 'FAIL') else '') }}" aria-hidden="true"></span>
+      <code>{{ name }}</code>
+      <small>{{ ('%.1f s' | format(r.execution_seconds)) if r and r.execution_seconds is not none else '' }}</small>
+    </div>
+    {% endfor %}
+  </div>
+  <p style="margin:12px 0 0"><a href="{{ url_for('gold_layer') }}">Model catalog and star schema</a></p>
+</section>
+
+<p class="muted" style="margin-top:14px;font-size:12px">Serving: a PostgreSQL writer exists in the codebase but is not part of the orchestrated pipeline, so its status is not reported here.</p>
+{% endblock %}

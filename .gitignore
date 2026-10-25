@@ -55,9 +55,8 @@ ram_report.csv
 # Databricks local state
 /.databricks/
 
-# Visual and dashboard files
+# Visual and ram report files
 visual/
-/dashboard/
 .ivy2/
 ram_report.csv
 
