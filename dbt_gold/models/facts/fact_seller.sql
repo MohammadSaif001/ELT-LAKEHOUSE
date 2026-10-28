@@ -30,7 +30,7 @@ SELECT
     SUM(order_revenue) AS revenue,
     CAST(COUNT(*) AS INT) AS orders,
     CAST(SUM(items_sold) AS INT) AS items_sold,
-    AVG(CASE WHEN is_late IS NOT NULL THEN is_late END) AS late_rate,
+    AVG(is_late) AS average_is_late,
     AVG(delivery_days) AS average_delivery_days,
     AVG(review_score) AS average_review_score
 FROM seller_order_month

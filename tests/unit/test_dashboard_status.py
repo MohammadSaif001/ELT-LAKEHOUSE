@@ -5,7 +5,7 @@ import json
 
 from fastapi.testclient import TestClient
 from dashboard import app as dashboard_app
-from dashboard.services import dbt_reader, health_service, status_service
+from dashboard.services import dbt_reader, health_service, log_reader, status_service
 from dashboard.services.dbt_reader import DbtRunSummary, DbtTestResult
 
 
@@ -17,6 +17,62 @@ def _write_log(project_root, lines):
 
 def _log_line(timestamp, level, logger, message):
     return f"{timestamp} | {level} | {logger} | {message}"
+
+
+def test_log_reader_parses_structured_runtime_context(tmp_path):
+    _write_log(tmp_path, [
+        _log_line(
+            "2026-10-29 01:00:00",
+            "INFO",
+            "src.elt_lakehouse.spark.jobs.gold_job",
+            'Running dbt Gold build started command=build target=local '
+            'project_dir="/workspace/dbt gold"',
+        ),
+        _log_line(
+            "2026-10-29 01:00:01",
+            "CRITICAL",
+            "elt_pipeline",
+            "Pipeline failed with a critical error.",
+        ),
+    ])
+
+    events = log_reader.read_events(tmp_path)
+
+    assert events[0].fields == {
+        "command": "build",
+        "target": "local",
+        "project_dir": "/workspace/dbt gold",
+    }
+    assert events[0].normalized_level == "INFO"
+    assert events[1].normalized_level == "ERROR"
+
+
+def test_gold_stage_uses_new_completion_message(tmp_path):
+    _write_log(tmp_path, [
+        _log_line(
+            "2026-10-29 01:00:00",
+            "INFO",
+            "__main__",
+            "Starting ELT pipeline...",
+        ),
+        _log_line(
+            "2026-10-29 01:00:02",
+            "INFO",
+            "src.elt_lakehouse.spark.jobs.gold_job",
+            "Gold layer build completed successfully.",
+        ),
+        _log_line(
+            "2026-10-29 01:00:03",
+            "INFO",
+            "__main__",
+            "ELT pipeline completed successfully in 3.00 seconds.",
+        ),
+    ])
+
+    overview = status_service.get_overview(tmp_path)
+    gold = next(stage for stage in overview.stages if stage.stage.key == "gold_transformation")
+
+    assert gold.status == status_service.STATUS_SUCCESS
 
 
 def test_incomplete_latest_run_does_not_inherit_old_success_or_output(tmp_path):

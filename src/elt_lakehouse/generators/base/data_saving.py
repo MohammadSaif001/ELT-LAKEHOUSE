@@ -1,3 +1,7 @@
+
+from src.elt_lakehouse.spark.common.logger import get_logger
+
+logger = get_logger(__name__)
 from collections.abc import Iterable
 from pathlib import Path
 
@@ -17,6 +21,7 @@ def save_generated_data(
 
     table = pa.Table.from_pylist(data)
     pq.write_table(table, file_path)
+    logger.info("Saved generated data: path=%s rows=%d", file_path, table.num_rows)
 
 
 def save_generated_batches(
@@ -48,4 +53,5 @@ def save_generated_batches(
     if writer is None:
         pq.write_table(pa.table({}), file_path)
 
+    logger.info("Saved generated batches: path=%s rows=%d", file_path, row_count)
     return row_count

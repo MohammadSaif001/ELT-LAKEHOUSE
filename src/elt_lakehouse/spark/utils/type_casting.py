@@ -1,3 +1,7 @@
+
+from src.elt_lakehouse.spark.common.logger import get_logger
+
+logger = get_logger(__name__)
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col, to_timestamp
 

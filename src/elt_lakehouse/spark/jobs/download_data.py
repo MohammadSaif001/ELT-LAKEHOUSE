@@ -44,6 +44,7 @@ def download_dataset(
             dataset_id, path=str(dataset_download_path), unzip=True
         )
     except Exception as exc:
+        logger.exception("operation failed; re-raising")
         raise RuntimeError(
             "Kaggle dataset download failed. Install the project dependencies and "
             "configure Kaggle API credentials, then retry."

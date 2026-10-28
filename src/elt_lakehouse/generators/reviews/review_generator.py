@@ -1,3 +1,7 @@
+
+from src.elt_lakehouse.spark.common.logger import get_logger
+
+logger = get_logger(__name__)
 import random
 from datetime import datetime, timedelta
 
@@ -26,6 +30,7 @@ total_weight: float = sum(SCORE_DIST.values())
 SCORE_DIST = {key: value / total_weight for key, value in SCORE_DIST.items()}
 
 def select_template(templates: list[dict[str, str]]) -> tuple[str, str]:
+    logger.debug("Selecting review template: candidates=%d", len(templates))
     """
     Selects a random template from the provided list of templates.
     """
@@ -34,6 +39,7 @@ def select_template(templates: list[dict[str, str]]) -> tuple[str, str]:
 
 
 def generate_review(order: dict) -> dict:
+    logger.debug("Generating review record")
     """
     Generates a review record for a delivered order.
     """

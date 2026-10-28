@@ -1,3 +1,7 @@
+
+from src.elt_lakehouse.spark.common.logger import get_logger
+
+logger = get_logger(__name__)
 from typing import Literal
 
 from config.config_loader import load_yaml
@@ -18,6 +22,7 @@ GEN_CONFIG = load_yaml("generator_config.yaml")["payments"]
 
 
 def generate_payment(order: str, total_value: float) -> dict:
+    logger.debug("Generating payment record")
     """Generate payment record for an order with aligned payment value."""
 
     payment_type = weighted_choice(PAYMENT_TYPE_DIST)

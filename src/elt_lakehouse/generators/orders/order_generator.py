@@ -1,3 +1,7 @@
+
+from src.elt_lakehouse.spark.common.logger import get_logger
+
+logger = get_logger(__name__)
 import random
 from datetime import datetime, timedelta
 from turtle import st
@@ -65,10 +69,12 @@ CUTOFF_DATE = datetime.fromisoformat(GEN_CONFIG["generation"]["cutoff"])
 CUTOFF_STEP_DAYS = GEN_CONFIG["generation"]["cutoff_step_days"]
 
 def get_customer_pool() -> list[str]:
+    logger.debug("Loading customer pool for order generation")
     return load_pool_column("customer_pool.parquet", "customer_id")
 
 
 def generate_order_purchase_timestamp() -> datetime:
+    logger.debug("Generating order purchase timestamp")
     target_weekday: str = weighted_choice(ORDER_PURCHASE_TIMESTAMP_WEEKDAYS)
     target_value: int = WEEKDAY_MAP[target_weekday]
 
@@ -92,6 +98,7 @@ def generate_order_purchase_timestamp() -> datetime:
 
 
 def generate_approved_timestamp(purchase_timestamp: datetime) -> datetime:
+    logger.debug("Generating order approval timestamp")
     # Lognormal distribution: mean 10.42, std 26.04 -> mu = 1.35, sigma = 1.4
     MU = DELAY_MODELS["approved_delay"]["lognormal_mu"]
     SIGMA = DELAY_MODELS["approved_delay"]["lognormal_sigma"]
@@ -106,26 +113,31 @@ def generate_approved_timestamp(purchase_timestamp: datetime) -> datetime:
 
 
 def generate_delivered_carrier_date(approved_at: datetime) -> datetime:
+    logger.debug("Generating carrier delivery timestamp")
     delay: float = float(weighted_choice(ORDER_CARRIER_DELAY_DIST))
     return approved_at + timedelta(days=delay)
 
 
 def generate_delivered_customer_date(delivered_carrier_date: datetime) -> datetime:
+    logger.debug("Generating customer delivery timestamp")
     delay: float = float(weighted_choice(ORDER_DELIVERY_DELAY_DIST))
     return delivered_carrier_date + timedelta(days=delay)
 
 
 def generate_estimated_delivery_date(purchase_timestamp: datetime) -> datetime:
+    logger.debug("Generating estimated delivery timestamp")
     delay: float = float(weighted_choice(ORDER_ESTIMATED_DELIVERY_DELAY_DIST))
     return purchase_timestamp + timedelta(days=delay)
 
 
 def get_customer_id(customer_ids: list[str]) -> str:
+    logger.debug("Selecting customer for order: candidates=%d", len(customer_ids))
     customer: str = random.choice(customer_ids)
     return customer
 
 
 def generate_order(customer_ids: list[str]) -> dict:
+    logger.debug("Generating order record")
 
     order_status = weighted_choice(ORDER_STATUS_DIST)
 

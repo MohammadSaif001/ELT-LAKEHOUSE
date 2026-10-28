@@ -101,7 +101,7 @@ def _build_window(index: int, window: list[log_reader.LogEvent], is_last: bool) 
     run = RunWindow(
         index=index, started=started, finished=finished, status=status,
         duration_s=_seconds(started, finished),
-        levels=Counter(e.level.upper() for e in window),
+        levels=Counter(e.normalized_level for e in window),
     )
 
     for stage in PIPELINE_STAGES:
@@ -110,7 +110,10 @@ def _build_window(index: int, window: list[log_reader.LogEvent], is_last: bool) 
             run.stages.append(StageTiming(stage.key, stage.label, "UNKNOWN"))
             continue
         first = _parse_ts(stage_events[0].timestamp)
-        failure = next((e for e in reversed(stage_events) if e.level.upper() == "ERROR"), None)
+        failure = next(
+            (e for e in reversed(stage_events) if e.normalized_level == "ERROR"),
+            None,
+        )
         done = next(
             (e for e in reversed(stage_events)
              if stage.completion_match.lower() in e.message.lower()), None,
@@ -118,8 +121,8 @@ def _build_window(index: int, window: list[log_reader.LogEvent], is_last: bool) 
         timing = StageTiming(
             key=stage.key, label=stage.label, status="UNKNOWN", start=first,
             events=len(stage_events),
-            warnings=sum(e.level.upper() == "WARNING" for e in stage_events),
-            errors=sum(e.level.upper() == "ERROR" for e in stage_events),
+            warnings=sum(e.normalized_level == "WARNING" for e in stage_events),
+            errors=sum(e.normalized_level == "ERROR" for e in stage_events),
         )
         if failure and (not done or stage_events.index(failure) > stage_events.index(done)):
             timing.status = "FAILED"
@@ -167,7 +170,7 @@ def _iso(value: datetime | None) -> str | None:
 
 def _event_buckets(events: list[log_reader.LogEvent]) -> dict[str, Any]:
     """Event counts per level, bucketed hourly (<= 48h of log) or daily."""
-    stamped = [(_parse_ts(e.timestamp), e.level.upper()) for e in events]
+    stamped = [(_parse_ts(e.timestamp), e.normalized_level) for e in events]
     stamped = [(t, lvl) for t, lvl in stamped if t is not None]
     if not stamped:
         return {"unit": "hour", "buckets": []}
@@ -297,10 +300,10 @@ def build_telemetry(
         }
 
     # ---- whole-log event statistics -----------------------------------
-    levels = Counter(e.level.upper() for e in events)
+    levels = Counter(e.normalized_level for e in events)
     by_logger: dict[str, Counter] = {}
     for e in events:
-        by_logger.setdefault(_stage_for_logger(e.logger_name), Counter())[e.level.upper()] += 1
+        by_logger.setdefault(_stage_for_logger(e.logger_name), Counter())[e.normalized_level] += 1
     logger_series = sorted(
         (
             {"label": name, "info": c.get("INFO", 0) + c.get("DEBUG", 0),

@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from src.elt_lakehouse.spark.common.logger import get_logger
+
+logger = get_logger(__name__)
+
 import json
 from pathlib import Path
 from typing import Any
@@ -23,12 +27,15 @@ def _read_json(path: Path) -> dict[str, Any] | None:
 
 
 def read_pipeline_state(project_root: Path) -> dict[str, Any] | None:
+    logger.info("read_pipeline_state started")
     return _read_json(project_root / "metadata" / "pipeline_state" / "state.json")
 
 
 def read_watermark(project_root: Path) -> dict[str, Any] | None:
+    logger.info("read_watermark started")
     return _read_json(project_root / "metadata" / "watermarks" / "watermark.json")
 
 
 def read_bronze_checkpoint(project_root: Path) -> dict[str, Any] | None:
+    logger.info("read_bronze_checkpoint started")
     return _read_json(project_root / "metadata" / "checkpoints" / "bronze_checkpoint.json")

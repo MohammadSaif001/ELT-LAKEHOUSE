@@ -1,3 +1,7 @@
+
+from src.elt_lakehouse.spark.common.logger import get_logger
+
+logger = get_logger(__name__)
 import json
 from pathlib import Path
 
@@ -5,6 +9,7 @@ CONTRACTS_DIR = Path(__file__).resolve().parent
 
 
 def load_contract(schema_file: str) -> dict:
+    logger.info("load_contract started")
     schema_path = CONTRACTS_DIR / schema_file
 
     if not schema_path.is_file():
@@ -16,6 +21,7 @@ def load_contract(schema_file: str) -> dict:
             schema = json.load(json_file)
         return schema
     except json.JSONDecodeError:
+        logger.exception("operation failed; re-raising")
         raise TypeError(f"Invalid JSON schema: path={schema_path}")
 
 

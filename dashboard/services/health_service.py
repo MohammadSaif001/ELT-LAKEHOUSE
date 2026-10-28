@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from src.elt_lakehouse.spark.common.logger import get_logger
+
+logger = get_logger(__name__)
+
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
@@ -366,6 +370,7 @@ def _check_dbt_tests(overview: PipelineOverview, summary: DbtRunSummary | None) 
 
 def build_health_report(overview: PipelineOverview,
                         dbt_summary: DbtRunSummary | None = None) -> HealthReport:
+    logger.info("build_health_report started")
     checks = [
         _check_log_availability(overview),
         _check_last_run_outcome(overview),

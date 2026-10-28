@@ -1,6 +1,10 @@
 """Names and log evidence for stages wired into the ELT orchestration."""
 from __future__ import annotations
 
+from src.elt_lakehouse.spark.common.logger import get_logger
+
+logger = get_logger(__name__)
+
 from dataclasses import dataclass, field
 
 
@@ -102,13 +106,15 @@ PIPELINE_STAGES: list[Stage] = [
         key="gold_transformation",
         label="GOLD / DBT TRANSFORMATION",
         logger_name="src.elt_lakehouse.spark.jobs.gold_job",
-        completion_match="Gold build completed successfully",
+        completion_match="Gold layer build completed successfully",
         jobs=[
             Job("gold_models", "Gold Models", "Gold build",
                 "storage/gold"),
         ],
     ),
 ]
+
+logger.debug("Loaded pipeline registry with %d stages", len(PIPELINE_STAGES))
 
 
 STORAGE_LAYERS = [

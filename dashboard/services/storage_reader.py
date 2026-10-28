@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from src.elt_lakehouse.spark.common.logger import get_logger
+
+logger = get_logger(__name__)
+
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -15,6 +19,7 @@ class ArtifactInfo:
 
 
 def inspect(project_root: Path, relative_path: str) -> ArtifactInfo:
+    logger.info("inspect started")
     path = project_root / relative_path
     if not path.exists():
         return ArtifactInfo(exists=False, modified_at=None, size_bytes=None, is_dir=False)

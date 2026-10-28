@@ -1,6 +1,10 @@
 """Read the latest local dbt run-results artifact without exposing its env data."""
 from __future__ import annotations
 
+from src.elt_lakehouse.spark.common.logger import get_logger
+
+logger = get_logger(__name__)
+
 import json
 import re
 from dataclasses import dataclass, field
@@ -38,6 +42,7 @@ class DbtRunSummary:
 
 
 def read_run_results(project_root: Path) -> DbtRunSummary | None:
+    logger.info("read_run_results started")
     path = project_root / "dbt_gold" / "target" / "run_results.json"
     try:
         if not path.is_file() or path.stat().st_size > 10_000_000:

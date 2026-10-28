@@ -1,3 +1,7 @@
+
+from src.elt_lakehouse.spark.common.logger import get_logger
+
+logger = get_logger(__name__)
 from typing import NamedTuple
 
 from pyspark.sql import DataFrame

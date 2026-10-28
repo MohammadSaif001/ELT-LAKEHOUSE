@@ -1,6 +1,10 @@
 """FastAPI application for the read-only ELT monitoring dashboard."""
 from __future__ import annotations
 
+from src.elt_lakehouse.spark.common.logger import get_logger
+
+logger = get_logger(__name__)
+
 from datetime import datetime
 import json
 from pathlib import Path
@@ -80,6 +84,11 @@ def sanitize_log(message: str) -> str:
         message,
     )
     return re.sub(r"(?i)(://[^:/\s]+:)([^@/\s]+)(@)", r"\1[REDACTED]\3", result)
+
+
+def sanitize_fields(fields: dict[str, str]) -> dict[str, str]:
+    """Redact structured log fields before exposing them in the dashboard."""
+    return _redact_mapping(fields)
 
 
 def _redact_mapping(value):
@@ -165,6 +174,7 @@ templates.env.filters["fmt_dur"] = telemetry_service._fmt_dur
 def _overview(request: Request) -> status_service.PipelineOverview:
     """Compute the overview once per request."""
     if not hasattr(request.state, "pipeline_overview"):
+        logger.info("Building pipeline overview for dashboard request")
         request.state.pipeline_overview = status_service.get_overview(PROJECT_ROOT)
     return request.state.pipeline_overview
 
@@ -216,6 +226,7 @@ async def disable_response_cache(request: Request, call_next):
 
 @app.get("/", response_class=HTMLResponse, name="index")
 def index(request: Request):
+    logger.info("Rendering dashboard overview")
     overview = _overview(request)
     dbt_summary = dbt_reader.read_run_results(PROJECT_ROOT)
     health = health_service.build_health_report(overview, dbt_summary)
@@ -243,6 +254,7 @@ def index(request: Request):
 
 @app.get("/pipeline-run", response_class=HTMLResponse, name="pipeline_run")
 def pipeline_run(request: Request):
+    logger.info("Rendering pipeline run view")
     return _render(
         request, "pipeline_run.html", overview=_overview(request),
         active_page="pipeline_run", page_number="02",
@@ -251,6 +263,7 @@ def pipeline_run(request: Request):
 
 @app.get("/data-quality", response_class=HTMLResponse, name="data_quality")
 def data_quality(request: Request):
+    logger.info("Rendering data quality view")
     overview = _overview(request)
     dbt_summary = dbt_reader.read_run_results(PROJECT_ROOT)
     health = health_service.build_health_report(overview, dbt_summary)
@@ -269,6 +282,7 @@ def data_quality(request: Request):
 
 @app.get("/storage-health", response_class=HTMLResponse, name="storage_health")
 def storage_health(request: Request):
+    logger.info("Rendering storage health view")
     return _render(
         request, "storage_health.html", overview=_overview(request),
         active_page="storage_health", page_number="04",
@@ -277,10 +291,17 @@ def storage_health(request: Request):
 
 @app.get("/technical-details", response_class=HTMLResponse, name="technical_details")
 def technical_details(request: Request):
+    logger.info("Rendering technical details view")
     overview = _overview(request)
     events = log_reader.read_events(PROJECT_ROOT)
     log_tail = [
-        log_reader.LogEvent(e.timestamp, e.level, e.logger_name, sanitize_log(e.message))
+        log_reader.LogEvent(
+            e.timestamp,
+            e.level,
+            e.logger_name,
+            sanitize_log(e.message),
+            sanitize_fields(e.fields),
+        )
         for e in reversed(events[-500:])
     ]
     config_dir = PROJECT_ROOT / "config"
@@ -288,7 +309,7 @@ def technical_details(request: Request):
     return _render(
         request, "technical_details.html", overview=overview,
         log_tail=log_tail, config_files=config_files,
-        log_levels={lvl: sum(e.level.upper() == lvl for e in log_tail)
+        log_levels={lvl: sum(e.normalized_level == lvl for e in log_tail)
                     for lvl in ("INFO", "WARNING", "ERROR")},
         active_page="technical_details", page_number="05",
     )
@@ -296,6 +317,7 @@ def technical_details(request: Request):
 
 @app.get("/gold-layer", response_class=HTMLResponse, name="gold_layer")
 def gold_layer(request: Request):
+    logger.info("Rendering gold layer view")
     overview = _overview(request)
     dbt_summary = dbt_reader.read_run_results(PROJECT_ROOT)
     dbt_health = health_service.build_health_report(overview, dbt_summary)
@@ -315,6 +337,7 @@ def gold_layer(request: Request):
 
 @app.get("/stage/{stage_key}", response_class=HTMLResponse, name="stage_detail")
 def stage_detail(request: Request, stage_key: str):
+    logger.info("Rendering stage detail: stage=%s", stage_key)
     valid_keys = {stage.key for stage in PIPELINE_STAGES}
     if stage_key not in valid_keys:
         raise HTTPException(status_code=404, detail="Unknown pipeline stage")
@@ -328,6 +351,7 @@ def stage_detail(request: Request, stage_key: str):
 
 @app.get("/api/telemetry", name="api_telemetry")
 def api_telemetry():
+    logger.info("Serving telemetry API")
     overview = status_service.get_overview(PROJECT_ROOT)
     dbt_summary = dbt_reader.read_run_results(PROJECT_ROOT)
     return JSONResponse(telemetry_service.build_telemetry(PROJECT_ROOT, overview, dbt_summary))
@@ -335,6 +359,7 @@ def api_telemetry():
 
 @app.get("/api/health", name="api_health")
 def api_health():
+    logger.info("Serving health API")
     overview = status_service.get_overview(PROJECT_ROOT)
     dbt_summary = dbt_reader.read_run_results(PROJECT_ROOT)
     health = health_service.build_health_report(overview, dbt_summary)

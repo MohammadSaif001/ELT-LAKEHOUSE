@@ -1,3 +1,7 @@
+
+from src.elt_lakehouse.spark.common.logger import get_logger
+
+logger = get_logger(__name__)
 import itertools
 import json
 import random
@@ -10,8 +14,15 @@ _DISTRIBUTION_PARAMS_CACHE: dict[int, tuple[list, list]] = {}
 
 def load_distribution(file_name: str) -> dict:
     file_path = PROFILING_DIR / file_name
-    with open(file_path, "r") as file:
-        return json.load(file)
+    logger.info("Loading distribution: path=%s", file_path)
+    try:
+        with open(file_path, "r") as file:
+            distribution = json.load(file)
+    except OSError:
+        logger.exception("Failed to read distribution: path=%s", file_path)
+        raise
+    logger.info("Loaded distribution: path=%s entries=%d", file_path, len(distribution))
+    return distribution
 
 
 def _get_distribution_params(distribution: dict) -> tuple[list, list]:
@@ -25,6 +36,7 @@ def _get_distribution_params(distribution: dict) -> tuple[list, list]:
         cum_weights = list(itertools.accumulate(distribution.values()))
         cached = (population, cum_weights)
         _DISTRIBUTION_PARAMS_CACHE[dist_id] = cached
+        logger.debug("Prepared distribution weights: entries=%d", len(population))
 
     return cached
 

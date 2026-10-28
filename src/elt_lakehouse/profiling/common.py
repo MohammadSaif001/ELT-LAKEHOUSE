@@ -1,3 +1,7 @@
+
+from src.elt_lakehouse.spark.common.logger import get_logger
+
+logger = get_logger(__name__)
 import csv
 import json
 
@@ -8,6 +12,7 @@ from src.elt_lakehouse.spark.common.paths import PROFILING_DIR, RAW_DATA_DIR
 
 def load_csv(file_name: str) -> pd.DataFrame:
     """Load a raw Olist CSV file with relaxed parsing to tolerate malformed rows."""
+    logger.info("load_csv started")
     csv_path = RAW_DATA_DIR / "olist" / file_name
 
     if file_name == "olist_order_reviews_dataset.csv":
@@ -39,6 +44,7 @@ def load_csv(file_name: str) -> pd.DataFrame:
 
 def save_profile(data: dict, file_name: str) -> None:
     """Save profiling metadata as formatted JSON."""
+    logger.info("save_profile started")
     output_path = PROFILING_DIR / file_name
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
