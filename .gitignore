@@ -65,3 +65,9 @@ ram_report.csv
 
 # Plans
 docs/plans/
+
+# Temporary and Backup files
+*.tmp
+*.bak
+*.save
+*.local*
