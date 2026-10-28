@@ -1,3 +1,7 @@
+
+from src.elt_lakehouse.spark.common.logger import get_logger
+
+logger = get_logger(__name__)
 import random
 from datetime import datetime, timedelta
 
@@ -21,14 +25,17 @@ SHIPPING_STATS = load_distribution("order_shipping_delay_stats.json")
 
 
 def get_product_pool() -> list[str]:
+    logger.debug("Loading product pool for order-item generation")
     return load_pool_column("product_pool.parquet", "product_id")
 
 
 def get_seller_pool() -> list[str]:
+    logger.debug("Loading seller pool for order-item generation")
     return load_pool_column("seller_pool.parquet", "seller_id")
 
 
 def price_generator() -> float:
+    logger.debug("Generating order-item price")
     """
     Generates realistic product prices using
     Olist-derived price percentiles.
@@ -55,6 +62,7 @@ def price_generator() -> float:
 
 
 def generate_shipping_delay() -> int:
+    logger.debug("Generating shipping delay")
     """
     Generates realistic shipping delay in days.
     """
@@ -69,6 +77,7 @@ def generate_shipping_delay() -> int:
 
 
 def generate_shipping_limit_date(purchase_timestamp: datetime) -> datetime:
+    logger.debug("Generating shipping limit timestamp")
     """
     Generates shipping deadline date.
     """
@@ -79,6 +88,7 @@ def generate_shipping_limit_date(purchase_timestamp: datetime) -> datetime:
 
 
 def freight_value_generator() -> float:
+    logger.debug("Generating freight value")
     """
     Generates realistic freight value using
     Olist-derived freight statistics.
@@ -92,6 +102,7 @@ def freight_value_generator() -> float:
 
 
 def get_product(products: list[dict] | None = None):
+    logger.debug("Selecting product for order item")
     pool = products if products is not None else get_product_pool()
     return random.choice(pool)
 
@@ -104,6 +115,7 @@ def generate_order_item(
     sellers: list[dict] | None = None,
     product: dict | str | None = None,
 ) -> dict:
+    logger.debug("Generating order-item record")
     """
     Generates a single order item record.
     """
@@ -142,6 +154,7 @@ def generate_order_items(
     """
 
     num_items = int(weighted_choice(ITEMS_PER_ORDER_DIST))
+    logger.debug("Generating order-item records: count=%d", num_items)
 
     product_pool = products if products is not None else get_product_pool()
     selected_products: list[dict] = random.sample(

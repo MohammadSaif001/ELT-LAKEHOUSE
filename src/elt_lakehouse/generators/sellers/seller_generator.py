@@ -1,3 +1,7 @@
+
+from src.elt_lakehouse.spark.common.logger import get_logger
+
+logger = get_logger(__name__)
 from src.elt_lakehouse.generators.base.distribution_loader import (
     load_distribution,
     random_from_list,
@@ -28,4 +32,5 @@ def generate_seller() -> dict:
             "seller_state": state,
         }
     except Exception as exc:
+        logger.exception("operation failed; re-raising")
         raise ValueError(f"Failed to generate seller for state: {state}") from exc

@@ -1,3 +1,7 @@
+
+from src.elt_lakehouse.spark.common.logger import get_logger
+
+logger = get_logger(__name__)
 import re
 
 LOG_PATTERN = re.compile(
@@ -38,6 +42,7 @@ def _empty_report() -> dict:
 
 
 def generate_report() -> dict:
+    logger.info("generate_report started")
     report = _empty_report()
 
     with open("logs/application.log", "r") as file:

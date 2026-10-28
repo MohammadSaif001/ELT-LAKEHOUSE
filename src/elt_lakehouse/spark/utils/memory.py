@@ -1,3 +1,7 @@
+
+from src.elt_lakehouse.spark.common.logger import get_logger
+
+logger = get_logger(__name__)
 import csv
 import functools
 import gc
@@ -27,8 +31,11 @@ def monitor_memory(func):
                         "current": current / 1024 / 1024,
                     }
                 )
-                print(
-                    f"[RAM REPORT]'{func.__name__}' -> Peak: {peak / 1024 / 1024:.2f} MB, Current: {current / 1024 / 1024:.2f} MB"
+                logger.info(
+                    "Memory report written: function=%s peak_mb=%.2f current_mb=%.2f",
+                    func.__name__,
+                    peak / 1024 / 1024,
+                    current / 1024 / 1024,
                 )
 
             for arg in list(args) + list(kwargs.values()):
@@ -36,7 +43,9 @@ def monitor_memory(func):
                     try:
                         arg.catalog.clearCache()
                     except Py4JError as spark_err:
-                        print(f"[Warning] Failed to clear Spark cache: {spark_err}")
+                        logger.warning(
+                            "Failed to clear Spark cache: error=%s", spark_err
+                        )
                     break
 
             gc.collect()

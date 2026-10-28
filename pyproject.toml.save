@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "elt-lakehouse"
+version = "0.1.0"
+requires-python = ">=3.12, <3.13"
+description = "ELT Lakehouse data engineering project"
+
+dependencies = [
+    "pyyaml",
+    "pytest",
+    "dotenv>=0.9.9",
+    "kaggle>=1.7.4.5",
+    "pyarrow>=18.0.0,<25",
+    "fastapi[standard]>=0.141.1",
+    "pandas>=2.3.3",
+    "numpy>=2.2.6",
+    "dbt-spark",
+    "pyvis>=0.3.2",
+]
+
+[project.optional-dependencies]
+local-spark = [
+    "delta-spark",
+    "dbt-spark[session]",
+    "pyspark",
+]
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["elt_lakehouse*"]
+
+[dependency-groups]
+dev = [
+    "databricks-connect~=18.0.0",
+]
+
+[tool.databricks.environment]
+environment_version = "5"

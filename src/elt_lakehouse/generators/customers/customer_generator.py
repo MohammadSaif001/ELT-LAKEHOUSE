@@ -1,3 +1,7 @@
+
+from src.elt_lakehouse.spark.common.logger import get_logger
+
+logger = get_logger(__name__)
 from src.elt_lakehouse.generators.base.distribution_loader import (
     load_distribution,
     random_from_list,
@@ -19,6 +23,7 @@ city_dist = load_distribution("city_distribution.json")
 
 
 def generate_customer() -> dict:
+    logger.debug("Generating customer record")
     """Generates a customer record with realistic
     state, city, and zip code based on Olist distributions."""
 

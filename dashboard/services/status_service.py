@@ -1,4 +1,8 @@
 from __future__ import annotations
+
+from src.elt_lakehouse.spark.common.logger import get_logger
+
+logger = get_logger(__name__)
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -368,6 +372,7 @@ def _latest_run_timing(
 
 
 def get_overview(project_root: Path) -> PipelineOverview:
+    logger.info("Building pipeline overview: root=%s", project_root)
     events = log_reader.read_events(project_root)
     recent_runs = _build_recent_runs(events)
     started, finished, duration = _latest_run_timing(recent_runs)
@@ -454,7 +459,7 @@ def get_overview(project_root: Path) -> PipelineOverview:
     # through storage_layers and never promote an execution to success.
     overall = latest_run_status
 
-    return PipelineOverview(
+    overview = PipelineOverview(
         overall_status=overall,
         stages=stage_statuses,
         storage_layers=storage_layers,
@@ -470,9 +475,17 @@ def get_overview(project_root: Path) -> PipelineOverview:
         latest_run_status=latest_run_status,
         latest_run_detail=latest_run_detail,
     )
+    logger.info(
+        "Pipeline overview built: stages=%d jobs=%d status=%s",
+        len(overview.stages),
+        sum(len(stage.jobs) for stage in overview.stages),
+        overview.overall_status,
+    )
+    return overview
 
 
 def get_stage(project_root: Path, stage_key: str) -> StageStatus | None:
+    logger.info("Building stage status: stage=%s root=%s", stage_key, project_root)
     overview = get_overview(project_root)
     for stage in overview.stages:
         if stage.stage.key == stage_key:

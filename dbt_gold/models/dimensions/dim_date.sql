@@ -3,10 +3,21 @@
     file_format='delta'
 ) }}
 
-WITH calendar AS (
+WITH bounds AS (
+    SELECT
+        date_sub(MIN(CAST(order_purchase_timestamp AS DATE)), 30) AS start_date,
+        date_add(MAX(CAST(order_estimated_delivery_date AS DATE)), 30) AS end_date
+    FROM {{ source('silver', 'orders_silver') }}
+),
+calendar AS (
     SELECT EXPLODE(
-        SEQUENCE(DATE '2025-01-01', DATE '2027-12-31', INTERVAL 1 DAY)
+        SEQUENCE(
+            start_date,
+            end_date,
+            INTERVAL 1 DAY
+        )
     ) AS date
+    FROM bounds
 )
 
 SELECT

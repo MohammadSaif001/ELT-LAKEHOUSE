@@ -1,5 +1,9 @@
 """Reads the application log and parses it into structured events."""
 
+from src.elt_lakehouse.spark.common.logger import get_logger
+
+logger = get_logger(__name__)
+
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -21,6 +25,7 @@ def read_events(project_root: Path) -> list[LogEvent]:
     Returns an empty list gracefully if the log file does not exist yet
     (e.g. the pipeline has never been run in this environment).
     """
+    logger.info("read_events started")
     path = log_file_path(project_root)
     if not path.is_file():
         return []

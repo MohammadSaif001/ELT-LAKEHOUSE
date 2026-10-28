@@ -1,3 +1,7 @@
+
+from src.elt_lakehouse.spark.common.logger import get_logger
+
+logger = get_logger(__name__)
 from src.elt_lakehouse.profiling.customer_profile import build_customer_profiles
 from src.elt_lakehouse.profiling.location_profile import build_location_profiles
 from src.elt_lakehouse.profiling.order_item_profile import build_order_item_profiles
@@ -22,6 +26,7 @@ def run_profile_job() -> None:
         - order item profiling metadata
         - payment profiling metadata
     """
+    logger.info("run_profile_job started")
     build_product_profiles()
     build_customer_profiles()
     build_location_profiles()
@@ -33,6 +38,7 @@ def run_profile_job() -> None:
 
 
 def main():
+    logger.info("main started")
     run_profile_job()
 
 

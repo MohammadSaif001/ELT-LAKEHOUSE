@@ -1,3 +1,7 @@
+
+from src.elt_lakehouse.spark.common.logger import get_logger
+
+logger = get_logger(__name__)
 from pathlib import Path
 
 import pyarrow as pa
@@ -18,7 +22,9 @@ class PoolLoader:
         self._column_cache: dict[tuple[str, str], list] = {}
 
     def load_pool(self, file_name: str) -> list[dict]:
+        logger.info("load_pool started")
         if file_name in self._pool_cache:
+            logger.debug("Pool cache hit: name=%s", file_name)
             return self._pool_cache[file_name]
 
         name_no_ext = Path(file_name).stem
@@ -27,6 +33,7 @@ class PoolLoader:
             table = pq.read_table(parquet_path)
             pool = table.to_pylist()
             self._pool_cache[file_name] = pool
+            logger.info("Loaded pool: path=%s rows=%d", parquet_path, len(pool))
             return pool
 
         raise FileNotFoundError(f"Pool file not found: {parquet_path}")
@@ -35,6 +42,7 @@ class PoolLoader:
         """Load a specific column from a pool parquet file."""
         cache_key = (file_name, column_name)
         if cache_key in self._column_cache:
+            logger.debug("Pool column cache hit: name=%s column=%s", file_name, column_name)
             return self._column_cache[cache_key]
 
         name_no_ext = Path(file_name).stem
@@ -43,6 +51,10 @@ class PoolLoader:
             table = pq.read_table(parquet_path, columns=[column_name])
             column = table[column_name].to_pylist()
             self._column_cache[cache_key] = column
+            logger.info(
+                "Loaded pool column: path=%s column=%s rows=%d",
+                parquet_path, column_name, len(column),
+            )
             return column
 
         raise FileNotFoundError(f"Pool file not found: {parquet_path}")
@@ -53,11 +65,13 @@ _pool_loader = PoolLoader()
 
 def load_pool(file_name: str) -> list[dict]:
     """Load a pool from Parquet, caching repeated reads in this process."""
+    logger.info("load_pool started")
     return _pool_loader.load_pool(file_name)
 
 
 def load_pool_column(file_name: str, column_name: str):
     """Load a specific column from a pool parquet file."""
+    logger.info("load_pool_column started")
     return _pool_loader.pool_column(file_name, column_name)
 
 
@@ -68,6 +82,7 @@ def iter_pool_batches(file_name: str, batch_size: int = 10_000):
     if not parquet_path.exists():
         raise FileNotFoundError(f"Pool file not found: {parquet_path}")
     parquet_file = pq.ParquetFile(parquet_path)
+    logger.info("Streaming pool batches: path=%s batch_size=%d", parquet_path, batch_size)
     for record_batch in parquet_file.iter_batches(batch_size=batch_size):
         yield record_batch.to_pylist()
 
@@ -81,6 +96,7 @@ def save_pool(pool: list, file_name: str) -> None:
     parquet_path.parent.mkdir(parents=True, exist_ok=True)
     table = pa.Table.from_pylist(pool)
     pq.write_table(table, parquet_path)
+    logger.info("Saved pool: path=%s rows=%d", parquet_path, table.num_rows)
 
 
 def save_pool_batches(pool_batches, file_name: str) -> int:
@@ -104,4 +120,5 @@ def save_pool_batches(pool_batches, file_name: str) -> int:
             writer.close()
     if writer is None:
         pq.write_table(pa.table({}), parquet_path)
+    logger.info("Saved pool batches: path=%s rows=%d", parquet_path, row_count)
     return row_count

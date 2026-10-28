@@ -1,3 +1,7 @@
+
+from src.elt_lakehouse.spark.common.logger import get_logger
+
+logger = get_logger(__name__)
 import random
 
 from config.config_loader import load_yaml
@@ -18,6 +22,7 @@ config = load_yaml("generator_config.yaml")["location_defaults"]
 
 
 def generate_customer_location(customer: dict) -> dict:
+    logger.debug("Generating customer location record")
 
     city: str = customer["customer_city"]
     if city not in city_coordinate_map:

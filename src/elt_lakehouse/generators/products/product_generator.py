@@ -1,3 +1,7 @@
+
+from src.elt_lakehouse.spark.common.logger import get_logger
+
+logger = get_logger(__name__)
 import random
 
 from config.config_loader import load_yaml
@@ -29,6 +33,7 @@ GEN_DIMENSION_CONFIG = load_yaml("generator_config.yaml")["product_dimensions"]
 
 
 def generate_product() -> dict:
+    logger.debug("Generating product record")
 
     name_length: int = int(
         max(

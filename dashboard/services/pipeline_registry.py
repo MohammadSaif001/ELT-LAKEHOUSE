@@ -1,6 +1,10 @@
 """Names and log evidence for stages wired into the ELT orchestration."""
 from __future__ import annotations
 
+from src.elt_lakehouse.spark.common.logger import get_logger
+
+logger = get_logger(__name__)
+
 from dataclasses import dataclass, field
 
 
@@ -109,6 +113,8 @@ PIPELINE_STAGES: list[Stage] = [
         ],
     ),
 ]
+
+logger.debug("Loaded pipeline registry with %d stages", len(PIPELINE_STAGES))
 
 
 STORAGE_LAYERS = [
