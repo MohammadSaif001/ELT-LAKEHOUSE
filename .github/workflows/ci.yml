@@ -12,8 +12,12 @@ on:
 
 jobs:
   import-smoke-test:
-    name: Import Smoke Test
+    name: Import Smoke Test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
 
     steps:
       - name: Checkout repository
@@ -22,7 +26,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.14"
+          python-version: ${{ matrix.python-version }}
           cache: pip
 
       - name: Install project dependencies
@@ -73,9 +77,13 @@ jobs:
           PY
 
   test:
-    name: Data Quality and Unit Tests
+    name: Data Quality and Unit Tests (Python ${{ matrix.python-version }})
     needs: import-smoke-test
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
 
     steps:
       - name: Checkout repository
@@ -84,7 +92,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.14"
+          python-version: ${{ matrix.python-version }}
           cache: pip
 
       - name: Set up Java for Spark

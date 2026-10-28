@@ -69,7 +69,7 @@ Runtime configuration, generator distributions, and service settings live in
 
 ## Requirements
 
-- Python 3.10 or newer
+- Python 3.11 through 3.14 (the versions tested by CI)
 - Java and Apache Spark-compatible runtime for Spark jobs
 - [`uv`](https://docs.astral.sh/uv/) for environment and dependency management
 
@@ -139,6 +139,10 @@ Run the test suite with:
 ```bash
 uv run pytest
 ```
+
+Continuous integration runs the import smoke test and the full test suite on
+Python 3.11, 3.12, 3.13, and 3.14. The package metadata preserves Python 3.11
+as the minimum supported version while allowing newer Python releases.
 
 Focused suites are organized under:
 
