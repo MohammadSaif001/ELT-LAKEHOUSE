@@ -86,6 +86,11 @@ def sanitize_log(message: str) -> str:
     return re.sub(r"(?i)(://[^:/\s]+:)([^@/\s]+)(@)", r"\1[REDACTED]\3", result)
 
 
+def sanitize_fields(fields: dict[str, str]) -> dict[str, str]:
+    """Redact structured log fields before exposing them in the dashboard."""
+    return _redact_mapping(fields)
+
+
 def _redact_mapping(value):
     if isinstance(value, dict):
         secret_keys = (
@@ -290,7 +295,13 @@ def technical_details(request: Request):
     overview = _overview(request)
     events = log_reader.read_events(PROJECT_ROOT)
     log_tail = [
-        log_reader.LogEvent(e.timestamp, e.level, e.logger_name, sanitize_log(e.message))
+        log_reader.LogEvent(
+            e.timestamp,
+            e.level,
+            e.logger_name,
+            sanitize_log(e.message),
+            sanitize_fields(e.fields),
+        )
         for e in reversed(events[-500:])
     ]
     config_dir = PROJECT_ROOT / "config"
@@ -298,7 +309,7 @@ def technical_details(request: Request):
     return _render(
         request, "technical_details.html", overview=overview,
         log_tail=log_tail, config_files=config_files,
-        log_levels={lvl: sum(e.level.upper() == lvl for e in log_tail)
+        log_levels={lvl: sum(e.normalized_level == lvl for e in log_tail)
                     for lvl in ("INFO", "WARNING", "ERROR")},
         active_page="technical_details", page_number="05",
     )

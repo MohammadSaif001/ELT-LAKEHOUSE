@@ -11,10 +11,10 @@
     <button class="chip" type="button" data-level="INFO" aria-pressed="true">Info {{ log_levels.INFO }}</button>
     <button class="chip" type="button" data-level="WARNING" aria-pressed="true">Warnings {{ log_levels.WARNING }}</button>
     <button class="chip" type="button" data-level="ERROR" aria-pressed="true">Errors {{ log_levels.ERROR }}</button>
-    <input type="search" id="log-search" placeholder="Search messages and stages" aria-label="Search log events">
+    <input type="search" id="log-search" placeholder="Search messages, stages, or context" aria-label="Search log events">
     <span class="muted" id="log-count" style="font-size:12px"></span>
   </div>
-  <div class="log-box" role="log">{% for e in log_tail %}<div class="log-line lvl-{{ e.level | lower }}" data-level="{{ e.level | upper if e.level | upper in ('WARNING', 'ERROR') else 'INFO' }}">{{ e.timestamp }} | {{ e.level }} | {{ e.logger_name }} | {{ e.message }}</div>{% endfor %}</div>
+  <div class="log-box" role="log">{% for e in log_tail %}<div class="log-line lvl-{{ e.normalized_level | lower }}" data-level="{{ e.normalized_level }}">{{ e.timestamp }} | {{ e.level }} | {{ e.logger_name }} | {{ e.message }}{% if e.fields %} <span class="log-context">{{ e.fields | safe_json }}</span>{% endif %}</div>{% endfor %}</div>
   {% else %}
   <div class="empty">logs/application.log does not exist yet. Run the pipeline to create it.</div>
   {% endif %}

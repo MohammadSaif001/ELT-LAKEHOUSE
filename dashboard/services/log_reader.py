@@ -1,11 +1,17 @@
 """Reads the application log and parses it into structured events."""
 
+from dataclasses import dataclass, field
+import re
+import shlex
+from pathlib import Path
+
 from src.elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 
-from dataclasses import dataclass
-from pathlib import Path
+_LOG_FIELD_RE = re.compile(
+    r"(?P<key>[A-Za-z_][A-Za-z0-9_]*)=(?P<value>\"[^\"]*\"|'[^']*'|\S+)"
+)
 
 @dataclass(frozen=True)
 class LogEvent:
@@ -13,6 +19,31 @@ class LogEvent:
     level: str
     logger_name: str
     message: str
+    fields: dict[str, str] = field(default_factory=dict)
+
+    @property
+    def normalized_level(self) -> str:
+        """Map logging levels to the dashboard's display categories."""
+        level = self.level.upper()
+        if level in {"WARNING", "WARN"}:
+            return "WARNING"
+        if level in {"ERROR", "CRITICAL"}:
+            return "ERROR"
+        return "INFO"
+
+
+def _parse_fields(message: str) -> dict[str, str]:
+    """Extract logfmt fields emitted by the shared runtime logger."""
+    fields: dict[str, str] = {}
+    for match in _LOG_FIELD_RE.finditer(message):
+        value = match.group("value")
+        if value[:1] in {"'", '"'}:
+            try:
+                value = shlex.split(value)[0]
+            except ValueError:
+                value = value[1:-1]
+        fields[match.group("key")] = value
+    return fields
 
 
 def log_file_path(project_root: Path) -> Path:
@@ -35,6 +66,7 @@ def read_events(project_root: Path) -> list[LogEvent]:
         with path.open("r", encoding="utf-8", errors="replace") as fh:
             lines = fh.readlines()
     except OSError:
+        logger.exception("Unable to read application log: path=%s", path)
         return []
 
     for line in lines:
@@ -48,11 +80,22 @@ def read_events(project_root: Path) -> list[LogEvent]:
                     events[-1].level,
                     events[-1].logger_name,
                     events[-1].message + "\n" + line.rstrip("\n"),
+                    events[-1].fields,
                 )
             continue
         timestamp, level, logger_name, message = parts
-        events.append(LogEvent(timestamp.strip(), level.strip(), logger_name.strip(), message.strip()))
+        message = message.strip()
+        events.append(
+            LogEvent(
+                timestamp.strip(),
+                level.strip(),
+                logger_name.strip(),
+                message,
+                _parse_fields(message),
+            )
+        )
 
+    logger.info("Parsed application log: path=%s events=%d", path, len(events))
     return events
 
 

@@ -106,7 +106,7 @@ PIPELINE_STAGES: list[Stage] = [
         key="gold_transformation",
         label="GOLD / DBT TRANSFORMATION",
         logger_name="src.elt_lakehouse.spark.jobs.gold_job",
-        completion_match="Gold build completed successfully",
+        completion_match="Gold layer build completed successfully",
         jobs=[
             Job("gold_models", "Gold Models", "Gold build",
                 "storage/gold"),

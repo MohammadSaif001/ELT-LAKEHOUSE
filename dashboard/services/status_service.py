@@ -121,7 +121,7 @@ def _job_status(
         if latest_run_started and matched_at and matched_at < latest_run_started:
             matched = None
 
-    if matched and matched.level == "ERROR":
+    if matched and matched.normalized_level == "ERROR":
         return JobStatus(
             job=job,
             status=STATUS_FAILED,
@@ -240,7 +240,10 @@ def _stage_execution(stage: Stage, events: list[log_reader.LogEvent],
         )
 
     last_activity = _parse_ts(stage_events[-1].timestamp)
-    failure = next((event for event in reversed(stage_events) if event.level == "ERROR"), None)
+    failure = next(
+        (event for event in reversed(stage_events) if event.normalized_level == "ERROR"),
+        None,
+    )
     completion = next(
         (event for event in reversed(stage_events)
          if stage.completion_match.lower() in event.message.lower()),
