@@ -1,82 +1,58 @@
-import os
-import sys
-import tempfile
-from collections.abc import Iterator
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
+import pyarrow as pa
 import pyarrow.parquet as pq
 
 from config.config_loader import load_yaml
-from src.elt_lakehouse.generators.base.data_loading import load_generated_data
-from src.elt_lakehouse.generators.base.data_saving import (
-    save_generated_batches,
-    save_generated_data,
+from src.elt_lakehouse.generators.base.data_saving import write_tables
+from src.elt_lakehouse.generators.base.parallel import (
+    base_seed,
+    chunk_seed,
+    map_chunks,
+    rows_to_table,
+    seed_this_process,
+    split_counts,
+    worker_count,
 )
+from src.elt_lakehouse.generators.base.pool_manager import load_pool_column
 from src.elt_lakehouse.generators.orders.order_generator import generate_order
 from src.elt_lakehouse.generators.orders.order_item_generator import (
     generate_order_items,
 )
-from src.elt_lakehouse.generators.base.pool_manager import load_pool_column
 from src.elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 
-ORDER_BATCH_SIZE = 20_000
-ORDER_MAX_WORKERS = 4
+ORDER_CHUNK_SIZE = 25_000  # orders generated per task
+ITEM_CHUNK_ORDERS = 20_000  # orders turned into items per task
 
+# Read-only inputs, set once per worker process by the pool initializers.
+_CUSTOMER_IDS: list[str] = []
+_PRODUCT_IDS: list[str] = []
+_SELLER_IDS: list[str] = []
 
-def _order_batches(
-    customer_ids: list[str], record_count: int, batch_size: int
-) -> Iterator[list[dict]]:
-    for batch_start in range(0, record_count, batch_size):
-        batch_count = min(batch_size, record_count - batch_start)
-        yield [
-            generate_order(customer_ids=customer_ids) for _ in range(batch_count)
-        ]
-
-
-def _write_order_shard(args: tuple[int, int, str, list[str]]) -> tuple[str, int]:
-    shard_index, record_count, shard_dir, customer_ids = args
-    worker_count = min(ORDER_MAX_WORKERS, max(1, os.cpu_count() or 1))
-    shard_start = record_count * shard_index // worker_count
-    shard_end = record_count * (shard_index + 1) // worker_count
-    shard_count = shard_end - shard_start
-    shard_name = f"orders-part-{shard_index}.parquet"
-    shard_dir_path = Path(shard_dir)
-
-    written_rows = save_generated_batches(
-        _order_batches(customer_ids, shard_count, ORDER_BATCH_SIZE),
-        shard_name,
-        str(shard_dir_path),
-    )
-    return str(shard_dir_path / shard_name), written_rows
-
-
-def _merge_order_shards(shards: list[tuple[str, int]], output_path: Path) -> int:
-    writer = None
-    row_count = 0
-    try:
-        for shard_path, _ in shards:
-            parquet_file = pq.ParquetFile(shard_path)
-            for record_batch in parquet_file.iter_batches(batch_size=65_536):
-                if writer is None:
-                    writer = pq.ParquetWriter(output_path, record_batch.schema)
-                writer.write_batch(record_batch)
-                row_count += record_batch.num_rows
-    finally:
-        if writer is not None:
-            writer.close()
-    return row_count
 
 # ==========================
 # Order Builder
 # ==========================
 
 
+def _init_order_worker(customer_ids: list[str]) -> None:
+    global _CUSTOMER_IDS
+    _CUSTOMER_IDS = customer_ids
+
+
+def _order_chunk(task: tuple[int, int]) -> pa.Table:
+    count, seed = task
+    seed_this_process(seed)
+    return rows_to_table(
+        [generate_order(customer_ids=_CUSTOMER_IDS) for _ in range(count)]
+    )
+
+
 def build_orders(output_dir: str) -> None:
-    """Generates order records and saves them to generated storage."""
+    """Generates order records in parallel chunks and saves them to generated storage."""
     GEN_CONFIG = load_yaml("generator_config.yaml")["dataset_volume"]
     record_count: int = GEN_CONFIG["orders"]
     output_name: str = "generated_orders_data.parquet"
@@ -84,35 +60,27 @@ def build_orders(output_dir: str) -> None:
 
     try:
         logger.info(
-            "Starting order generation: records=%d, output_dir=%s",
+            "Starting order generation: records=%d, output_dir=%s, workers=%d",
             record_count,
             output_dir,
+            worker_count(),
         )
         customer_ids = load_pool_column("customer_pool.parquet", "customer_id")
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
-        gil_enabled = getattr(sys, "_is_gil_enabled", lambda: True)()
-        worker_count = min(ORDER_MAX_WORKERS, max(1, os.cpu_count() or 1))
 
-        if not gil_enabled and worker_count > 1 and record_count >= ORDER_BATCH_SIZE * worker_count:
-            with tempfile.TemporaryDirectory(
-                prefix=".orders-", dir=output_path
-            ) as shard_dir:
-                shard_tasks = [
-                    (index, record_count, shard_dir, customer_ids)
-                    for index in range(worker_count)
-                ]
-                with ThreadPoolExecutor(max_workers=worker_count) as executor:
-                    shards = list(executor.map(_write_order_shard, shard_tasks))
-                generated_count = _merge_order_shards(
-                    shards, output_path / output_name
-                )
-        else:
-            generated_count = save_generated_batches(
-                _order_batches(customer_ids, record_count, ORDER_BATCH_SIZE),
-                output_name,
-                str(output_path),
-            )
+        seed = base_seed()
+        tasks = (
+            (count, chunk_seed(seed, index))
+            for index, count in enumerate(split_counts(record_count, ORDER_CHUNK_SIZE))
+        )
+        tables = map_chunks(
+            _order_chunk,
+            tasks,
+            initializer=_init_order_worker,
+            initargs=(customer_ids,),
+        )
+        generated_count = write_tables(tables, output_path / output_name)
 
         duration_seconds: float = (
             datetime.now(timezone.utc) - started_at
@@ -139,50 +107,82 @@ def build_orders(output_dir: str) -> None:
 # ==========================
 
 
+def _init_item_worker(product_ids: list[str], seller_ids: list[str]) -> None:
+    global _PRODUCT_IDS, _SELLER_IDS
+    _PRODUCT_IDS = product_ids
+    _SELLER_IDS = seller_ids
+
+
+def _item_chunk(task: tuple[list[dict], int]) -> pa.Table:
+    orders, seed = task
+    seed_this_process(seed)
+    items: list[dict] = []
+    for order in orders:
+        # Source timestamps are intentionally naive and follow the Olist format.
+        items.extend(
+            generate_order_items(
+                order_id=order["order_id"],
+                purchase_timestamp=datetime.fromisoformat(
+                    order["order_purchase_timestamp"]
+                ),
+                products=_PRODUCT_IDS,
+                sellers=_SELLER_IDS,
+            )
+        )
+    return rows_to_table(items)
+
+
+def _order_batches(orders_path: Path):
+    """Yield (order_id, purchase_timestamp) rows from the orders file in bounded batches."""
+    parquet_file = pq.ParquetFile(orders_path)
+    for batch in parquet_file.iter_batches(
+        batch_size=ITEM_CHUNK_ORDERS,
+        columns=["order_id", "order_purchase_timestamp"],
+    ):
+        yield batch.to_pylist()
+
+
 def build_order_items(output_dir: str) -> None:
     """Generates order item records corresponding to existing orders and saves them."""
 
-    orders_file: str = "generated_orders_data.parquet" 
+    orders_file: str = "generated_orders_data.parquet"
     output_file: str = "generated_order_items_data.parquet"
     started_at: datetime = datetime.now(timezone.utc)
 
     try:
+        orders_path = Path(output_dir) / orders_file
         logger.info("Loading orders: file=%s", orders_file)
-        orders = load_generated_data(orders_file, base_dir=output_dir)
+        if not orders_path.exists():
+            raise FileNotFoundError(f"Generated data file not found: {orders_path}")
+        order_count = pq.ParquetFile(orders_path).metadata.num_rows
         logger.info("Loading product and seller IDs form pools")
         product_pool = load_pool_column("product_pool.parquet", "product_id")
         seller_pool = load_pool_column("seller_pool.parquet", "seller_id")
 
-        logger.info("Generating order items : records=%d", len(orders))
-        all_order_items: list = []
-        for order in orders:
-            # Source timestamps are intentionally naive and follow the Olist format.
-            purchase_timestamp: datetime = datetime.fromisoformat(
-                order["order_purchase_timestamp"]
-            )
-            items: list = generate_order_items(
-                order_id=order["order_id"],
-                purchase_timestamp=purchase_timestamp,
-                products=product_pool,
-                sellers=seller_pool,
-            )
-            all_order_items.extend(items)
-
         logger.info(
-            "Saving order-item dataset: orders=%d , records=%d , file=%s, output_dir=%s",
-            len(orders),
-            len(all_order_items),
-            output_file,
-            output_dir,
+            "Generating order items : records=%d, workers=%d",
+            order_count,
+            worker_count(),
         )
-        save_generated_data(all_order_items, output_file, output_dir)
+        seed = base_seed()
+        tasks = (
+            (orders, chunk_seed(seed, index))
+            for index, orders in enumerate(_order_batches(orders_path))
+        )
+        tables = map_chunks(
+            _item_chunk,
+            tasks,
+            initializer=_init_item_worker,
+            initargs=(product_pool, seller_pool),
+        )
+        item_count = write_tables(tables, Path(output_dir) / output_file)
 
         duration_seconds: float = (
             datetime.now(timezone.utc) - started_at
         ).total_seconds()
         logger.info(
             "Order item dataset generated successfully: records=%d, path=%s/%s, duration_s=%.2f",
-            len(all_order_items),
+            item_count,
             output_dir,
             output_file,
             duration_seconds,

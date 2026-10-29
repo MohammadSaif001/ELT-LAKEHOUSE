@@ -4,7 +4,6 @@ from src.elt_lakehouse.spark.common.logger import get_logger
 logger = get_logger(__name__)
 import random
 from datetime import datetime, timedelta
-from turtle import st
 
 from config.config_loader import load_yaml
 from src.elt_lakehouse.generators.base.distribution_loader import (
