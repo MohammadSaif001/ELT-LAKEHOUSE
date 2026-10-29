@@ -2,16 +2,27 @@
 
 from dataclasses import dataclass, field
 import re
-import shlex
 from pathlib import Path
 
 from src.elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 
+# Unquoted values stop at whitespace or a comma ("records=8000, path=..."),
+# and quoted values may contain escaped quotes.
 _LOG_FIELD_RE = re.compile(
-    r"(?P<key>[A-Za-z_][A-Za-z0-9_]*)=(?P<value>\"[^\"]*\"|'[^']*'|\S+)"
+    r"(?P<key>[A-Za-z_][A-Za-z0-9_]*)="
+    r"(?P<value>\"(?:[^\"\\]|\\.)*\"|'(?:[^'\\]|\\.)*'|[^\s,]+)"
 )
+
+# A real log record starts with a timestamp; anything else is a continuation
+# line (traceback, table output) even if it contains " | ".
+_EVENT_START_RE = re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:,\d+)? \| ")
+
+# Dashboard loggers must not feed the dashboard's own view of the pipeline.
+_IGNORED_LOGGER_PREFIXES = ("dashboard.",)
+
+_CACHE: dict[Path, tuple[float, int, list["LogEvent"]]] = {}
 
 @dataclass(frozen=True)
 class LogEvent:
@@ -38,10 +49,8 @@ def _parse_fields(message: str) -> dict[str, str]:
     for match in _LOG_FIELD_RE.finditer(message):
         value = match.group("value")
         if value[:1] in {"'", '"'}:
-            try:
-                value = shlex.split(value)[0]
-            except ValueError:
-                value = value[1:-1]
+            quote = value[0]
+            value = value[1:-1].replace("\\" + quote, quote)
         fields[match.group("key")] = value
     return fields
 
@@ -54,14 +63,19 @@ def read_events(project_root: Path) -> list[LogEvent]:
     """Parse the application log into structured events.
 
     Returns an empty list gracefully if the log file does not exist yet
-    (e.g. the pipeline has never been run in this environment).
+    (e.g. the pipeline has never been run in this environment). The parsed
+    result is cached until the file's modification time or size changes.
     """
-    logger.info("read_events started")
     path = log_file_path(project_root)
-    if not path.is_file():
+    try:
+        stat = path.stat()
+    except OSError:
         return []
 
-    events: list[LogEvent] = []
+    cached = _CACHE.get(path)
+    if cached and cached[0] == stat.st_mtime and cached[1] == stat.st_size:
+        return cached[2]
+
     try:
         with path.open("r", encoding="utf-8", errors="replace") as fh:
             lines = fh.readlines()
@@ -69,33 +83,35 @@ def read_events(project_root: Path) -> list[LogEvent]:
         logger.exception("Unable to read application log: path=%s", path)
         return []
 
+    events: list[LogEvent] = []
+    skipping = False  # True while inside a record from an ignored logger
     for line in lines:
-        parts = line.rstrip("\n").split(" | ", 3)
-        if len(parts) != 4:
-            # Continuation line (e.g. a traceback) -- attach to the
-            # previous event's message so failures remain readable.
-            if events:
-                events[-1] = LogEvent(
-                    events[-1].timestamp,
-                    events[-1].level,
-                    events[-1].logger_name,
-                    events[-1].message + "\n" + line.rstrip("\n"),
-                    events[-1].fields,
+        line = line.rstrip("\n")
+        parts = line.split(" | ", 3)
+        if len(parts) == 4 and _EVENT_START_RE.match(line):
+            timestamp, level, logger_name, message = parts
+            logger_name = logger_name.strip()
+            skipping = logger_name.startswith(_IGNORED_LOGGER_PREFIXES)
+            if skipping:
+                continue
+            message = message.strip()
+            events.append(
+                LogEvent(
+                    timestamp.strip(), level.strip(), logger_name, message,
+                    _parse_fields(message),
                 )
-            continue
-        timestamp, level, logger_name, message = parts
-        message = message.strip()
-        events.append(
-            LogEvent(
-                timestamp.strip(),
-                level.strip(),
-                logger_name.strip(),
-                message,
-                _parse_fields(message),
             )
-        )
+        elif events and not skipping:
+            # Continuation line (e.g. a traceback or table output): attach it
+            # to the previous event so failures remain readable.
+            prev = events[-1]
+            events[-1] = LogEvent(
+                prev.timestamp, prev.level, prev.logger_name,
+                prev.message + "\n" + line, prev.fields,
+            )
 
-    logger.info("Parsed application log: path=%s events=%d", path, len(events))
+    _CACHE[path] = (stat.st_mtime, stat.st_size, events)
+    logger.debug("Parsed application log: path=%s events=%d", path, len(events))
     return events
 
 

@@ -26,6 +26,25 @@ handlers:
     maxBytes: 10485760 # 10MB
     backupCount: 5
 
+  dashboard_file:
+    class: logging.handlers.RotatingFileHandler
+    level: INFO
+    formatter: standard
+    filename: logs/dashboard.log
+    encoding: utf-8
+    maxBytes: 5242880 # 5MB
+    backupCount: 3
+
+loggers:
+  # The dashboard reads logs/application.log, so its own messages go to a
+  # separate file and never propagate into the pipeline log.
+  dashboard:
+    level: INFO
+    handlers:
+      - console
+      - dashboard_file
+    propagate: false
+
 root:
   level: INFO
   handlers:

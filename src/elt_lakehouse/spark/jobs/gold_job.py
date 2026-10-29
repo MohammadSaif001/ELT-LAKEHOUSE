@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import tempfile
+from time import perf_counter
 from pathlib import Path
 
 import yaml
@@ -212,11 +213,15 @@ def main() -> None:
         SPARK_CONFIG["app_name"],
         os.environ["SPARK_LOCAL_IP"],
     )
+    started = perf_counter()
     spark = create_spark_session(app_name=SPARK_CONFIG["app_name"])
     try:
         _register_silver_tables(spark)
         _run_dbt()
-        logger.info("Gold layer build completed successfully.")
+        logger.info(
+            "Gold layer build completed successfully in duration_s=%.2f",
+            perf_counter() - started,
+        )
     except Exception:
         logger.exception("Gold layer build failed.")
         raise

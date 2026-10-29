@@ -102,6 +102,7 @@ def _job_status(
     project_root: Path, events: list[log_reader.LogEvent], job: Job,
     latest_run_started: datetime | None = None, execution_open: bool = False,
     latest_execution_id: str | None = None,
+    stage_status: str | None = None,
 ) -> JobStatus:
     artifact = (
         storage_reader.inspect(project_root, job.artifact_path)
@@ -135,6 +136,15 @@ def _job_status(
             status=STATUS_SUCCESS,
             last_activity=_parse_ts(matched.timestamp),
             detail=matched.message.splitlines()[0],
+        )
+    if matched and stage_status == STATUS_SUCCESS:
+        # Jobs that only log a start line (pool/dataset generation) are
+        # complete when their stage reported success after they started.
+        return JobStatus(
+            job=job,
+            status=STATUS_SUCCESS,
+            last_activity=_parse_ts(matched.timestamp),
+            detail="Started in this run; the stage completed successfully",
         )
     if matched:
         matched_at = _parse_ts(matched.timestamp)
@@ -171,8 +181,14 @@ def _job_status(
     )
 
 
+# `log_duration()` closes a block with "<action> completed duration_s=...".
+_COMPLETED_DURATION_RE = re.compile(r"\bcompleted\b.*\bduration_s=", re.IGNORECASE)
+
+
 def _message_is_completion(message: str) -> bool:
     text = message.lower()
+    if _COMPLETED_DURATION_RE.search(message):
+        return True
     return any(
         marker in text
         for marker in (
@@ -290,6 +306,32 @@ def _stage_execution(stage: Stage, events: list[log_reader.LogEvent],
         f"or error event was detected.{stale_qualifier} "
         "The stage outcome cannot be reliably determined from the available evidence.",
     )
+
+
+def _stage_window(
+    stage: Stage, events: list[log_reader.LogEvent],
+    latest_run_started: datetime | None, run_in_progress: bool,
+) -> datetime | None:
+    """Start of the time window used to read a stage's events.
+
+    Normally this is the start of the latest pipeline run. When the latest run
+    did not touch the stage (for example `--gold-runner` alone), fall back to
+    the stage's own most recent cycle so earlier results are not erased.
+    """
+    if latest_run_started is None or run_in_progress:
+        return latest_run_started
+    own = [e for e in events if e.logger_name == stage.logger_name]
+    if not own:
+        return latest_run_started
+    if any((_parse_ts(e.timestamp) or datetime.min) >= latest_run_started for e in own):
+        return latest_run_started
+    done = [
+        i for i, e in enumerate(own)
+        if stage.completion_match.lower() in e.message.lower()
+    ]
+    if len(done) >= 2:
+        return _parse_ts(own[done[-2] + 1].timestamp)
+    return None
 
 
 def _parse_ts(ts: str | None) -> datetime | None:
@@ -424,20 +466,23 @@ def get_overview(project_root: Path) -> PipelineOverview:
         latest_run_detail = None  # SUCCESS is self-explanatory.
 
     stage_statuses: list[StageStatus] = []
+    run_in_progress = latest_run_status == STATUS_RUNNING
     for stage in PIPELINE_STAGES:
+        window_start = _stage_window(stage, events, latest_run_started, run_in_progress)
+        stage_status, stage_duration, stage_activity, stage_detail = _stage_execution(
+            stage, events, window_start,
+            execution_open=run_in_progress,
+            latest_execution_id=latest_execution_id,
+        )
         job_statuses = [
             _job_status(
-                project_root, events, job, latest_run_started,
-                execution_open=latest_run_status == STATUS_RUNNING,
+                project_root, events, job, window_start,
+                execution_open=run_in_progress,
                 latest_execution_id=latest_execution_id,
+                stage_status=stage_status,
             )
             for job in stage.jobs
         ]
-        stage_status, stage_duration, stage_activity, stage_detail = _stage_execution(
-            stage, events, latest_run_started,
-            execution_open=latest_run_status == STATUS_RUNNING,
-            latest_execution_id=latest_execution_id,
-        )
         stage_statuses.append(
             StageStatus(stage=stage, status=stage_status, jobs=job_statuses,
                         duration=stage_duration, last_activity=stage_activity,

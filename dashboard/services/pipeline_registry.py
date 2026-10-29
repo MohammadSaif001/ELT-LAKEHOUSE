@@ -78,11 +78,11 @@ PIPELINE_STAGES: list[Stage] = [
         jobs=[
             Job("orders", "Orders", "Order ingestion",
                 "storage/bronze/orders_delta"),
-            Job("order_items", "Order Items", "order item ingestion",
+            Job("order_items", "Order Items", "order items ingestion",
                 "storage/bronze/order_items_delta"),
             Job("payments", "Payments", "payment ingestion",
                 "storage/bronze/payments_delta"),
-            Job("reviews", "Reviews", "review ingestion",
+            Job("reviews", "Reviews", "reviews ingestion",
                 "storage/bronze/reviews_delta"),
             Job("sellers", "Sellers", "seller ingestion",
                 "storage/bronze/sellers_delta"),
@@ -90,6 +90,8 @@ PIPELINE_STAGES: list[Stage] = [
                 "storage/bronze/geolocation_delta"),
             Job("customers", "Customers", "customer ingestion",
                 "storage/bronze/customers_delta"),
+            Job("products", "Products", "product ingestion",
+                "storage/bronze/products_delta"),
         ],
     ),
     Stage(
