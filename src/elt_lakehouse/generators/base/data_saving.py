@@ -54,3 +54,35 @@ def save_generated_batches(
 
     logger.info("Saved generated batches: path=%s rows=%d", file_path, row_count)
     return row_count
+
+
+def write_tables(tables: Iterable[pa.Table], file_path: str | Path) -> int:
+    """Stream Arrow tables into one Parquet file and return the row count.
+
+    Later tables are cast to the first table's schema, so a chunk where a column
+    happens to be all null does not break the file.
+    """
+    file_path = Path(file_path)
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+
+    writer = None
+    row_count = 0
+    try:
+        for table in tables:
+            if table.num_rows == 0:
+                continue
+            if writer is None:
+                writer = pq.ParquetWriter(file_path, table.schema)
+            elif not table.schema.equals(writer.schema):
+                table = table.cast(writer.schema)
+            writer.write_table(table)
+            row_count += table.num_rows
+    finally:
+        if writer is not None:
+            writer.close()
+
+    if writer is None:
+        pq.write_table(pa.table({}), file_path)
+
+    logger.info("Saved tables: path=%s rows=%d", file_path, row_count)
+    return row_count

@@ -1,6 +1,5 @@
 """Revenue warehouse loading helpers."""
 
-
 import os
 
 from pyspark.sql import DataFrame

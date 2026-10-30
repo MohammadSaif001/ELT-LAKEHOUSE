@@ -13,7 +13,7 @@ GEN_CONFIG = load_yaml("generator_config.yaml")
 POOL_CONFIG = GEN_CONFIG.get("pool_sizes") or GEN_CONFIG.get("pool_size")
 
 
-def build_seller_pool() -> list:
+def build_seller_pool() -> int:
     """Generate and persist the configured seller pool."""
     pool_name = "seller_pool.parquet"
     seller_pool_size = None
@@ -29,9 +29,9 @@ def build_seller_pool() -> list:
         logger.info(
             "Seller pool generated successfully: file=%s, records=%d",
             pool_name,
-            len(sellers),
+            sellers,
         )
-        return sellers
+        return sellers  # row count
     except Exception:
         logger.exception(
             "Seller pool generation failed: pool=%s, size=%s",

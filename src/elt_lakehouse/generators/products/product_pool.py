@@ -13,21 +13,21 @@ POOL_CONFIG = GEN_CONFIG.get("pool_sizes") or GEN_CONFIG.get("pool_size")
 logger = get_logger(__name__)
 
 
-def build_product_pool() -> list:
+def build_product_pool() -> int:
     pool_name: str = "product_pool.parquet"
     PRODUCT_POOL: int = POOL_CONFIG["products"]
     try:
         logger.info("Generating product pool : size=%d ", PRODUCT_POOL)
-        products: list = build_pool(
+        products = build_pool(
             generator_function=generate_product, pool_name=pool_name, size=PRODUCT_POOL
         )
 
         logger.info(
             "Product pool generated successfully: file=%s, records=%d",
             pool_name,
-            len(products),
+            products,
         )
-        return products
+        return products  # row count
     except Exception:
         logger.exception(
             "Product pool generation failed: pool_name=%s, size=%d",

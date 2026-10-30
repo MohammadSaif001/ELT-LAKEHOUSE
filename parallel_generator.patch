@@ -1,0 +1,834 @@
+diff --git a/src/elt_lakehouse/generators/base/data_saving.py b/src/elt_lakehouse/generators/base/data_saving.py
+index 7716d96..dfd7ec6 100644
+--- a/src/elt_lakehouse/generators/base/data_saving.py
++++ b/src/elt_lakehouse/generators/base/data_saving.py
+@@ -55,3 +55,35 @@ def save_generated_batches(
+ 
+     logger.info("Saved generated batches: path=%s rows=%d", file_path, row_count)
+     return row_count
++
++
++def write_tables(tables: Iterable[pa.Table], file_path: str | Path) -> int:
++    """Stream Arrow tables into one Parquet file and return the row count.
++
++    Later tables are cast to the first table's schema, so a chunk where a column
++    happens to be all null does not break the file.
++    """
++    file_path = Path(file_path)
++    file_path.parent.mkdir(parents=True, exist_ok=True)
++
++    writer = None
++    row_count = 0
++    try:
++        for table in tables:
++            if table.num_rows == 0:
++                continue
++            if writer is None:
++                writer = pq.ParquetWriter(file_path, table.schema)
++            elif not table.schema.equals(writer.schema):
++                table = table.cast(writer.schema)
++            writer.write_table(table)
++            row_count += table.num_rows
++    finally:
++        if writer is not None:
++            writer.close()
++
++    if writer is None:
++        pq.write_table(pa.table({}), file_path)
++
++    logger.info("Saved tables: path=%s rows=%d", file_path, row_count)
++    return row_count
+diff --git a/src/elt_lakehouse/generators/base/parallel.py b/src/elt_lakehouse/generators/base/parallel.py
+new file mode 100644
+index 0000000..8c4e5bb
+--- /dev/null
++++ b/src/elt_lakehouse/generators/base/parallel.py
+@@ -0,0 +1,117 @@
++"""Process-based chunked execution for the CPU-bound data generators.
++
++Why processes: the generators are pure Python (random draws, dict building), so
++threads only help on a free-threaded build, and even there they contend on the
++global ``random`` state. Separate processes scale on any Python build.
++
++Design rules
++- Work is split into chunks. Each chunk gets its own seed, so workers never
++  repeat each other's random sequence.
++- Results come back in task order, so output files are deterministic in layout.
++- Only ``workers * 2`` chunks are in flight at once, so memory stays bounded.
++- Workers return Arrow tables (cheap to pickle); the parent only writes them.
++
++Environment variables
++- ``GENERATOR_WORKERS``: number of worker processes (default: cores - 2, max 8).
++- ``GENERATOR_START_METHOD``: ``fork`` (default on Linux/macOS) or ``spawn``.
++- ``GENERATOR_SEED``: integer base seed for the ``random`` module draws.
++  ``generate_id()`` uses ``uuid4`` and is not seeded, so IDs always differ.
++"""
++
++from __future__ import annotations
++
++import multiprocessing as mp
++import os
++import random
++from collections import deque
++from collections.abc import Callable, Iterable, Iterator
++from concurrent.futures import ProcessPoolExecutor
++from typing import Any
++
++import pyarrow as pa
++
++MAX_DEFAULT_WORKERS = 8
++
++
++def worker_count() -> int:
++    """Number of worker processes to use (1 means run in this process)."""
++    raw = os.environ.get("GENERATOR_WORKERS")
++    if raw:
++        return max(1, int(raw))
++    cores = os.cpu_count() or 1
++    return max(1, min(cores - 2, MAX_DEFAULT_WORKERS))
++
++
++def base_seed() -> int:
++    """Base seed for one run: from ``GENERATOR_SEED`` or fresh OS entropy."""
++    raw = os.environ.get("GENERATOR_SEED")
++    if raw:
++        return int(raw)
++    return int.from_bytes(os.urandom(8), "big")
++
++
++def chunk_seed(base: int, index: int) -> int:
++    """Distinct, stable seed for chunk ``index`` of a run."""
++    return (base * 1_000_003 + index * 7_919 + 12_345) % (2**63)
++
++
++def split_counts(total: int, chunk_size: int) -> list[int]:
++    """Split ``total`` rows into chunk sizes of at most ``chunk_size``."""
++    full, rest = divmod(total, chunk_size)
++    return [chunk_size] * full + ([rest] if rest else [])
++
++
++def rows_to_table(rows: list[dict]) -> pa.Table:
++    return pa.Table.from_pylist(rows)
++
++
++def _context() -> mp.context.BaseContext:
++    # fork keeps the already-imported modules (distributions, config, logging);
++    # spawn is the fallback where fork does not exist (Windows). Set
++    # GENERATOR_START_METHOD=spawn if fork ever hangs in a threaded parent.
++    method = os.environ.get("GENERATOR_START_METHOD")
++    if not method:
++        method = "fork" if "fork" in mp.get_all_start_methods() else "spawn"
++    return mp.get_context(method)
++
++
++def map_chunks(
++    fn: Callable[[Any], Any],
++    tasks: Iterable[Any],
++    *,
++    initializer: Callable[..., None] | None = None,
++    initargs: tuple = (),
++    workers: int | None = None,
++) -> Iterator[Any]:
++    """Yield ``fn(task)`` for every task, in task order, using worker processes.
++
++    ``fn`` and ``initializer`` must be module-level functions. ``tasks`` is
++    consumed lazily, so a generator of tasks keeps memory bounded.
++    """
++    workers = workers or worker_count()
++    if workers <= 1:
++        if initializer is not None:
++            initializer(*initargs)
++        for task in tasks:
++            yield fn(task)
++        return
++
++    window = workers * 2
++    with ProcessPoolExecutor(
++        max_workers=workers,
++        mp_context=_context(),
++        initializer=initializer,
++        initargs=initargs,
++    ) as executor:
++        pending: deque = deque()
++        for task in tasks:
++            pending.append(executor.submit(fn, task))
++            if len(pending) >= window:
++                yield pending.popleft().result()
++        while pending:
++            yield pending.popleft().result()
++
++
++def seed_this_process(seed: int) -> None:
++    """Seed the ``random`` module for one chunk."""
++    random.seed(seed)
+diff --git a/src/elt_lakehouse/generators/base/pool_builder.py b/src/elt_lakehouse/generators/base/pool_builder.py
+index 4e650dd..48b5ada 100644
+--- a/src/elt_lakehouse/generators/base/pool_builder.py
++++ b/src/elt_lakehouse/generators/base/pool_builder.py
+@@ -1,15 +1,52 @@
++from collections.abc import Callable, Iterator
+ 
++import pyarrow as pa
++
++from src.elt_lakehouse.generators.base.data_saving import write_tables
++from src.elt_lakehouse.generators.base.parallel import (
++    base_seed,
++    chunk_seed,
++    map_chunks,
++    rows_to_table,
++    seed_this_process,
++    split_counts,
++    worker_count,
++)
+ from src.elt_lakehouse.spark.common.logger import get_logger
++from src.elt_lakehouse.spark.common.paths import POOLS_DIR
+ 
+ logger = get_logger(__name__)
+-from src.elt_lakehouse.generators.base.pool_manager import save_pool
+ 
++POOL_CHUNK_SIZE = 50_000
++
++
++def _build_pool_chunk(task: tuple[Callable[[], dict], int, int]) -> pa.Table:
++    """Worker: generate ``count`` pool rows with this chunk's own seed."""
++    generator_function, count, seed = task
++    seed_this_process(seed)
++    return rows_to_table([generator_function() for _ in range(count)])
++
++
++def _pool_tasks(
++    generator_function: Callable[[], dict], size: int
++) -> Iterator[tuple[Callable[[], dict], int, int]]:
++    seed = base_seed()
++    for index, count in enumerate(split_counts(size, POOL_CHUNK_SIZE)):
++        yield generator_function, count, chunk_seed(seed, index)
++
++
++def build_pool(generator_function: Callable[[], dict], pool_name: str, size: int) -> int:
++    """Generate ``size`` pool rows in parallel chunks, save them, return the row count.
+ 
+-def build_pool(generator_function, pool_name: str, size: int) -> list:
+-    logger.info("Building pool: name=%s size=%d", pool_name, size)
+-    pool = []
+-    for _ in range(size):
+-        pool.append(generator_function())
+-    save_pool(pool, pool_name)
+-    logger.info("Pool built: name=%s rows=%d", pool_name, len(pool))
+-    return pool
++    ``generator_function`` must be a module-level function so worker processes
++    can import it. Rows are streamed to Parquet chunk by chunk, so the whole
++    pool is never held in memory.
++    """
++    logger.info(
++        "Building pool: name=%s size=%d workers=%d", pool_name, size, worker_count()
++    )
++    tables = map_chunks(_build_pool_chunk, _pool_tasks(generator_function, size))
++    parquet_path = POOLS_DIR / f"{pool_name.removesuffix('.parquet')}.parquet"
++    rows = write_tables(tables, parquet_path)
++    logger.info("Pool built: name=%s rows=%d", pool_name, rows)
++    return rows
+diff --git a/src/elt_lakehouse/generators/customers/customer_pool.py b/src/elt_lakehouse/generators/customers/customer_pool.py
+index 4556e7d..d1c104e 100644
+--- a/src/elt_lakehouse/generators/customers/customer_pool.py
++++ b/src/elt_lakehouse/generators/customers/customer_pool.py
+@@ -13,7 +13,7 @@ GEN_CONFIG = load_yaml("generator_config.yaml")
+ POOL_CONFIG = GEN_CONFIG.get("pool_sizes") or GEN_CONFIG.get("pool_size")
+ 
+ 
+-def build_customers_pool() -> list:
++def build_customers_pool() -> int:
+     """Generate and persist the configured customer pool."""
+     pool_name = "customer_pool.parquet"
+     customer_pool_size = POOL_CONFIG["customers"]
+@@ -28,9 +28,9 @@ def build_customers_pool() -> list:
+         logger.info(
+             "Customer pool generated successfully: file=%s, records=%d",
+             pool_name,
+-            len(customers),
++            customers,
+         )
+-        return customers
++        return customers  # row count
+     except Exception:
+         logger.exception(
+             "Customer pool generation failed: pool=%s, size=%d",
+diff --git a/src/elt_lakehouse/generators/orders/build_orders.py b/src/elt_lakehouse/generators/orders/build_orders.py
+index 8a7668e..100af88 100644
+--- a/src/elt_lakehouse/generators/orders/build_orders.py
++++ b/src/elt_lakehouse/generators/orders/build_orders.py
+@@ -1,82 +1,58 @@
+-import os
+-import sys
+-import tempfile
+-from collections.abc import Iterator
+-from concurrent.futures import ThreadPoolExecutor
+ from datetime import datetime, timezone
+ from pathlib import Path
+ 
++import pyarrow as pa
+ import pyarrow.parquet as pq
+ 
+ from config.config_loader import load_yaml
+-from src.elt_lakehouse.generators.base.data_loading import load_generated_data
+-from src.elt_lakehouse.generators.base.data_saving import (
+-    save_generated_batches,
+-    save_generated_data,
++from src.elt_lakehouse.generators.base.data_saving import write_tables
++from src.elt_lakehouse.generators.base.parallel import (
++    base_seed,
++    chunk_seed,
++    map_chunks,
++    rows_to_table,
++    seed_this_process,
++    split_counts,
++    worker_count,
+ )
++from src.elt_lakehouse.generators.base.pool_manager import load_pool_column
+ from src.elt_lakehouse.generators.orders.order_generator import generate_order
+ from src.elt_lakehouse.generators.orders.order_item_generator import (
+     generate_order_items,
+ )
+-from src.elt_lakehouse.generators.base.pool_manager import load_pool_column
+ from src.elt_lakehouse.spark.common.logger import get_logger
+ 
+ logger = get_logger(__name__)
+ 
+-ORDER_BATCH_SIZE = 20_000
+-ORDER_MAX_WORKERS = 4
+-
+-
+-def _order_batches(
+-    customer_ids: list[str], record_count: int, batch_size: int
+-) -> Iterator[list[dict]]:
+-    for batch_start in range(0, record_count, batch_size):
+-        batch_count = min(batch_size, record_count - batch_start)
+-        yield [
+-            generate_order(customer_ids=customer_ids) for _ in range(batch_count)
+-        ]
+-
+-
+-def _write_order_shard(args: tuple[int, int, str, list[str]]) -> tuple[str, int]:
+-    shard_index, record_count, shard_dir, customer_ids = args
+-    worker_count = min(ORDER_MAX_WORKERS, max(1, os.cpu_count() or 1))
+-    shard_start = record_count * shard_index // worker_count
+-    shard_end = record_count * (shard_index + 1) // worker_count
+-    shard_count = shard_end - shard_start
+-    shard_name = f"orders-part-{shard_index}.parquet"
+-    shard_dir_path = Path(shard_dir)
+-
+-    written_rows = save_generated_batches(
+-        _order_batches(customer_ids, shard_count, ORDER_BATCH_SIZE),
+-        shard_name,
+-        str(shard_dir_path),
+-    )
+-    return str(shard_dir_path / shard_name), written_rows
++ORDER_CHUNK_SIZE = 25_000  # orders generated per task
++ITEM_CHUNK_ORDERS = 20_000  # orders turned into items per task
+ 
++# Read-only inputs, set once per worker process by the pool initializers.
++_CUSTOMER_IDS: list[str] = []
++_PRODUCT_IDS: list[str] = []
++_SELLER_IDS: list[str] = []
+ 
+-def _merge_order_shards(shards: list[tuple[str, int]], output_path: Path) -> int:
+-    writer = None
+-    row_count = 0
+-    try:
+-        for shard_path, _ in shards:
+-            parquet_file = pq.ParquetFile(shard_path)
+-            for record_batch in parquet_file.iter_batches(batch_size=65_536):
+-                if writer is None:
+-                    writer = pq.ParquetWriter(output_path, record_batch.schema)
+-                writer.write_batch(record_batch)
+-                row_count += record_batch.num_rows
+-    finally:
+-        if writer is not None:
+-            writer.close()
+-    return row_count
+ 
+ # ==========================
+ # Order Builder
+ # ==========================
+ 
+ 
++def _init_order_worker(customer_ids: list[str]) -> None:
++    global _CUSTOMER_IDS
++    _CUSTOMER_IDS = customer_ids
++
++
++def _order_chunk(task: tuple[int, int]) -> pa.Table:
++    count, seed = task
++    seed_this_process(seed)
++    return rows_to_table(
++        [generate_order(customer_ids=_CUSTOMER_IDS) for _ in range(count)]
++    )
++
++
+ def build_orders(output_dir: str) -> None:
+-    """Generates order records and saves them to generated storage."""
++    """Generates order records in parallel chunks and saves them to generated storage."""
+     GEN_CONFIG = load_yaml("generator_config.yaml")["dataset_volume"]
+     record_count: int = GEN_CONFIG["orders"]
+     output_name: str = "generated_orders_data.parquet"
+@@ -84,35 +60,27 @@ def build_orders(output_dir: str) -> None:
+ 
+     try:
+         logger.info(
+-            "Starting order generation: records=%d, output_dir=%s",
++            "Starting order generation: records=%d, output_dir=%s, workers=%d",
+             record_count,
+             output_dir,
++            worker_count(),
+         )
+         customer_ids = load_pool_column("customer_pool.parquet", "customer_id")
+         output_path = Path(output_dir)
+         output_path.mkdir(parents=True, exist_ok=True)
+-        gil_enabled = getattr(sys, "_is_gil_enabled", lambda: True)()
+-        worker_count = min(ORDER_MAX_WORKERS, max(1, os.cpu_count() or 1))
+-
+-        if not gil_enabled and worker_count > 1 and record_count >= ORDER_BATCH_SIZE * worker_count:
+-            with tempfile.TemporaryDirectory(
+-                prefix=".orders-", dir=output_path
+-            ) as shard_dir:
+-                shard_tasks = [
+-                    (index, record_count, shard_dir, customer_ids)
+-                    for index in range(worker_count)
+-                ]
+-                with ThreadPoolExecutor(max_workers=worker_count) as executor:
+-                    shards = list(executor.map(_write_order_shard, shard_tasks))
+-                generated_count = _merge_order_shards(
+-                    shards, output_path / output_name
+-                )
+-        else:
+-            generated_count = save_generated_batches(
+-                _order_batches(customer_ids, record_count, ORDER_BATCH_SIZE),
+-                output_name,
+-                str(output_path),
+-            )
++
++        seed = base_seed()
++        tasks = (
++            (count, chunk_seed(seed, index))
++            for index, count in enumerate(split_counts(record_count, ORDER_CHUNK_SIZE))
++        )
++        tables = map_chunks(
++            _order_chunk,
++            tasks,
++            initializer=_init_order_worker,
++            initargs=(customer_ids,),
++        )
++        generated_count = write_tables(tables, output_path / output_name)
+ 
+         duration_seconds: float = (
+             datetime.now(timezone.utc) - started_at
+@@ -139,50 +107,82 @@ def build_orders(output_dir: str) -> None:
+ # ==========================
+ 
+ 
++def _init_item_worker(product_ids: list[str], seller_ids: list[str]) -> None:
++    global _PRODUCT_IDS, _SELLER_IDS
++    _PRODUCT_IDS = product_ids
++    _SELLER_IDS = seller_ids
++
++
++def _item_chunk(task: tuple[list[dict], int]) -> pa.Table:
++    orders, seed = task
++    seed_this_process(seed)
++    items: list[dict] = []
++    for order in orders:
++        # Source timestamps are intentionally naive and follow the Olist format.
++        items.extend(
++            generate_order_items(
++                order_id=order["order_id"],
++                purchase_timestamp=datetime.fromisoformat(
++                    order["order_purchase_timestamp"]
++                ),
++                products=_PRODUCT_IDS,
++                sellers=_SELLER_IDS,
++            )
++        )
++    return rows_to_table(items)
++
++
++def _order_batches(orders_path: Path):
++    """Yield (order_id, purchase_timestamp) rows from the orders file in bounded batches."""
++    parquet_file = pq.ParquetFile(orders_path)
++    for batch in parquet_file.iter_batches(
++        batch_size=ITEM_CHUNK_ORDERS,
++        columns=["order_id", "order_purchase_timestamp"],
++    ):
++        yield batch.to_pylist()
++
++
+ def build_order_items(output_dir: str) -> None:
+     """Generates order item records corresponding to existing orders and saves them."""
+ 
+-    orders_file: str = "generated_orders_data.parquet" 
++    orders_file: str = "generated_orders_data.parquet"
+     output_file: str = "generated_order_items_data.parquet"
+     started_at: datetime = datetime.now(timezone.utc)
+ 
+     try:
++        orders_path = Path(output_dir) / orders_file
+         logger.info("Loading orders: file=%s", orders_file)
+-        orders = load_generated_data(orders_file, base_dir=output_dir)
++        if not orders_path.exists():
++            raise FileNotFoundError(f"Generated data file not found: {orders_path}")
++        order_count = pq.ParquetFile(orders_path).metadata.num_rows
+         logger.info("Loading product and seller IDs form pools")
+         product_pool = load_pool_column("product_pool.parquet", "product_id")
+         seller_pool = load_pool_column("seller_pool.parquet", "seller_id")
+ 
+-        logger.info("Generating order items : records=%d", len(orders))
+-        all_order_items: list = []
+-        for order in orders:
+-            # Source timestamps are intentionally naive and follow the Olist format.
+-            purchase_timestamp: datetime = datetime.fromisoformat(
+-                order["order_purchase_timestamp"]
+-            )
+-            items: list = generate_order_items(
+-                order_id=order["order_id"],
+-                purchase_timestamp=purchase_timestamp,
+-                products=product_pool,
+-                sellers=seller_pool,
+-            )
+-            all_order_items.extend(items)
+-
+         logger.info(
+-            "Saving order-item dataset: orders=%d , records=%d , file=%s, output_dir=%s",
+-            len(orders),
+-            len(all_order_items),
+-            output_file,
+-            output_dir,
++            "Generating order items : records=%d, workers=%d",
++            order_count,
++            worker_count(),
++        )
++        seed = base_seed()
++        tasks = (
++            (orders, chunk_seed(seed, index))
++            for index, orders in enumerate(_order_batches(orders_path))
++        )
++        tables = map_chunks(
++            _item_chunk,
++            tasks,
++            initializer=_init_item_worker,
++            initargs=(product_pool, seller_pool),
+         )
+-        save_generated_data(all_order_items, output_file, output_dir)
++        item_count = write_tables(tables, Path(output_dir) / output_file)
+ 
+         duration_seconds: float = (
+             datetime.now(timezone.utc) - started_at
+         ).total_seconds()
+         logger.info(
+             "Order item dataset generated successfully: records=%d, path=%s/%s, duration_s=%.2f",
+-            len(all_order_items),
++            item_count,
+             output_dir,
+             output_file,
+             duration_seconds,
+diff --git a/src/elt_lakehouse/generators/orders/order_generator.py b/src/elt_lakehouse/generators/orders/order_generator.py
+index 101126b..999ef2b 100644
+--- a/src/elt_lakehouse/generators/orders/order_generator.py
++++ b/src/elt_lakehouse/generators/orders/order_generator.py
+@@ -4,7 +4,6 @@ from src.elt_lakehouse.spark.common.logger import get_logger
+ logger = get_logger(__name__)
+ import random
+ from datetime import datetime, timedelta
+-from turtle import st
+ 
+ from config.config_loader import load_yaml
+ from src.elt_lakehouse.generators.base.distribution_loader import (
+diff --git a/src/elt_lakehouse/generators/products/product_pool.py b/src/elt_lakehouse/generators/products/product_pool.py
+index 78c7f32..2fac00b 100644
+--- a/src/elt_lakehouse/generators/products/product_pool.py
++++ b/src/elt_lakehouse/generators/products/product_pool.py
+@@ -13,21 +13,21 @@ POOL_CONFIG = GEN_CONFIG.get("pool_sizes") or GEN_CONFIG.get("pool_size")
+ logger = get_logger(__name__)
+ 
+ 
+-def build_product_pool() -> list:
++def build_product_pool() -> int:
+     pool_name: str = "product_pool.parquet"
+     PRODUCT_POOL: int = POOL_CONFIG["products"]
+     try:
+         logger.info("Generating product pool : size=%d ", PRODUCT_POOL)
+-        products: list = build_pool(
++        products = build_pool(
+             generator_function=generate_product, pool_name=pool_name, size=PRODUCT_POOL
+         )
+ 
+         logger.info(
+             "Product pool generated successfully: file=%s, records=%d",
+             pool_name,
+-            len(products),
++            products,
+         )
+-        return products
++        return products  # row count
+     except Exception:
+         logger.exception(
+             "Product pool generation failed: pool_name=%s, size=%d",
+diff --git a/src/elt_lakehouse/generators/reviews/build_reviews.py b/src/elt_lakehouse/generators/reviews/build_reviews.py
+index 8f274c3..e082fae 100644
+--- a/src/elt_lakehouse/generators/reviews/build_reviews.py
++++ b/src/elt_lakehouse/generators/reviews/build_reviews.py
+@@ -1,17 +1,57 @@
+ from datetime import datetime, timezone
++from pathlib import Path
+ 
+-from src.elt_lakehouse.generators.base.data_loading import load_generated_data
+-from src.elt_lakehouse.generators.base.data_saving import save_generated_data
++import pyarrow as pa
++import pyarrow.compute as pc
++import pyarrow.parquet as pq
++
++from src.elt_lakehouse.generators.base.data_saving import write_tables
++from src.elt_lakehouse.generators.base.parallel import (
++    base_seed,
++    chunk_seed,
++    map_chunks,
++    rows_to_table,
++    seed_this_process,
++    worker_count,
++)
+ from src.elt_lakehouse.generators.reviews.review_generator import generate_review
+ from src.elt_lakehouse.spark.common.logger import get_logger
+ 
+ logger = get_logger(__name__)
+ 
++REVIEW_CHUNK_ORDERS = 20_000
++_ORDER_COLUMNS = [
++    "order_id",
++    "order_status",
++    "order_purchase_timestamp",
++    "order_estimated_delivery_date",
++    "order_delivered_customer_date",
++]
++
+ # =========================
+ # Review Builder
+ # =========================
+ 
+ 
++def _review_chunk(task: tuple[list[dict], int]) -> pa.Table:
++    orders, seed = task
++    seed_this_process(seed)
++    return rows_to_table([generate_review(order) for order in orders])
++
++
++def _delivered_batches(orders_path: Path, counts: dict[str, int]):
++    """Yield delivered orders in bounded batches; ``counts`` is filled as we go."""
++    parquet_file = pq.ParquetFile(orders_path)
++    for batch in parquet_file.iter_batches(
++        batch_size=REVIEW_CHUNK_ORDERS, columns=_ORDER_COLUMNS
++    ):
++        counts["total"] += batch.num_rows
++        delivered = batch.filter(pc.equal(batch["order_status"], "delivered"))
++        counts["delivered"] += delivered.num_rows
++        if delivered.num_rows:
++            yield delivered.to_pylist()
++
++
+ def build_reviews(output_dir: str) -> None:
+     """Generates reviews only for delivered orders and saves to generated storage."""
+ 
+@@ -20,36 +60,33 @@ def build_reviews(output_dir: str) -> None:
+     started_at: datetime = datetime.now(timezone.utc)
+ 
+     try:
++        orders_path = Path(output_dir) / orders_file
+         logger.info("Loading generated orders: file=%s", orders_file)
+-        orders = load_generated_data(orders_file, base_dir=output_dir)
+-
+-        delivered_orders: list = [
+-            order for order in orders if order["order_status"] == "delivered"
+-        ]
++        if not orders_path.exists():
++            raise FileNotFoundError(f"Generated data file not found: {orders_path}")
+ 
+-        logger.info(
+-            "Generating reviews: total_orders=%d, delivered_orders=%d",
+-            len(orders),
+-            len(delivered_orders),
++        logger.info("Generating reviews: workers=%d", worker_count())
++        counts = {"total": 0, "delivered": 0}
++        seed = base_seed()
++        tasks = (
++            (orders, chunk_seed(seed, index))
++            for index, orders in enumerate(_delivered_batches(orders_path, counts))
++        )
++        review_count = write_tables(
++            map_chunks(_review_chunk, tasks), Path(output_dir) / output_file
+         )
+-
+-        reviews: list = [generate_review(order) for order in delivered_orders]
+-
+         logger.info(
+-            "Saving reviews: records=%d, file=%s, output_dir=%s",
+-            len(reviews),
+-            output_file,
+-            output_dir,
++            "Generated reviews: total_orders=%d, delivered_orders=%d",
++            counts["total"],
++            counts["delivered"],
+         )
+ 
+-        save_generated_data(reviews, output_file, output_dir)
+-
+         duration_seconds: float = (
+             datetime.now(timezone.utc) - started_at
+         ).total_seconds()
+         logger.info(
+             "Review dataset generated successfully: records=%d, path=%s/%s, duration_s=%.2f",
+-            len(reviews),
++            review_count,
+             output_dir,
+             output_file,
+             duration_seconds,
+diff --git a/src/elt_lakehouse/generators/sellers/seller_pool.py b/src/elt_lakehouse/generators/sellers/seller_pool.py
+index 914c889..b9dd462 100644
+--- a/src/elt_lakehouse/generators/sellers/seller_pool.py
++++ b/src/elt_lakehouse/generators/sellers/seller_pool.py
+@@ -13,7 +13,7 @@ GEN_CONFIG = load_yaml("generator_config.yaml")
+ POOL_CONFIG = GEN_CONFIG.get("pool_sizes") or GEN_CONFIG.get("pool_size")
+ 
+ 
+-def build_seller_pool() -> list:
++def build_seller_pool() -> int:
+     """Generate and persist the configured seller pool."""
+     pool_name = "seller_pool.parquet"
+     seller_pool_size = None
+@@ -29,9 +29,9 @@ def build_seller_pool() -> list:
+         logger.info(
+             "Seller pool generated successfully: file=%s, records=%d",
+             pool_name,
+-            len(sellers),
++            sellers,
+         )
+-        return sellers
++        return sellers  # row count
+     except Exception:
+         logger.exception(
+             "Seller pool generation failed: pool=%s, size=%s",
+diff --git a/tests/unit/test_parallel_generators.py b/tests/unit/test_parallel_generators.py
+new file mode 100644
+index 0000000..651f7c0
+--- /dev/null
++++ b/tests/unit/test_parallel_generators.py
+@@ -0,0 +1,114 @@
++"""Tests for the process-parallel, chunked generators."""
++
++import random
++
++import pyarrow as pa
++import pyarrow.parquet as pq
++import pytest
++
++from src.elt_lakehouse.generators.base import parallel, pool_builder, pool_manager
++from src.elt_lakehouse.generators.base.data_saving import write_tables
++from src.elt_lakehouse.generators.customers.customer_generator import generate_customer
++from src.elt_lakehouse.generators.orders import build_orders as bo
++from src.elt_lakehouse.generators.products.product_generator import generate_product
++from src.elt_lakehouse.generators.reviews import build_reviews as br
++from src.elt_lakehouse.generators.sellers.seller_generator import generate_seller
++
++
++def _draw(task):
++    count, seed = task
++    parallel.seed_this_process(seed)
++    return [random.random() for _ in range(count)]
++
++
++def _tasks(n_chunks, size=50, base=7):
++    return [(size, parallel.chunk_seed(base, i)) for i in range(n_chunks)]
++
++
++def test_split_counts():
++    assert parallel.split_counts(10, 4) == [4, 4, 2]
++    assert parallel.split_counts(8, 4) == [4, 4]
++    assert parallel.split_counts(0, 4) == []
++
++
++def test_chunks_use_different_random_streams():
++    chunks = list(parallel.map_chunks(_draw, _tasks(6), workers=3))
++    flat = [x for chunk in chunks for x in chunk]
++    assert len(flat) == 300
++    assert len(set(flat)) == 300  # no worker repeated another worker's sequence
++
++
++def test_results_keep_task_order_and_match_serial():
++    parallel_out = list(parallel.map_chunks(_draw, _tasks(8), workers=4))
++    serial_out = list(parallel.map_chunks(_draw, _tasks(8), workers=1))
++    assert parallel_out == serial_out
++
++
++def test_seed_env_makes_run_reproducible(monkeypatch):
++    monkeypatch.setenv("GENERATOR_SEED", "123")
++    assert parallel.base_seed() == parallel.base_seed() == 123
++    monkeypatch.delenv("GENERATOR_SEED")
++    assert parallel.base_seed() != parallel.base_seed()
++
++
++def test_worker_count_env_and_default(monkeypatch):
++    monkeypatch.setenv("GENERATOR_WORKERS", "3")
++    assert parallel.worker_count() == 3
++    monkeypatch.delenv("GENERATOR_WORKERS")
++    assert 1 <= parallel.worker_count() <= parallel.MAX_DEFAULT_WORKERS
++
++
++def test_write_tables_casts_all_null_chunk(tmp_path):
++    first = pa.table({"a": pa.array(["x"], pa.string())})
++    second = pa.table({"a": pa.array([None], pa.null())})
++    path = tmp_path / "t.parquet"
++    assert write_tables([first, second], path) == 2
++    assert pq.read_table(path).num_rows == 2
++
++
++@pytest.fixture
++def small_world(tmp_path, monkeypatch):
++    pools = tmp_path / "pools"
++    pools.mkdir()
++    monkeypatch.setenv("GENERATOR_WORKERS", "2")
++    monkeypatch.setattr(pool_builder, "POOLS_DIR", pools)
++    monkeypatch.setattr(pool_builder, "POOL_CHUNK_SIZE", 40)
++    monkeypatch.setattr(pool_manager._pool_loader, "pools_dir", pools)
++    pool_manager._pool_loader._column_cache.clear()
++    pool_manager._pool_loader._pool_cache.clear()
++    monkeypatch.setattr(bo, "ORDER_CHUNK_SIZE", 70)
++    monkeypatch.setattr(bo, "ITEM_CHUNK_ORDERS", 60)
++    monkeypatch.setattr(br, "REVIEW_CHUNK_ORDERS", 60)
++    monkeypatch.setattr(
++        bo, "load_yaml", lambda name: {"dataset_volume": {"orders": 400}}
++    )
++    return tmp_path
++
++
++def test_full_generation_flow(small_world):
++    assert pool_builder.build_pool(generate_customer, "customer_pool.parquet", 130) == 130
++    assert pool_builder.build_pool(generate_product, "product_pool.parquet", 90) == 90
++    assert pool_builder.build_pool(generate_seller, "seller_pool.parquet", 50) == 50
++
++    customers = pq.read_table(small_world / "pools" / "customer_pool.parquet")
++    assert len(set(customers["customer_id"].to_pylist())) == 130
++
++    out = str(small_world / "generated")
++    bo.build_orders(out)
++    bo.build_order_items(out)
++    br.build_reviews(out)
++
++    orders = pq.read_table(f"{out}/generated_orders_data.parquet").to_pylist()
++    items = pq.read_table(f"{out}/generated_order_items_data.parquet").to_pylist()
++    reviews = pq.read_table(f"{out}/generated_reviews_data.parquet").to_pylist()
++
++    assert len(orders) == 400
++    assert len({o["order_id"] for o in orders}) == 400
++    assert {i["order_id"] for i in items} <= {o["order_id"] for o in orders}
++    assert {i["order_id"] for i in items} == {o["order_id"] for o in orders}
++    assert all(i["order_item_id"] >= 1 for i in items)
++
++    delivered = {o["order_id"] for o in orders if o["order_status"] == "delivered"}
++    assert delivered, "test data should contain delivered orders"
++    assert {r["order_id"] for r in reviews} == delivered
++    assert len({r["review_id"] for r in reviews}) == len(reviews)
