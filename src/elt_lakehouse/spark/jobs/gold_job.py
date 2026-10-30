@@ -4,13 +4,12 @@ from __future__ import annotations
 
 import os
 import tempfile
-from time import perf_counter
 from pathlib import Path
+from time import perf_counter
 
 import yaml
 
 from config.config_loader import load_yaml
-
 from src.elt_lakehouse.spark.common.logger import get_logger, log_duration
 from src.elt_lakehouse.spark.common.paths import PROJECT_ROOT
 
@@ -146,9 +145,9 @@ def _run_dbt() -> None:
                 "DBT_PROFILE_NAME": DBT_CONFIG["profile_name"],
                 "DBT_FILE_FORMAT": DBT_CONFIG["file_format"],
                 "DBT_SILVER_SCHEMA": DBT_CONFIG["silver_schema"],
-                "GOLD_LOCATION_ROOT": (
-                    PROJECT_ROOT / DBT_CONFIG["gold_location"]
-                ).resolve().as_uri(),
+                "GOLD_LOCATION_ROOT": (PROJECT_ROOT / DBT_CONFIG["gold_location"])
+                .resolve()
+                .as_uri(),
             }
             previous_values = {key: os.environ.get(key) for key in environment}
             os.environ.update(environment)

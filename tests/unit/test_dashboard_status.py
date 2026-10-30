@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
 import json
+from datetime import datetime, timedelta, timezone
 
 from fastapi.testclient import TestClient
+
 from dashboard import app as dashboard_app
 from dashboard.services import dbt_reader, health_service, log_reader, status_service
 from dashboard.services.dbt_reader import DbtRunSummary, DbtTestResult
@@ -20,21 +21,24 @@ def _log_line(timestamp, level, logger, message):
 
 
 def test_log_reader_parses_structured_runtime_context(tmp_path):
-    _write_log(tmp_path, [
-        _log_line(
-            "2026-10-29 01:00:00",
-            "INFO",
-            "src.elt_lakehouse.spark.jobs.gold_job",
-            'Running dbt Gold build started command=build target=local '
-            'project_dir="/workspace/dbt gold"',
-        ),
-        _log_line(
-            "2026-10-29 01:00:01",
-            "CRITICAL",
-            "elt_pipeline",
-            "Pipeline failed with a critical error.",
-        ),
-    ])
+    _write_log(
+        tmp_path,
+        [
+            _log_line(
+                "2026-10-29 01:00:00",
+                "INFO",
+                "src.elt_lakehouse.spark.jobs.gold_job",
+                "Running dbt Gold build started command=build target=local "
+                'project_dir="/workspace/dbt gold"',
+            ),
+            _log_line(
+                "2026-10-29 01:00:01",
+                "CRITICAL",
+                "elt_pipeline",
+                "Pipeline failed with a critical error.",
+            ),
+        ],
+    )
 
     events = log_reader.read_events(tmp_path)
 
@@ -48,29 +52,34 @@ def test_log_reader_parses_structured_runtime_context(tmp_path):
 
 
 def test_gold_stage_uses_new_completion_message(tmp_path):
-    _write_log(tmp_path, [
-        _log_line(
-            "2026-10-29 01:00:00",
-            "INFO",
-            "__main__",
-            "Starting ELT pipeline...",
-        ),
-        _log_line(
-            "2026-10-29 01:00:02",
-            "INFO",
-            "src.elt_lakehouse.spark.jobs.gold_job",
-            "Gold layer build completed successfully.",
-        ),
-        _log_line(
-            "2026-10-29 01:00:03",
-            "INFO",
-            "__main__",
-            "ELT pipeline completed successfully in 3.00 seconds.",
-        ),
-    ])
+    _write_log(
+        tmp_path,
+        [
+            _log_line(
+                "2026-10-29 01:00:00",
+                "INFO",
+                "__main__",
+                "Starting ELT pipeline...",
+            ),
+            _log_line(
+                "2026-10-29 01:00:02",
+                "INFO",
+                "src.elt_lakehouse.spark.jobs.gold_job",
+                "Gold layer build completed successfully.",
+            ),
+            _log_line(
+                "2026-10-29 01:00:03",
+                "INFO",
+                "__main__",
+                "ELT pipeline completed successfully in 3.00 seconds.",
+            ),
+        ],
+    )
 
     overview = status_service.get_overview(tmp_path)
-    gold = next(stage for stage in overview.stages if stage.stage.key == "gold_transformation")
+    gold = next(
+        stage for stage in overview.stages if stage.stage.key == "gold_transformation"
+    )
 
     assert gold.status == status_service.STATUS_SUCCESS
 
@@ -81,11 +90,19 @@ def test_incomplete_latest_run_does_not_inherit_old_success_or_output(tmp_path):
     old_start = old.strftime("%Y-%m-%d %H:%M:%S")
     old_finish = (old + timedelta(seconds=14)).strftime("%Y-%m-%d %H:%M:%S")
     latest_start = current.strftime("%Y-%m-%d %H:%M:%S")
-    _write_log(tmp_path, [
-        _log_line(old_start, "INFO", "__main__", "Starting ELT pipeline..."),
-        _log_line(old_finish, "INFO", "__main__", "ELT pipeline completed successfully in 14.00 seconds."),
-        _log_line(latest_start, "INFO", "__main__", "Starting ELT pipeline..."),
-    ])
+    _write_log(
+        tmp_path,
+        [
+            _log_line(old_start, "INFO", "__main__", "Starting ELT pipeline..."),
+            _log_line(
+                old_finish,
+                "INFO",
+                "__main__",
+                "ELT pipeline completed successfully in 14.00 seconds.",
+            ),
+            _log_line(latest_start, "INFO", "__main__", "Starting ELT pipeline..."),
+        ],
+    )
     output = tmp_path / "storage/generated/generated_customers_data.json"
     output.parent.mkdir(parents=True)
     output.write_text("{}", encoding="utf-8")
@@ -99,23 +116,43 @@ def test_incomplete_latest_run_does_not_inherit_old_success_or_output(tmp_path):
     assert overview.last_run_duration is None
     assert overview.last_successful_run == old_finish
     assert overview.stages[0].status == status_service.STATUS_UNKNOWN
-    assert next(check for check in health.checks if check.key == "last_run").status == health_service.HEALTH_WARN
+    assert (
+        next(check for check in health.checks if check.key == "last_run").status
+        == health_service.HEALTH_WARN
+    )
 
 
 def test_stage_completion_and_duration_come_from_stage_log(tmp_path):
     started = datetime.now() - timedelta(seconds=5)
     completed = datetime.now()
-    _write_log(tmp_path, [
-        _log_line(started.strftime("%Y-%m-%d %H:%M:%S"), "INFO", "__main__", "Starting ELT pipeline..."),
-        _log_line(completed.strftime("%Y-%m-%d %H:%M:%S"), "INFO",
-                  "src.elt_lakehouse.spark.jobs.dataset_job",
-                  "Dataset generation completed successfully in duration_s=4.75"),
-        _log_line(completed.strftime("%Y-%m-%d %H:%M:%S"), "INFO", "__main__",
-                  "ELT pipeline completed successfully in 5.00 seconds."),
-    ])
+    _write_log(
+        tmp_path,
+        [
+            _log_line(
+                started.strftime("%Y-%m-%d %H:%M:%S"),
+                "INFO",
+                "__main__",
+                "Starting ELT pipeline...",
+            ),
+            _log_line(
+                completed.strftime("%Y-%m-%d %H:%M:%S"),
+                "INFO",
+                "src.elt_lakehouse.spark.jobs.dataset_job",
+                "Dataset generation completed successfully in duration_s=4.75",
+            ),
+            _log_line(
+                completed.strftime("%Y-%m-%d %H:%M:%S"),
+                "INFO",
+                "__main__",
+                "ELT pipeline completed successfully in 5.00 seconds.",
+            ),
+        ],
+    )
 
     overview = status_service.get_overview(tmp_path)
-    dataset = next(stage for stage in overview.stages if stage.stage.key == "dataset_generation")
+    dataset = next(
+        stage for stage in overview.stages if stage.stage.key == "dataset_generation"
+    )
 
     assert overview.latest_run_status == status_service.STATUS_SUCCESS
     assert overview.last_run_duration is not None
@@ -126,19 +163,37 @@ def test_stage_completion_and_duration_come_from_stage_log(tmp_path):
 def test_stage_failure_is_not_hidden_by_existing_output(tmp_path):
     started = datetime.now() - timedelta(seconds=2)
     failed = datetime.now()
-    _write_log(tmp_path, [
-        _log_line(started.strftime("%Y-%m-%d %H:%M:%S"), "INFO", "__main__", "Starting ELT pipeline..."),
-        _log_line(failed.strftime("%Y-%m-%d %H:%M:%S"), "ERROR",
-                  "src.elt_lakehouse.spark.jobs.silver_job", "Silver layer processing failed."),
-        _log_line(failed.strftime("%Y-%m-%d %H:%M:%S"), "ERROR", "__main__",
-                  "Pipeline failed with a critical error."),
-    ])
+    _write_log(
+        tmp_path,
+        [
+            _log_line(
+                started.strftime("%Y-%m-%d %H:%M:%S"),
+                "INFO",
+                "__main__",
+                "Starting ELT pipeline...",
+            ),
+            _log_line(
+                failed.strftime("%Y-%m-%d %H:%M:%S"),
+                "ERROR",
+                "src.elt_lakehouse.spark.jobs.silver_job",
+                "Silver layer processing failed.",
+            ),
+            _log_line(
+                failed.strftime("%Y-%m-%d %H:%M:%S"),
+                "ERROR",
+                "__main__",
+                "Pipeline failed with a critical error.",
+            ),
+        ],
+    )
     silver_output = tmp_path / "storage" / "silver" / "customers_silver"
     silver_output.mkdir(parents=True)
     (silver_output / "part-000.parquet").write_bytes(b"existing")
 
     overview = status_service.get_overview(tmp_path)
-    silver = next(stage for stage in overview.stages if stage.stage.key == "silver_transformation")
+    silver = next(
+        stage for stage in overview.stages if stage.stage.key == "silver_transformation"
+    )
 
     assert overview.latest_run_status == status_service.STATUS_FAILED
     assert silver.status == status_service.STATUS_FAILED
@@ -153,17 +208,42 @@ def test_dashboard_routes_render_with_unknown_metrics(tmp_path, monkeypatch):
     )
     dbt_target = tmp_path / "dbt_gold" / "target"
     dbt_target.mkdir(parents=True)
-    (dbt_target / "run_results.json").write_text(json.dumps({
-        "metadata": {"generated_at": "2026-10-25T12:00:00Z"},
-        "results": [
-            {"unique_id": "test.project.sample_check.abcdef123456", "status": "pass", "failures": 0},
-            {"unique_id": "test.project.failed_check.c35b36c6fa", "status": "fail", "failures": 3},
-            {"unique_id": "model.project.dim_customer", "status": "success", "execution_time": 1.25},
-        ],
-    }), encoding="utf-8")
+    (dbt_target / "run_results.json").write_text(
+        json.dumps(
+            {
+                "metadata": {"generated_at": "2026-10-25T12:00:00Z"},
+                "results": [
+                    {
+                        "unique_id": "test.project.sample_check.abcdef123456",
+                        "status": "pass",
+                        "failures": 0,
+                    },
+                    {
+                        "unique_id": "test.project.failed_check.c35b36c6fa",
+                        "status": "fail",
+                        "failures": 3,
+                    },
+                    {
+                        "unique_id": "model.project.dim_customer",
+                        "status": "success",
+                        "execution_time": 1.25,
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
     client = TestClient(dashboard_app.app)
 
-    for route in ("/", "/pipeline-run", "/data-quality", "/storage-health", "/technical-details", "/gold-layer", "/stage/pool_generation"):
+    for route in (
+        "/",
+        "/pipeline-run",
+        "/data-quality",
+        "/storage-health",
+        "/technical-details",
+        "/gold-layer",
+        "/stage/pool_generation",
+    ):
         response = client.get(route)
         assert response.status_code == 200, route
         assert response.headers["Cache-Control"] == "no-store"
@@ -194,24 +274,49 @@ def test_dashboard_routes_render_with_unknown_metrics(tmp_path, monkeypatch):
 def test_dbt_run_results_reader_reports_tests_without_exposing_environment(tmp_path):
     target = tmp_path / "dbt_gold" / "target"
     target.mkdir(parents=True)
-    (target / "run_results.json").write_text(json.dumps({
-        "metadata": {
-            "generated_at": "2026-10-25T12:00:00Z",
-            "invocation_started_at": "2026-10-25T11:59:00Z",
-            "env": {"DB_PASSWORD": "secret-value"},
-        },
-        "results": [
-            {"unique_id": "test.project.good_check.abcdef123456", "status": "pass", "failures": 0},
-            {"unique_id": "test.project.bad_check.c35b36c6fa", "status": "fail", "failures": 3},
-            {"unique_id": "test.project.skipped_check.0123456789ab", "status": "skipped"},
-            {"unique_id": "model.project.dim_customer", "status": "success", "execution_time": 1.25},
-        ],
-    }), encoding="utf-8")
+    (target / "run_results.json").write_text(
+        json.dumps(
+            {
+                "metadata": {
+                    "generated_at": "2026-10-25T12:00:00Z",
+                    "invocation_started_at": "2026-10-25T11:59:00Z",
+                    "env": {"DB_PASSWORD": "secret-value"},
+                },
+                "results": [
+                    {
+                        "unique_id": "test.project.good_check.abcdef123456",
+                        "status": "pass",
+                        "failures": 0,
+                    },
+                    {
+                        "unique_id": "test.project.bad_check.c35b36c6fa",
+                        "status": "fail",
+                        "failures": 3,
+                    },
+                    {
+                        "unique_id": "test.project.skipped_check.0123456789ab",
+                        "status": "skipped",
+                    },
+                    {
+                        "unique_id": "model.project.dim_customer",
+                        "status": "success",
+                        "execution_time": 1.25,
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
 
     summary = dbt_reader.read_run_results(tmp_path)
 
     assert summary is not None
-    assert (summary.tests_total, summary.tests_passed, summary.tests_failed, summary.tests_skipped) == (3, 1, 1, 1)
+    assert (
+        summary.tests_total,
+        summary.tests_passed,
+        summary.tests_failed,
+        summary.tests_skipped,
+    ) == (3, 1, 1, 1)
     assert summary.failed_tests[0].name == "bad_check"
     assert summary.failed_tests[0].failures == 3
     assert summary.models[0].name == "dim_customer"
@@ -222,16 +327,25 @@ def test_old_dbt_failures_are_not_attributed_to_a_newer_execution():
     started = datetime.now()
     overview = status_service.PipelineOverview(
         overall_status=status_service.STATUS_RUNNING,
-        stages=[], storage_layers=[], recent_runs=[], log_file_exists=True,
-        pipeline_state_raw=None, watermark_raw=None, checkpoint_raw=None,
+        stages=[],
+        storage_layers=[],
+        recent_runs=[],
+        log_file_exists=True,
+        pipeline_state_raw=None,
+        watermark_raw=None,
+        checkpoint_raw=None,
         last_run_started=started.strftime("%Y-%m-%d %H:%M:%S"),
         latest_run_status=status_service.STATUS_RUNNING,
     )
     old_report = DbtRunSummary(
         generated_at=(datetime.now(timezone.utc) - timedelta(hours=2)).isoformat(),
         invocation_started_at=None,
-        tests_total=1, tests_passed=0, tests_failed=1, tests_errored=0,
-        tests_warned=0, tests_skipped=0,
+        tests_total=1,
+        tests_passed=0,
+        tests_failed=1,
+        tests_errored=0,
+        tests_warned=0,
+        tests_skipped=0,
         failed_tests=[DbtTestResult("stale_check", "fail", 5)],
     )
 
@@ -242,20 +356,29 @@ def test_old_dbt_failures_are_not_attributed_to_a_newer_execution():
 
 
 def test_identified_completion_does_not_pair_with_different_run_start(tmp_path):
-    _write_log(tmp_path, [
-        _log_line(
-            "2026-10-26 00:00:00", "INFO", "__main__",
-            "Starting ELT pipeline... execution_id=run-new",
-        ),
-        _log_line(
-            "2026-10-26 00:00:01", "INFO", "__main__",
-            "Starting ELT pipeline... execution_id=run-old",
-        ),
-        _log_line(
-            "2026-10-26 00:00:02", "INFO", "__main__",
-            "ELT pipeline completed successfully in 2.00 seconds. execution_id=run-new",
-        ),
-    ])
+    _write_log(
+        tmp_path,
+        [
+            _log_line(
+                "2026-10-26 00:00:00",
+                "INFO",
+                "__main__",
+                "Starting ELT pipeline... execution_id=run-new",
+            ),
+            _log_line(
+                "2026-10-26 00:00:01",
+                "INFO",
+                "__main__",
+                "Starting ELT pipeline... execution_id=run-old",
+            ),
+            _log_line(
+                "2026-10-26 00:00:02",
+                "INFO",
+                "__main__",
+                "ELT pipeline completed successfully in 2.00 seconds. execution_id=run-new",
+            ),
+        ],
+    )
 
     overview = status_service.get_overview(tmp_path)
 
@@ -265,13 +388,20 @@ def test_identified_completion_does_not_pair_with_different_run_start(tmp_path):
 
 
 def test_out_of_order_completion_timestamp_has_no_duration(tmp_path):
-    _write_log(tmp_path, [
-        _log_line("2026-10-26 00:00:10", "INFO", "__main__", "Starting ELT pipeline..."),
-        _log_line(
-            "2026-10-26 00:00:05", "INFO", "__main__",
-            "ELT pipeline completed successfully in 5.00 seconds.",
-        ),
-    ])
+    _write_log(
+        tmp_path,
+        [
+            _log_line(
+                "2026-10-26 00:00:10", "INFO", "__main__", "Starting ELT pipeline..."
+            ),
+            _log_line(
+                "2026-10-26 00:00:05",
+                "INFO",
+                "__main__",
+                "ELT pipeline completed successfully in 5.00 seconds.",
+            ),
+        ],
+    )
 
     overview = status_service.get_overview(tmp_path)
 
@@ -279,7 +409,9 @@ def test_out_of_order_completion_timestamp_has_no_duration(tmp_path):
     assert overview.last_run_duration is None
 
 
-def test_homepage_does_not_show_health_checks_as_data_quality_checks(tmp_path, monkeypatch):
+def test_homepage_does_not_show_health_checks_as_data_quality_checks(
+    tmp_path, monkeypatch
+):
     monkeypatch.setattr(dashboard_app, "PROJECT_ROOT", tmp_path)
     client = TestClient(dashboard_app.app)
 
@@ -291,13 +423,18 @@ def test_homepage_does_not_show_health_checks_as_data_quality_checks(tmp_path, m
 
 
 def test_dashboard_redacts_secret_values_from_logs(tmp_path, monkeypatch):
-    _write_log(tmp_path, [
-        _log_line(
-            "2026-10-26 01:00:00", "INFO", "test",
-            "password=secret-pass token='secret-token' "
-            "connection_string=postgresql://user:secret-db@localhost/db",
-        ),
-    ])
+    _write_log(
+        tmp_path,
+        [
+            _log_line(
+                "2026-10-26 01:00:00",
+                "INFO",
+                "test",
+                "password=secret-pass token='secret-token' "
+                "connection_string=postgresql://user:secret-db@localhost/db",
+            ),
+        ],
+    )
     monkeypatch.setattr(dashboard_app, "PROJECT_ROOT", tmp_path)
 
     response = TestClient(dashboard_app.app).get("/technical-details")

@@ -1,4 +1,5 @@
 """Bootstrap order ingestion entry point."""
+
 import logging
 
 logger = logging.getLogger(__name__)

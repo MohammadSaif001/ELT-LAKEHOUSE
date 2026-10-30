@@ -1,4 +1,5 @@
 """Read the latest local dbt run-results artifact without exposing its env data."""
+
 from __future__ import annotations
 
 from src.elt_lakehouse.spark.common.logger import get_logger
@@ -62,48 +63,76 @@ def read_run_results(project_root: Path) -> DbtRunSummary | None:
         if not isinstance(result, dict):
             continue
         unique_id = result.get("unique_id")
-        if not isinstance(unique_id, str) or not unique_id.startswith(("test.", "model.")):
+        if not isinstance(unique_id, str) or not unique_id.startswith(
+            ("test.", "model.")
+        ):
             continue
         name_parts = unique_id.split(".")
         name = name_parts[-1]
-        if unique_id.startswith("test.") and len(name_parts) > 3 and re.fullmatch(r"[0-9a-fA-F]{10,}", name):
+        if (
+            unique_id.startswith("test.")
+            and len(name_parts) > 3
+            and re.fullmatch(r"[0-9a-fA-F]{10,}", name)
+        ):
             name = name_parts[-2]
         status = str(result.get("status") or "unknown").lower()
         if unique_id.startswith("test."):
-            tests.append({"name": name, "status": status, "failures": result.get("failures")})
+            tests.append(
+                {"name": name, "status": status, "failures": result.get("failures")}
+            )
         else:
             execution_time = result.get("execution_time")
             timings = result.get("timing")
             completed_at = None
             if isinstance(timings, list):
                 execute_timing = next(
-                    (item for item in reversed(timings)
-                     if isinstance(item, dict) and item.get("name") == "execute"),
+                    (
+                        item
+                        for item in reversed(timings)
+                        if isinstance(item, dict) and item.get("name") == "execute"
+                    ),
                     None,
                 )
-                if execute_timing and isinstance(execute_timing.get("completed_at"), str):
+                if execute_timing and isinstance(
+                    execute_timing.get("completed_at"), str
+                ):
                     completed_at = execute_timing["completed_at"]
-            models.append(DbtModelResult(
-                name=name,
-                status=status,
-                execution_seconds=(float(execution_time) if isinstance(execution_time, (int, float)) else None),
-                completed_at=completed_at,
-            ))
+            models.append(
+                DbtModelResult(
+                    name=name,
+                    status=status,
+                    execution_seconds=(
+                        float(execution_time)
+                        if isinstance(execution_time, (int, float))
+                        else None
+                    ),
+                    completed_at=completed_at,
+                )
+            )
 
     def count(status: str) -> int:
         return sum(test["status"] == status for test in tests)
 
     failed_tests = [
         DbtTestResult(
-            name=test["name"], status=test["status"],
-            failures=(int(test["failures"]) if isinstance(test["failures"], int) else None),
+            name=test["name"],
+            status=test["status"],
+            failures=(
+                int(test["failures"]) if isinstance(test["failures"], int) else None
+            ),
         )
-        for test in tests if test["status"] in {"fail", "error"}
+        for test in tests
+        if test["status"] in {"fail", "error"}
     ]
     return DbtRunSummary(
-        generated_at=metadata.get("generated_at") if isinstance(metadata.get("generated_at"), str) else None,
-        invocation_started_at=(metadata.get("invocation_started_at")
-                               if isinstance(metadata.get("invocation_started_at"), str) else None),
+        generated_at=metadata.get("generated_at")
+        if isinstance(metadata.get("generated_at"), str)
+        else None,
+        invocation_started_at=(
+            metadata.get("invocation_started_at")
+            if isinstance(metadata.get("invocation_started_at"), str)
+            else None
+        ),
         tests_total=len(tests),
         tests_passed=count("pass"),
         tests_failed=count("fail"),

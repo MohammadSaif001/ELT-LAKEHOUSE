@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 import pytest
 
 try:  # use the real pyspark when installed, a stub otherwise
-    import pyspark.sql  # noqa: F401
+    import pyspark.sql
 except ImportError:
     pyspark = types.ModuleType("pyspark")
     sql = types.ModuleType("pyspark.sql")
@@ -17,7 +17,7 @@ except ImportError:
     sys.modules.update({"pyspark": pyspark, "pyspark.sql": sql})
 
 try:
-    import py4j.protocol  # noqa: F401
+    import py4j.protocol
 except ImportError:
     py4j = types.ModuleType("py4j")
     protocol = types.ModuleType("py4j.protocol")
@@ -25,8 +25,8 @@ except ImportError:
     py4j.protocol = protocol
     sys.modules.update({"py4j": py4j, "py4j.protocol": protocol})
 
-from src.elt_lakehouse.ingestion.core import writer  # noqa: E402
-from src.elt_lakehouse.serving import postgres_writer as pw  # noqa: E402
+from src.elt_lakehouse.ingestion.core import writer
+from src.elt_lakehouse.serving import postgres_writer as pw
 
 
 class _Recorder:
@@ -85,8 +85,12 @@ def test_write_postgres_requires_password(monkeypatch):
 @pytest.fixture
 def fake_io(monkeypatch):
     calls = []
-    monkeypatch.setattr(pw, "read_delta", lambda spark, path: calls.append(("read", path)) or _df(5))
-    monkeypatch.setattr(pw, "write_postgres", lambda df, table, **kw: calls.append(("write", table, kw)))
+    monkeypatch.setattr(
+        pw, "read_delta", lambda spark, path: calls.append(("read", path)) or _df(5)
+    )
+    monkeypatch.setattr(
+        pw, "write_postgres", lambda df, table, **kw: calls.append(("write", table, kw))
+    )
     monkeypatch.setattr(pw, "postgres_row_count", lambda spark, table, schema: 5)
     monkeypatch.setattr(pw, "missing_tables", lambda spark, tables, schema: [])
     return calls
@@ -154,11 +158,20 @@ def test_missing_tables_reports_absent(monkeypatch):
     monkeypatch.setenv("POSTGRES_PASSWORD", "x")
 
     class _Reader:
-        def format(self, _): return self
-        def option(self, *_): return self
-        def load(self): return self
-        def collect(self): return [{"table_name": "dim_date"}, {"table_name": "dim_seller"}]
+        def format(self, _):
+            return self
+
+        def option(self, *_):
+            return self
+
+        def load(self):
+            return self
+
+        def collect(self):
+            return [{"table_name": "dim_date"}, {"table_name": "dim_seller"}]
 
     spark = MagicMock()
     spark.read = _Reader()
-    assert pw.missing_tables(spark, ["dim_date", "dim_seller", "fact_orders"], "gold") == ["fact_orders"]
+    assert pw.missing_tables(
+        spark, ["dim_date", "dim_seller", "fact_orders"], "gold"
+    ) == ["fact_orders"]

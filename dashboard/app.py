@@ -1,14 +1,15 @@
 """FastAPI application for the read-only ELT monitoring dashboard."""
+
 from __future__ import annotations
 
 from src.elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 
-from datetime import datetime
 import json
-from pathlib import Path
 import re
+from datetime import datetime
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -16,7 +17,11 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from dashboard.services import (
-    dbt_reader, health_service, log_reader, status_service, telemetry_service,
+    dbt_reader,
+    health_service,
+    log_reader,
+    status_service,
+    telemetry_service,
 )
 from dashboard.services.pipeline_registry import PIPELINE_STAGES
 
@@ -68,7 +73,13 @@ _STATUS_BADGE = {
 }
 
 
-_PILL_CLASS = {"success": "ok", "error": "bad", "warning": "warn", "info": "run", "unknown": "idle"}
+_PILL_CLASS = {
+    "success": "ok",
+    "error": "bad",
+    "warning": "warn",
+    "info": "run",
+    "unknown": "idle",
+}
 
 
 def status_badge(status: str) -> str:
@@ -94,11 +105,18 @@ def sanitize_fields(fields: dict[str, str]) -> dict[str, str]:
 def _redact_mapping(value):
     if isinstance(value, dict):
         secret_keys = (
-            "password", "passwd", "secret", "token", "api_key", "access_key",
-            "private_key", "connection_string",
+            "password",
+            "passwd",
+            "secret",
+            "token",
+            "api_key",
+            "access_key",
+            "private_key",
+            "connection_string",
         )
         return {
-            key: "[REDACTED]" if any(part in str(key).lower() for part in secret_keys)
+            key: "[REDACTED]"
+            if any(part in str(key).lower() for part in secret_keys)
             else _redact_mapping(item)
             for key, item in value.items()
         }
@@ -182,34 +200,51 @@ def _overview(request: Request) -> status_service.PipelineOverview:
 def _render(request: Request, template_name: str, **context) -> HTMLResponse:
     overview = context.get("overview") or _overview(request)
     dbt_for_telemetry = (
-        context["dbt_summary"] if "dbt_summary" in context
+        context["dbt_summary"]
+        if "dbt_summary" in context
         else dbt_reader.read_run_results(PROJECT_ROOT)
     )
-    context.update({
-        "telemetry": telemetry_service.build_telemetry(
-            PROJECT_ROOT, overview, dbt_for_telemetry),
-        "request": request,
-        "overview": overview,
-        "sidebar_layers": [
-            layer for layer in overview.storage_layers
-            if layer.key in ("bronze", "silver", "gold")
-        ],
-        "sidebar_processing": {
-            "bronze": next(
-                (stage for stage in overview.stages
-                 if stage.stage.key == "bronze_ingestion"), None
+    context.update(
+        {
+            "telemetry": telemetry_service.build_telemetry(
+                PROJECT_ROOT, overview, dbt_for_telemetry
             ),
-            "silver": next(
-                (stage for stage in overview.stages
-                 if stage.stage.key == "silver_transformation"), None
-            ),
-            "gold": next(
-                (stage for stage in overview.stages
-                 if stage.stage.key == "gold_transformation"), None
-            ),
-        },
-        "now": datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S %Z"),
-    })
+            "request": request,
+            "overview": overview,
+            "sidebar_layers": [
+                layer
+                for layer in overview.storage_layers
+                if layer.key in ("bronze", "silver", "gold")
+            ],
+            "sidebar_processing": {
+                "bronze": next(
+                    (
+                        stage
+                        for stage in overview.stages
+                        if stage.stage.key == "bronze_ingestion"
+                    ),
+                    None,
+                ),
+                "silver": next(
+                    (
+                        stage
+                        for stage in overview.stages
+                        if stage.stage.key == "silver_transformation"
+                    ),
+                    None,
+                ),
+                "gold": next(
+                    (
+                        stage
+                        for stage in overview.stages
+                        if stage.stage.key == "gold_transformation"
+                    ),
+                    None,
+                ),
+            },
+            "now": datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S %Z"),
+        }
+    )
     return templates.TemplateResponse(
         request=request,
         name=template_name,
@@ -231,24 +266,37 @@ def index(request: Request):
     dbt_summary = dbt_reader.read_run_results(PROJECT_ROOT)
     health = health_service.build_health_report(overview, dbt_summary)
     alerts = [
-        check for check in health.checks
+        check
+        for check in health.checks
         if check.status in (health_service.HEALTH_WARN, health_service.HEALTH_FAIL)
     ]
     gold = next(layer for layer in overview.storage_layers if layer.key == "gold")
     return _render(
-        request, "index.html", overview=overview, health=health, alerts=alerts,
+        request,
+        "index.html",
+        overview=overview,
+        health=health,
+        alerts=alerts,
         primary_alert=alerts[0] if alerts else None,
-        gold=gold, gold_dimensions=GOLD_DIMENSIONS, gold_facts=GOLD_FACTS,
+        gold=gold,
+        gold_dimensions=GOLD_DIMENSIONS,
+        gold_facts=GOLD_FACTS,
         dbt_summary=dbt_summary,
         dbt_check=next(check for check in health.checks if check.key == "dbt_tests"),
-        dbt_models={model.name: model for model in dbt_summary.models} if dbt_summary else {},
-        gold_dimension_count=len(GOLD_DIMENSIONS), gold_fact_count=len(GOLD_FACTS),
+        dbt_models={model.name: model for model in dbt_summary.models}
+        if dbt_summary
+        else {},
+        gold_dimension_count=len(GOLD_DIMENSIONS),
+        gold_fact_count=len(GOLD_FACTS),
         gold_model_count=len(GOLD_DIMENSIONS) + len(GOLD_FACTS),
         recent_events=[
-            log_reader.LogEvent(e.timestamp, e.level, e.logger_name, sanitize_log(e.message))
+            log_reader.LogEvent(
+                e.timestamp, e.level, e.logger_name, sanitize_log(e.message)
+            )
             for e in reversed(log_reader.read_events(PROJECT_ROOT)[-100:])
         ],
-        active_page="home", page_number="01",
+        active_page="home",
+        page_number="01",
     )
 
 
@@ -256,8 +304,11 @@ def index(request: Request):
 def pipeline_run(request: Request):
     logger.info("Rendering pipeline run view")
     return _render(
-        request, "pipeline_run.html", overview=_overview(request),
-        active_page="pipeline_run", page_number="02",
+        request,
+        "pipeline_run.html",
+        overview=_overview(request),
+        active_page="pipeline_run",
+        page_number="02",
     )
 
 
@@ -268,15 +319,25 @@ def data_quality(request: Request):
     dbt_summary = dbt_reader.read_run_results(PROJECT_ROOT)
     health = health_service.build_health_report(overview, dbt_summary)
     dq_dir = PROJECT_ROOT / "tests" / "data_quality"
-    dq_test_files = sorted(p.name for p in dq_dir.glob("test_*.py")) if dq_dir.is_dir() else []
+    dq_test_files = (
+        sorted(p.name for p in dq_dir.glob("test_*.py")) if dq_dir.is_dir() else []
+    )
     dbt_test_dir = PROJECT_ROOT / "dbt_gold" / "tests"
-    dbt_test_files = sorted(p.name for p in dbt_test_dir.glob("*.sql")) if dbt_test_dir.is_dir() else []
+    dbt_test_files = (
+        sorted(p.name for p in dbt_test_dir.glob("*.sql"))
+        if dbt_test_dir.is_dir()
+        else []
+    )
     return _render(
-        request, "data_quality.html", overview=overview,
-        dq_test_files=dq_test_files, dbt_test_files=dbt_test_files,
+        request,
+        "data_quality.html",
+        overview=overview,
+        dq_test_files=dq_test_files,
+        dbt_test_files=dbt_test_files,
         dbt_summary=dbt_summary,
         dbt_check=next(check for check in health.checks if check.key == "dbt_tests"),
-        active_page="data_quality", page_number="03",
+        active_page="data_quality",
+        page_number="03",
     )
 
 
@@ -284,8 +345,11 @@ def data_quality(request: Request):
 def storage_health(request: Request):
     logger.info("Rendering storage health view")
     return _render(
-        request, "storage_health.html", overview=_overview(request),
-        active_page="storage_health", page_number="04",
+        request,
+        "storage_health.html",
+        overview=_overview(request),
+        active_page="storage_health",
+        page_number="04",
     )
 
 
@@ -305,13 +369,21 @@ def technical_details(request: Request):
         for e in reversed(events[-500:])
     ]
     config_dir = PROJECT_ROOT / "config"
-    config_files = sorted(p.name for p in config_dir.glob("*.yaml")) if config_dir.is_dir() else []
+    config_files = (
+        sorted(p.name for p in config_dir.glob("*.yaml")) if config_dir.is_dir() else []
+    )
     return _render(
-        request, "technical_details.html", overview=overview,
-        log_tail=log_tail, config_files=config_files,
-        log_levels={lvl: sum(e.normalized_level == lvl for e in log_tail)
-                    for lvl in ("INFO", "WARNING", "ERROR")},
-        active_page="technical_details", page_number="05",
+        request,
+        "technical_details.html",
+        overview=overview,
+        log_tail=log_tail,
+        config_files=config_files,
+        log_levels={
+            lvl: sum(e.normalized_level == lvl for e in log_tail)
+            for lvl in ("INFO", "WARNING", "ERROR")
+        },
+        active_page="technical_details",
+        page_number="05",
     )
 
 
@@ -323,15 +395,27 @@ def gold_layer(request: Request):
     dbt_health = health_service.build_health_report(overview, dbt_summary)
     gold = next(layer for layer in overview.storage_layers if layer.key == "gold")
     return _render(
-        request, "gold_layer.html", overview=overview, gold=gold,
-        dimensions=GOLD_DIMENSIONS, facts=GOLD_FACTS,
-        dimension_count=len(GOLD_DIMENSIONS), fact_count=len(GOLD_FACTS),
+        request,
+        "gold_layer.html",
+        overview=overview,
+        gold=gold,
+        dimensions=GOLD_DIMENSIONS,
+        facts=GOLD_FACTS,
+        dimension_count=len(GOLD_DIMENSIONS),
+        fact_count=len(GOLD_FACTS),
         model_count=len(GOLD_DIMENSIONS) + len(GOLD_FACTS),
         dbt_summary=dbt_summary,
-        dbt_check_status=next(check.status for check in dbt_health.checks if check.key == "dbt_tests"),
-        dbt_check_message=next(check.message for check in dbt_health.checks if check.key == "dbt_tests"),
-        dbt_models={model.name: model for model in dbt_summary.models} if dbt_summary else {},
-        active_page="gold_layer", page_number="06",
+        dbt_check_status=next(
+            check.status for check in dbt_health.checks if check.key == "dbt_tests"
+        ),
+        dbt_check_message=next(
+            check.message for check in dbt_health.checks if check.key == "dbt_tests"
+        ),
+        dbt_models={model.name: model for model in dbt_summary.models}
+        if dbt_summary
+        else {},
+        active_page="gold_layer",
+        page_number="06",
     )
 
 
@@ -344,8 +428,12 @@ def stage_detail(request: Request, stage_key: str):
     overview = _overview(request)
     stage = next(stage for stage in overview.stages if stage.stage.key == stage_key)
     return _render(
-        request, "stage_detail.html", overview=overview, stage=stage,
-        active_page="pipeline_run", page_number="02",
+        request,
+        "stage_detail.html",
+        overview=overview,
+        stage=stage,
+        active_page="pipeline_run",
+        page_number="02",
     )
 
 
@@ -354,7 +442,9 @@ def api_telemetry():
     logger.info("Serving telemetry API")
     overview = status_service.get_overview(PROJECT_ROOT)
     dbt_summary = dbt_reader.read_run_results(PROJECT_ROOT)
-    return JSONResponse(telemetry_service.build_telemetry(PROJECT_ROOT, overview, dbt_summary))
+    return JSONResponse(
+        telemetry_service.build_telemetry(PROJECT_ROOT, overview, dbt_summary)
+    )
 
 
 @app.get("/api/health", name="api_health")
@@ -377,15 +467,19 @@ def api_health():
             "last_successful_at": overview.last_successful_run,
             "timestamp_timezone": "local (server)",
         },
-        "dbt_tests": ({
-            "generated_at": dbt_summary.generated_at,
-            "total": dbt_summary.tests_total,
-            "passed": dbt_summary.tests_passed,
-            "failed": dbt_summary.tests_failed,
-            "errored": dbt_summary.tests_errored,
-            "warned": dbt_summary.tests_warned,
-            "skipped": dbt_summary.tests_skipped,
-        } if dbt_summary else None),
+        "dbt_tests": (
+            {
+                "generated_at": dbt_summary.generated_at,
+                "total": dbt_summary.tests_total,
+                "passed": dbt_summary.tests_passed,
+                "failed": dbt_summary.tests_failed,
+                "errored": dbt_summary.tests_errored,
+                "warned": dbt_summary.tests_warned,
+                "skipped": dbt_summary.tests_skipped,
+            }
+            if dbt_summary
+            else None
+        ),
         "checks": [
             {
                 "key": check.key,

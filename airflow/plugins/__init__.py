@@ -1,4 +1,5 @@
 """Custom Airflow plugins."""
+
 import logging
 
 logger = logging.getLogger(__name__)

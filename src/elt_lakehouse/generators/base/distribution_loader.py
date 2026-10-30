@@ -1,12 +1,12 @@
-
 from src.elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 import itertools
 import json
 import random
-from typing import Any
 from bisect import bisect_right
+from typing import Any
+
 from src.elt_lakehouse.spark.common.paths import PROFILING_DIR
 
 _DISTRIBUTION_PARAMS_CACHE: dict[int, tuple[list, list]] = {}
@@ -44,7 +44,7 @@ def _get_distribution_params(distribution: dict) -> tuple[list, list]:
 def weighted_choice(distribution: dict) -> str:
     population, cum_weights = _get_distribution_params(distribution)
     target = random.random() * cum_weights[-1]
-    index = bisect_right(cum_weights, target, 0, len(cum_weights)-1)
+    index = bisect_right(cum_weights, target, 0, len(cum_weights) - 1)
     return population[index]
 
 

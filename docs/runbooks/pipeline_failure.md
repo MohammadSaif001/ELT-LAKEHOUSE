@@ -117,6 +117,7 @@ If the generator added/removed columns, the Bronze schema contract is broken.
 1. Check the generator output schema:
    ```python
    import pyarrow.parquet as pq
+
    print(pq.read_schema("storage/generated/generated_orders_data.parquet"))
    ```
 2. Update the Bronze script's schema contract or the generator to match.

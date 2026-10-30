@@ -1,10 +1,8 @@
-
 from src.elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 import random
 from datetime import datetime, timedelta
-from turtle import st
 
 from config.config_loader import load_yaml
 from src.elt_lakehouse.generators.base.distribution_loader import (
@@ -53,7 +51,7 @@ GEN_CONFIG_STATUS = GEN_CONFIG["order_status"]
 
 DELAY_MODELS = GEN_CONFIG["delay_models"]
 
-WEEKDAY_MAP: dict[str,int]= {
+WEEKDAY_MAP: dict[str, int] = {
     "Monday": 0,
     "Tuesday": 1,
     "Wednesday": 2,
@@ -68,6 +66,7 @@ GENERATION_DAY_RANGE = GEN_CONFIG["generation"]["day_of_month"]
 CUTOFF_DATE = datetime.fromisoformat(GEN_CONFIG["generation"]["cutoff"])
 CUTOFF_STEP_DAYS = GEN_CONFIG["generation"]["cutoff_step_days"]
 
+
 def get_customer_pool() -> list[str]:
     logger.debug("Loading customer pool for order generation")
     return load_pool_column("customer_pool.parquet", "customer_id")
@@ -80,7 +79,7 @@ def generate_order_purchase_timestamp() -> datetime:
 
     year: int = int(random_from_list(GENERATION_YEARS))
     month: int = int(weighted_choice(ORDER_PURCHASE_TIMESTAMP_MONTHS))
-    day  :int = random.randint(*GENERATION_DAY_RANGE)
+    day: int = random.randint(*GENERATION_DAY_RANGE)
 
     hour = int(weighted_choice(ORDER_PURCHASE_TIMESTAMP_HOURS))
     minute: int = random.randint(0, 59)
@@ -168,7 +167,9 @@ def generate_order(customer_ids: list[str]) -> dict:
         "order_id": generate_id(),
         "customer_id": get_customer_id(customer_ids),
         "order_status": order_status,
-        "order_purchase_timestamp": purchase_timestamp.isoformat(sep=" ", timespec="seconds"),
+        "order_purchase_timestamp": purchase_timestamp.isoformat(
+            sep=" ", timespec="seconds"
+        ),
         "order_approved_at": (
             approved_at.isoformat(sep=" ", timespec="seconds") if approved_at else None
         ),

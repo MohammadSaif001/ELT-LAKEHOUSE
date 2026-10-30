@@ -1,4 +1,5 @@
 """Kafka producer integration."""
+
 import logging
 
 logger = logging.getLogger(__name__)

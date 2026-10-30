@@ -1,4 +1,5 @@
 """Airflow DAG definition for the ecommerce pipeline."""
+
 import logging
 
 logger = logging.getLogger(__name__)

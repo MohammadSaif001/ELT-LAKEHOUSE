@@ -3,20 +3,18 @@ from __future__ import annotations
 from src.elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
+import re
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
-import re
 
-from dashboard.services import storage_reader
-from dashboard.services import log_reader
+from dashboard.services import log_reader, state_reader, storage_reader
 from dashboard.services.pipeline_registry import (
     PIPELINE_STAGES,
     STORAGE_LAYERS,
     Job,
     Stage,
 )
-from dashboard.services import state_reader
 
 """Combines log_reader, state_reader and storage_reader into the status
 model the templates render. This is the only module that decides what
@@ -99,8 +97,11 @@ class PipelineOverview:
 
 
 def _job_status(
-    project_root: Path, events: list[log_reader.LogEvent], job: Job,
-    latest_run_started: datetime | None = None, execution_open: bool = False,
+    project_root: Path,
+    events: list[log_reader.LogEvent],
+    job: Job,
+    latest_run_started: datetime | None = None,
+    execution_open: bool = False,
     latest_execution_id: str | None = None,
     stage_status: str | None = None,
 ) -> JobStatus:
@@ -112,7 +113,8 @@ def _job_status(
     matching_events = events
     if latest_execution_id:
         matching_events = [
-            event for event in events
+            event
+            for event in events
             if _extract_execution_id(event.message) in (None, latest_execution_id)
         ]
     matched = log_reader.latest_event_matching(matching_events, job.log_match)
@@ -176,7 +178,9 @@ def _job_status(
             detail=f"Output present ({_fmt_size(artifact.size_bytes)}); processing status unknown",
         )
     return JobStatus(
-        job=job, status=STATUS_UNKNOWN, last_activity=None,
+        job=job,
+        status=STATUS_UNKNOWN,
+        last_activity=None,
         detail="No output or execution event detected",
     )
 
@@ -192,8 +196,12 @@ def _message_is_completion(message: str) -> bool:
     return any(
         marker in text
         for marker in (
-            "completed successfully", "generated successfully", "ingestion completed",
-            "ingested successfully", "validation passed", "all ingestion functions completed",
+            "completed successfully",
+            "generated successfully",
+            "ingestion completed",
+            "ingested successfully",
+            "validation passed",
+            "all ingestion functions completed",
         )
     )
 
@@ -227,10 +235,13 @@ def _aggregate(job_statuses: list[JobStatus]) -> str:
     return STATUS_RUNNING
 
 
-def _stage_execution(stage: Stage, events: list[log_reader.LogEvent],
-                     latest_run_started: datetime | None, execution_open: bool,
-                     latest_execution_id: str | None = None
-                     ) -> tuple[str, str | None, datetime | None, str | None]:
+def _stage_execution(
+    stage: Stage,
+    events: list[log_reader.LogEvent],
+    latest_run_started: datetime | None,
+    execution_open: bool,
+    latest_execution_id: str | None = None,
+) -> tuple[str, str | None, datetime | None, str | None]:
     """Derive a stage result only from its stage logger, never its old files.
 
     Returns (status, duration, last_activity, detail).
@@ -240,54 +251,77 @@ def _stage_execution(stage: Stage, events: list[log_reader.LogEvent],
     stage_events = [event for event in events if event.logger_name == stage.logger_name]
     if latest_execution_id:
         stage_events = [
-            event for event in stage_events
+            event
+            for event in stage_events
             if _extract_execution_id(event.message) in (None, latest_execution_id)
         ]
     if latest_run_started:
         stage_events = [
-            event for event in stage_events
+            event
+            for event in stage_events
             if (_parse_ts(event.timestamp) or datetime.min) >= latest_run_started
         ]
     if not stage_events:
         return (
-            STATUS_UNKNOWN, None, None,
+            STATUS_UNKNOWN,
+            None,
+            None,
             f"No log events found for stage '{stage.label}' in the latest run window. "
             "The stage may not have been reached or the log may not cover it.",
         )
 
     last_activity = _parse_ts(stage_events[-1].timestamp)
     failure = next(
-        (event for event in reversed(stage_events) if event.normalized_level == "ERROR"),
+        (
+            event
+            for event in reversed(stage_events)
+            if event.normalized_level == "ERROR"
+        ),
         None,
     )
     completion = next(
-        (event for event in reversed(stage_events)
-         if stage.completion_match.lower() in event.message.lower()),
+        (
+            event
+            for event in reversed(stage_events)
+            if stage.completion_match.lower() in event.message.lower()
+        ),
         None,
     )
 
     # Failure wins over completion if the error came after the completion marker.
-    if failure and (not completion or stage_events.index(failure) > stage_events.index(completion)):
+    if failure and (
+        not completion or stage_events.index(failure) > stage_events.index(completion)
+    ):
         ts = failure.timestamp
         first_line = failure.message.splitlines()[0]
         return (
-            STATUS_FAILED, None, _parse_ts(ts),
+            STATUS_FAILED,
+            None,
+            _parse_ts(ts),
             f"Stage '{stage.label}' reported an error at {ts}. "
             f"First error line: {first_line}. "
             "Open Technical Details → Recent Logs to view the full traceback.",
         )
 
     if completion:
-        duration_match = re.search(r"duration_s=([0-9]+(?:\.[0-9]+)?)", completion.message)
+        duration_match = re.search(
+            r"duration_s=([0-9]+(?:\.[0-9]+)?)", completion.message
+        )
         duration = f"{float(duration_match.group(1)):.2f}s" if duration_match else None
         return STATUS_SUCCESS, duration, _parse_ts(completion.timestamp), None
 
     # No completion, no error — execution may still be running or may have been
     # interrupted without logging an error.
-    if execution_open and last_activity and datetime.now() - last_activity <= timedelta(hours=24):
+    if (
+        execution_open
+        and last_activity
+        and datetime.now() - last_activity <= timedelta(hours=24)
+    ):
         ts_str = stage_events[-1].timestamp
         return (
-            STATUS_RUNNING, None, last_activity,
+            STATUS_RUNNING,
+            None,
+            last_activity,
             f"Stage '{stage.label}' started but has not emitted a completion event. "
             f"Last log entry at {ts_str}. "
             "If the process is no longer running, the stage did not complete successfully. "
@@ -301,7 +335,9 @@ def _stage_execution(stage: Stage, events: list[log_reader.LogEvent],
         else ""
     )
     return (
-        STATUS_UNKNOWN, None, last_activity,
+        STATUS_UNKNOWN,
+        None,
+        last_activity,
         f"Stage '{stage.label}' has log activity (last: {ts_str}) but no completion "
         f"or error event was detected.{stale_qualifier} "
         "The stage outcome cannot be reliably determined from the available evidence.",
@@ -309,8 +345,10 @@ def _stage_execution(stage: Stage, events: list[log_reader.LogEvent],
 
 
 def _stage_window(
-    stage: Stage, events: list[log_reader.LogEvent],
-    latest_run_started: datetime | None, run_in_progress: bool,
+    stage: Stage,
+    events: list[log_reader.LogEvent],
+    latest_run_started: datetime | None,
+    run_in_progress: bool,
 ) -> datetime | None:
     """Start of the time window used to read a stage's events.
 
@@ -326,7 +364,8 @@ def _stage_window(
     if any((_parse_ts(e.timestamp) or datetime.min) >= latest_run_started for e in own):
         return latest_run_started
     done = [
-        i for i, e in enumerate(own)
+        i
+        for i, e in enumerate(own)
         if stage.completion_match.lower() in e.message.lower()
     ]
     if len(done) >= 2:
@@ -365,14 +404,25 @@ def _build_recent_runs(events: list[log_reader.LogEvent]) -> list[RunEvent]:
         msg = event.message.lower()
         execution_id = _extract_execution_id(event.message)
         if "starting elt pipeline" in msg:
-            runs.append(RunEvent(event.timestamp, STATUS_RUNNING, "Pipeline started", execution_id))
+            runs.append(
+                RunEvent(
+                    event.timestamp, STATUS_RUNNING, "Pipeline started", execution_id
+                )
+            )
         elif "elt pipeline completed successfully" in msg:
-            runs.append(RunEvent(event.timestamp, STATUS_SUCCESS, event.message, execution_id))
+            runs.append(
+                RunEvent(event.timestamp, STATUS_SUCCESS, event.message, execution_id)
+            )
         elif event.logger_name in {"elt_pipeline", "__main__"} and (
             "pipeline failed with a critical error" in msg
         ):
             runs.append(
-                RunEvent(event.timestamp, STATUS_FAILED, event.message.splitlines()[0], execution_id)
+                RunEvent(
+                    event.timestamp,
+                    STATUS_FAILED,
+                    event.message.splitlines()[0],
+                    execution_id,
+                )
             )
     runs.reverse()
     return runs[:25]
@@ -445,7 +495,9 @@ def get_overview(project_root: Path) -> PipelineOverview:
             )
     elif latest_run_status == STATUS_RUNNING:
         started_at = _parse_ts(latest_run.timestamp) if latest_run else None
-        stale = started_at is not None and datetime.now() - started_at > timedelta(hours=24)
+        stale = started_at is not None and datetime.now() - started_at > timedelta(
+            hours=24
+        )
         if stale:
             latest_run_detail = (
                 f"A pipeline start was recorded at {latest_run.timestamp}, "
@@ -470,13 +522,18 @@ def get_overview(project_root: Path) -> PipelineOverview:
     for stage in PIPELINE_STAGES:
         window_start = _stage_window(stage, events, latest_run_started, run_in_progress)
         stage_status, stage_duration, stage_activity, stage_detail = _stage_execution(
-            stage, events, window_start,
+            stage,
+            events,
+            window_start,
             execution_open=run_in_progress,
             latest_execution_id=latest_execution_id,
         )
         job_statuses = [
             _job_status(
-                project_root, events, job, window_start,
+                project_root,
+                events,
+                job,
+                window_start,
                 execution_open=run_in_progress,
                 latest_execution_id=latest_execution_id,
                 stage_status=stage_status,
@@ -484,9 +541,14 @@ def get_overview(project_root: Path) -> PipelineOverview:
             for job in stage.jobs
         ]
         stage_statuses.append(
-            StageStatus(stage=stage, status=stage_status, jobs=job_statuses,
-                        duration=stage_duration, last_activity=stage_activity,
-                        detail=stage_detail)
+            StageStatus(
+                stage=stage,
+                status=stage_status,
+                jobs=job_statuses,
+                duration=stage_duration,
+                last_activity=stage_activity,
+                detail=stage_detail,
+            )
         )
 
     storage_layers = []

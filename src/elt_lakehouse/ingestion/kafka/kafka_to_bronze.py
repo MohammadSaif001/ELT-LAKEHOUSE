@@ -1,4 +1,5 @@
 """Kafka-to-Bronze ingestion integration."""
+
 import logging
 
 logger = logging.getLogger(__name__)

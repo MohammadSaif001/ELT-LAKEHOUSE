@@ -1,9 +1,10 @@
 """Revenue warehouse loading helpers."""
 
-from src.elt_lakehouse.spark.common.logger import get_logger
 
 import os
+
 from pyspark.sql import DataFrame
+
 
 def populate_postgres_table(
     df: DataFrame,

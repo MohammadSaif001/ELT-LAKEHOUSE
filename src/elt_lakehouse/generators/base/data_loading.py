@@ -1,4 +1,3 @@
-
 from src.elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
@@ -24,7 +23,9 @@ class GeneratedDataLoader:
         parquet_path = dir_path / f"{name_no_ext}.parquet"
         if parquet_path.exists():
             table = pq.read_table(parquet_path)
-            logger.info("Loaded generated data: path=%s rows=%d", parquet_path, table.num_rows)
+            logger.info(
+                "Loaded generated data: path=%s rows=%d", parquet_path, table.num_rows
+            )
             return table.to_pylist()
 
         logger.error("Generated data file missing: path=%s", parquet_path)
@@ -41,7 +42,9 @@ class GeneratedDataLoader:
             table = pq.read_table(parquet_path, columns=[column_name])
             logger.info(
                 "Loaded generated-data column: path=%s column=%s rows=%d",
-                parquet_path, column_name, table.num_rows,
+                parquet_path,
+                column_name,
+                table.num_rows,
             )
             return table[column_name].to_pylist()
 

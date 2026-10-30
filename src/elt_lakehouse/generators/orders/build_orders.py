@@ -14,11 +14,11 @@ from src.elt_lakehouse.generators.base.data_saving import (
     save_generated_batches,
     save_generated_data,
 )
+from src.elt_lakehouse.generators.base.pool_manager import load_pool_column
 from src.elt_lakehouse.generators.orders.order_generator import generate_order
 from src.elt_lakehouse.generators.orders.order_item_generator import (
     generate_order_items,
 )
-from src.elt_lakehouse.generators.base.pool_manager import load_pool_column
 from src.elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
@@ -32,9 +32,7 @@ def _order_batches(
 ) -> Iterator[list[dict]]:
     for batch_start in range(0, record_count, batch_size):
         batch_count = min(batch_size, record_count - batch_start)
-        yield [
-            generate_order(customer_ids=customer_ids) for _ in range(batch_count)
-        ]
+        yield [generate_order(customer_ids=customer_ids) for _ in range(batch_count)]
 
 
 def _write_order_shard(args: tuple[int, int, str, list[str]]) -> tuple[str, int]:
@@ -70,6 +68,7 @@ def _merge_order_shards(shards: list[tuple[str, int]], output_path: Path) -> int
             writer.close()
     return row_count
 
+
 # ==========================
 # Order Builder
 # ==========================
@@ -94,7 +93,11 @@ def build_orders(output_dir: str) -> None:
         gil_enabled = getattr(sys, "_is_gil_enabled", lambda: True)()
         worker_count = min(ORDER_MAX_WORKERS, max(1, os.cpu_count() or 1))
 
-        if not gil_enabled and worker_count > 1 and record_count >= ORDER_BATCH_SIZE * worker_count:
+        if (
+            not gil_enabled
+            and worker_count > 1
+            and record_count >= ORDER_BATCH_SIZE * worker_count
+        ):
             with tempfile.TemporaryDirectory(
                 prefix=".orders-", dir=output_path
             ) as shard_dir:
@@ -104,9 +107,7 @@ def build_orders(output_dir: str) -> None:
                 ]
                 with ThreadPoolExecutor(max_workers=worker_count) as executor:
                     shards = list(executor.map(_write_order_shard, shard_tasks))
-                generated_count = _merge_order_shards(
-                    shards, output_path / output_name
-                )
+                generated_count = _merge_order_shards(shards, output_path / output_name)
         else:
             generated_count = save_generated_batches(
                 _order_batches(customer_ids, record_count, ORDER_BATCH_SIZE),
@@ -142,7 +143,7 @@ def build_orders(output_dir: str) -> None:
 def build_order_items(output_dir: str) -> None:
     """Generates order item records corresponding to existing orders and saves them."""
 
-    orders_file: str = "generated_orders_data.parquet" 
+    orders_file: str = "generated_orders_data.parquet"
     output_file: str = "generated_order_items_data.parquet"
     started_at: datetime = datetime.now(timezone.utc)
 

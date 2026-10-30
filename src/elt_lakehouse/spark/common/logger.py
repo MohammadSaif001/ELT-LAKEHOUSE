@@ -1,9 +1,9 @@
 import logging
 import logging.config
-from copy import copy
 import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
+from copy import copy
 from pathlib import Path
 from time import perf_counter
 from typing import Any

@@ -1,4 +1,5 @@
 """Airflow alert helpers."""
+
 import logging
 
 logger = logging.getLogger(__name__)

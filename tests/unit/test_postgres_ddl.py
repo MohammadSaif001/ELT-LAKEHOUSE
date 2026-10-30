@@ -29,8 +29,10 @@ def _ddl_tables() -> dict[str, list[str]]:
 def _model_columns(model: str) -> list[str]:
     path = next(MODELS.rglob(f"{model}.sql"))
     sql = path.read_text()
-    sql = re.sub(r"\{\{\s*config\(.*?\)\s*\}\}", "", sql, flags=re.S)
-    sql = re.sub(r"\{\{\s*(?:source|ref)\((?:'[^']*',\s*)?'([^']*)'\)\s*\}\}", r"\1", sql)
+    sql = re.sub(r"\{\{\s*config\(.*?\)\s*\}\}", "", sql, flags=re.DOTALL)
+    sql = re.sub(
+        r"\{\{\s*(?:source|ref)\((?:'[^']*',\s*)?'([^']*)'\)\s*\}\}", r"\1", sql
+    )
     return sqlglot.parse_one(sql, read="spark").named_selects
 
 
@@ -63,7 +65,8 @@ def test_every_table_has_a_primary_key():
         ] + [
             elt
             for elt in stmt.stmt.tableElts
-            if type(elt).__name__ == "Constraint" and elt.contype.name == "CONSTR_PRIMARY"
+            if type(elt).__name__ == "Constraint"
+            and elt.contype.name == "CONSTR_PRIMARY"
         ]
         assert constraints, stmt.stmt.relation.relname
 

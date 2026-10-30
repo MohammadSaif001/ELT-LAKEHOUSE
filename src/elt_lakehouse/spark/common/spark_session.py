@@ -69,13 +69,13 @@ def create_spark_session(app_name: str | None = None) -> SparkSession:
             configure_delta = None
 
         # JDBC driver for publishing Gold to PostgreSQL (downloaded once via Ivy).
-        jdbc_package = (
-            load_yaml("postgress_config.yaml").get("jdbc", {}).get("package")
-        )
+        jdbc_package = load_yaml("postgress_config.yaml").get("jdbc", {}).get("package")
         extra_packages = [jdbc_package] if jdbc_package else []
 
         if configure_delta:
-            spark = configure_delta(builder, extra_packages=extra_packages).getOrCreate()
+            spark = configure_delta(
+                builder, extra_packages=extra_packages
+            ).getOrCreate()
         else:
             # Default Maven coordinate for Delta Spark
             delta_maven = spark_config.get("delta", {}).get(

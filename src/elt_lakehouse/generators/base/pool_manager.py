@@ -1,4 +1,3 @@
-
 from src.elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
@@ -42,7 +41,9 @@ class PoolLoader:
         """Load a specific column from a pool parquet file."""
         cache_key = (file_name, column_name)
         if cache_key in self._column_cache:
-            logger.debug("Pool column cache hit: name=%s column=%s", file_name, column_name)
+            logger.debug(
+                "Pool column cache hit: name=%s column=%s", file_name, column_name
+            )
             return self._column_cache[cache_key]
 
         name_no_ext = Path(file_name).stem
@@ -53,7 +54,9 @@ class PoolLoader:
             self._column_cache[cache_key] = column
             logger.info(
                 "Loaded pool column: path=%s column=%s rows=%d",
-                parquet_path, column_name, len(column),
+                parquet_path,
+                column_name,
+                len(column),
             )
             return column
 
@@ -82,7 +85,9 @@ def iter_pool_batches(file_name: str, batch_size: int = 10_000):
     if not parquet_path.exists():
         raise FileNotFoundError(f"Pool file not found: {parquet_path}")
     parquet_file = pq.ParquetFile(parquet_path)
-    logger.info("Streaming pool batches: path=%s batch_size=%d", parquet_path, batch_size)
+    logger.info(
+        "Streaming pool batches: path=%s batch_size=%d", parquet_path, batch_size
+    )
     for record_batch in parquet_file.iter_batches(batch_size=batch_size):
         yield record_batch.to_pylist()
 

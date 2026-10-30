@@ -20,6 +20,7 @@ def display_path(path: Path) -> str:
     except ValueError:
         return str(path)
 
+
 @cache
 def load_yaml(config_file: str) -> dict:
     """Load and cache a YAML configuration file."""
@@ -45,5 +46,7 @@ def load_yaml(config_file: str) -> dict:
         return config
 
     except yaml.YAMLError:
-        logger.exception("Invalid YAML configuration: path=%s", display_path(config_path))
+        logger.exception(
+            "Invalid YAML configuration: path=%s", display_path(config_path)
+        )
         raise

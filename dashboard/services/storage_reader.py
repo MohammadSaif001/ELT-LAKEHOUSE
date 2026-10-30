@@ -22,12 +22,16 @@ def inspect(project_root: Path, relative_path: str) -> ArtifactInfo:
     logger.info("inspect started")
     path = project_root / relative_path
     if not path.exists():
-        return ArtifactInfo(exists=False, modified_at=None, size_bytes=None, is_dir=False)
+        return ArtifactInfo(
+            exists=False, modified_at=None, size_bytes=None, is_dir=False
+        )
 
     try:
         stat = path.stat()
     except OSError:
-        return ArtifactInfo(exists=False, modified_at=None, size_bytes=None, is_dir=False)
+        return ArtifactInfo(
+            exists=False, modified_at=None, size_bytes=None, is_dir=False
+        )
 
     if path.is_dir():
         files = [f for f in path.rglob("*") if f.is_file()]

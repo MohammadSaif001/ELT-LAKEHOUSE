@@ -1,7 +1,7 @@
 """Reads the application log and parses it into structured events."""
 
-from dataclasses import dataclass, field
 import re
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from src.elt_lakehouse.spark.common.logger import get_logger
@@ -23,6 +23,7 @@ _EVENT_START_RE = re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:,\d+)? \| 
 _IGNORED_LOGGER_PREFIXES = ("dashboard.",)
 
 _CACHE: dict[Path, tuple[float, int, list["LogEvent"]]] = {}
+
 
 @dataclass(frozen=True)
 class LogEvent:
@@ -97,7 +98,10 @@ def read_events(project_root: Path) -> list[LogEvent]:
             message = message.strip()
             events.append(
                 LogEvent(
-                    timestamp.strip(), level.strip(), logger_name, message,
+                    timestamp.strip(),
+                    level.strip(),
+                    logger_name,
+                    message,
                     _parse_fields(message),
                 )
             )
@@ -106,8 +110,11 @@ def read_events(project_root: Path) -> list[LogEvent]:
             # to the previous event so failures remain readable.
             prev = events[-1]
             events[-1] = LogEvent(
-                prev.timestamp, prev.level, prev.logger_name,
-                prev.message + "\n" + line, prev.fields,
+                prev.timestamp,
+                prev.level,
+                prev.logger_name,
+                prev.message + "\n" + line,
+                prev.fields,
             )
 
     _CACHE[path] = (stat.st_mtime, stat.st_size, events)
@@ -131,4 +138,4 @@ def events_since(events: list[LogEvent], after: LogEvent | None) -> list[LogEven
         idx = events.index(after)
     except ValueError:
         return events
-    return events[idx + 1:]
+    return events[idx + 1 :]

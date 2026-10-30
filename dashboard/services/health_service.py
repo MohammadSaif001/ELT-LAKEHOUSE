@@ -7,14 +7,14 @@ logger = get_logger(__name__)
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
+from dashboard.services.dbt_reader import DbtRunSummary
 from dashboard.services.status_service import (
-    _parse_ts,
     STATUS_FAILED,
     STATUS_RUNNING,
     STATUS_SUCCESS,
     PipelineOverview,
+    _parse_ts,
 )
-from dashboard.services.dbt_reader import DbtRunSummary
 
 HEALTH_OK = "OK"
 HEALTH_WARN = "WARN"
@@ -120,7 +120,7 @@ def _check_last_run_outcome(overview: PipelineOverview) -> HealthCheck:
             "last_run",
             "Latest Execution Status",
             HEALTH_OK,
-            f"Latest run completed successfully.",
+            "Latest run completed successfully.",
             timestamp=latest.timestamp,
         )
     if latest.status == STATUS_FAILED:
@@ -191,10 +191,14 @@ def _check_job_failures(overview: PipelineOverview) -> HealthCheck:
     ]
     if failed:
         # Group by stage for the stage field.
-        failed_stages = list(dict.fromkeys(
-            stage.stage.label for stage in overview.stages
-            for job in stage.jobs if job.status == STATUS_FAILED
-        ))
+        failed_stages = list(
+            dict.fromkeys(
+                stage.stage.label
+                for stage in overview.stages
+                for job in stage.jobs
+                if job.status == STATUS_FAILED
+            )
+        )
         return HealthCheck(
             "job_failures",
             "Job Failures",
@@ -207,20 +211,25 @@ def _check_job_failures(overview: PipelineOverview) -> HealthCheck:
             ),
         )
     known = [
-        job for stage in overview.stages for job in stage.jobs
+        job
+        for stage in overview.stages
+        for job in stage.jobs
         if job.status in (STATUS_SUCCESS, STATUS_RUNNING)
     ]
     if not known:
         return HealthCheck(
-            "job_failures", "Job Failures", HEALTH_UNKNOWN,
+            "job_failures",
+            "Job Failures",
+            HEALTH_UNKNOWN,
             "No job-level completion or failure evidence is available",
             next_step=(
                 "Run the pipeline to generate job-level log events: "
                 "`uv run python3 -m elt_pipeline --run-pipeline`."
             ),
         )
-    return HealthCheck("job_failures", "Job Failures", HEALTH_OK,
-                       "No logged job failure found")
+    return HealthCheck(
+        "job_failures", "Job Failures", HEALTH_OK, "No logged job failure found"
+    )
 
 
 def _check_staleness(overview: PipelineOverview) -> HealthCheck:
@@ -274,11 +283,17 @@ def _check_pipeline_continuity(overview: PipelineOverview) -> HealthCheck:
     """
     missing = [layer.label for layer in overview.storage_layers if not layer.has_data]
     if not overview.storage_layers:
-        return HealthCheck("continuity", "Storage Availability", HEALTH_UNKNOWN,
-                           "Storage availability was not evaluated")
+        return HealthCheck(
+            "continuity",
+            "Storage Availability",
+            HEALTH_UNKNOWN,
+            "Storage availability was not evaluated",
+        )
     if missing and len(missing) == len(overview.storage_layers):
         return HealthCheck(
-            "continuity", "Storage Availability", HEALTH_UNKNOWN,
+            "continuity",
+            "Storage Availability",
+            HEALTH_UNKNOWN,
             "No layer output detected in any configured storage path. "
             "This reflects storage presence only — not pipeline execution success.",
             next_step=(
@@ -288,7 +303,9 @@ def _check_pipeline_continuity(overview: PipelineOverview) -> HealthCheck:
         )
     if missing:
         return HealthCheck(
-            "continuity", "Storage Availability", HEALTH_WARN,
+            "continuity",
+            "Storage Availability",
+            HEALTH_WARN,
             f"No output detected in: {', '.join(missing)}. "
             "Storage presence only — does not indicate whether processing succeeded.",
             next_step=(
@@ -298,17 +315,23 @@ def _check_pipeline_continuity(overview: PipelineOverview) -> HealthCheck:
             ),
         )
     return HealthCheck(
-        "continuity", "Storage Availability", HEALTH_OK,
+        "continuity",
+        "Storage Availability",
+        HEALTH_OK,
         "Output is present in all configured local storage paths. "
         "This confirms storage presence only — processing status is reported separately "
         "under Latest Execution Status.",
     )
 
 
-def _check_dbt_tests(overview: PipelineOverview, summary: DbtRunSummary | None) -> HealthCheck:
+def _check_dbt_tests(
+    overview: PipelineOverview, summary: DbtRunSummary | None
+) -> HealthCheck:
     if summary is None or summary.tests_total == 0:
         return HealthCheck(
-            "dbt_tests", "Gold dbt Tests", HEALTH_UNKNOWN,
+            "dbt_tests",
+            "Gold dbt Tests",
+            HEALTH_UNKNOWN,
             "No dbt run-results report is available",
             next_step=(
                 "Run the Gold dbt build: `uv run python scripts/run_gold_dbt.py`. "
@@ -319,7 +342,9 @@ def _check_dbt_tests(overview: PipelineOverview, summary: DbtRunSummary | None) 
     generated_at = None
     if summary.generated_at:
         try:
-            generated_at = datetime.fromisoformat(summary.generated_at.replace("Z", "+00:00"))
+            generated_at = datetime.fromisoformat(
+                summary.generated_at.replace("Z", "+00:00")
+            )
         except ValueError:
             generated_at = None
     latest_start = _parse_ts(overview.last_run_started)
@@ -327,8 +352,10 @@ def _check_dbt_tests(overview: PipelineOverview, summary: DbtRunSummary | None) 
         local_start = latest_start.astimezone()
         if generated_at <= local_start:
             return HealthCheck(
-                "dbt_tests", "Gold dbt Tests", HEALTH_UNKNOWN,
-                f"The saved dbt test report predates the latest orchestration start. "
+                "dbt_tests",
+                "Gold dbt Tests",
+                HEALTH_UNKNOWN,
+                "The saved dbt test report predates the latest orchestration start. "
                 "Results may be stale.",
                 timestamp=summary.generated_at,
                 next_step=(
@@ -342,7 +369,9 @@ def _check_dbt_tests(overview: PipelineOverview, summary: DbtRunSummary | None) 
         failed_names = ", ".join(test.name for test in summary.failed_tests[:5])
         suffix = f" ({failed_names})" if failed_names else ""
         return HealthCheck(
-            "dbt_tests", "Gold dbt Tests", HEALTH_FAIL,
+            "dbt_tests",
+            "Gold dbt Tests",
+            HEALTH_FAIL,
             f"{failed} test(s) failed or errored{suffix}",
             stage="Gold / dbt Transformation",
             timestamp=summary.generated_at,
@@ -354,7 +383,9 @@ def _check_dbt_tests(overview: PipelineOverview, summary: DbtRunSummary | None) 
         )
     if summary.tests_warned or summary.tests_skipped:
         return HealthCheck(
-            "dbt_tests", "Gold dbt Tests", HEALTH_WARN,
+            "dbt_tests",
+            "Gold dbt Tests",
+            HEALTH_WARN,
             f"{summary.tests_warned} warning(s) and {summary.tests_skipped} skipped test(s) "
             "in the last recorded dbt run.",
             stage="Gold / dbt Transformation",
@@ -362,14 +393,17 @@ def _check_dbt_tests(overview: PipelineOverview, summary: DbtRunSummary | None) 
             next_step="Review warnings in Data Quality → dbt Tests. Skipped tests may indicate missing data.",
         )
     return HealthCheck(
-        "dbt_tests", "Gold dbt Tests", HEALTH_OK,
+        "dbt_tests",
+        "Gold dbt Tests",
+        HEALTH_OK,
         f"{summary.tests_passed} test(s) passed in the last recorded dbt run.",
         timestamp=summary.generated_at,
     )
 
 
-def build_health_report(overview: PipelineOverview,
-                        dbt_summary: DbtRunSummary | None = None) -> HealthReport:
+def build_health_report(
+    overview: PipelineOverview, dbt_summary: DbtRunSummary | None = None
+) -> HealthReport:
     logger.info("build_health_report started")
     checks = [
         _check_log_availability(overview),

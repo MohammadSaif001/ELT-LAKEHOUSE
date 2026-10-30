@@ -34,11 +34,15 @@ def download_dataset(
     dataset_download_path = Path(dataset_download_path)
     missing_files = missing_dataset_files(dataset_download_path)
     if not missing_files:
-        logger.info("Dataset already exists at %s; skipping download.", dataset_download_path)
+        logger.info(
+            "Dataset already exists at %s; skipping download.", dataset_download_path
+        )
         return dataset_download_path
 
     dataset_download_path.mkdir(parents=True, exist_ok=True)
-    logger.info("Downloading Kaggle dataset %s to %s.", dataset_id, dataset_download_path)
+    logger.info(
+        "Downloading Kaggle dataset %s to %s.", dataset_id, dataset_download_path
+    )
     try:
         kaggle.api.dataset_download_files(
             dataset_id, path=str(dataset_download_path), unzip=True

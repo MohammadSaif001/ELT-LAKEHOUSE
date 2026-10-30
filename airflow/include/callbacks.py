@@ -1,4 +1,5 @@
 """Airflow task callbacks."""
+
 import logging
 
 logger = logging.getLogger(__name__)

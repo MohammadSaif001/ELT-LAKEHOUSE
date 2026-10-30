@@ -1,4 +1,3 @@
-
 from src.elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
@@ -28,6 +27,7 @@ SCORE_DIST: dict[str, float] = {
 
 total_weight: float = sum(SCORE_DIST.values())
 SCORE_DIST = {key: value / total_weight for key, value in SCORE_DIST.items()}
+
 
 def select_template(templates: list[dict[str, str]]) -> tuple[str, str]:
     logger.debug("Selecting review template: candidates=%d", len(templates))

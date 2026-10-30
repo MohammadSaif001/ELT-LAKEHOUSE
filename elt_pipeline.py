@@ -37,8 +37,8 @@ def orchestrate(args, send_report: bool = False) -> None:
         if args.setup:
             # Setup is intentionally separate from generation so profiling can
             # be refreshed without creating a new synthetic dataset.
-            from src.elt_lakehouse.spark.jobs.download_data import download_dataset
             from src.elt_lakehouse.spark.jobs.build_profile_job import run_profile_job
+            from src.elt_lakehouse.spark.jobs.download_data import download_dataset
 
             download_dataset()
             run_profile_job()
@@ -55,8 +55,10 @@ def orchestrate(args, send_report: bool = False) -> None:
             )
             from src.elt_lakehouse.spark.jobs.bronze_job import run_bronze_ingestion
             from src.elt_lakehouse.spark.jobs.dataset_job import run_dataset_job
+            from src.elt_lakehouse.spark.jobs.gold_job import (
+                main as run_gold_processing,
+            )
             from src.elt_lakehouse.spark.jobs.silver_job import run_silver_processing
-            from src.elt_lakehouse.spark.jobs.gold_job import main as run_gold_processing
 
             run_dataset_job()
             spark = create_spark_session()
@@ -90,7 +92,6 @@ def orchestrate(args, send_report: bool = False) -> None:
             run_bronze_ingestion()
 
         elif args.launch_dashboard:
-
             import webbrowser
 
             # Open the local UI before handing control to Uvicorn's development
@@ -120,14 +121,18 @@ def orchestrate(args, send_report: bool = False) -> None:
         elif args.gold_runner:
             # Gold depends on completed Silver tables and is exposed as a
             # standalone stage for reruns without repeating ingestion.
-            from src.elt_lakehouse.spark.jobs.gold_job import main as run_gold_processing
+            from src.elt_lakehouse.spark.jobs.gold_job import (
+                main as run_gold_processing,
+            )
 
             run_gold_processing()
         elif args.serve_gold:
             # Serving is its own stage: Gold Delta is already built, so a failed
             # publish can be retried without rebuilding anything.
             from src.elt_lakehouse.serving.postgres_writer import publish_gold
-            from src.elt_lakehouse.spark.common.spark_session import create_spark_session
+            from src.elt_lakehouse.spark.common.spark_session import (
+                create_spark_session,
+            )
 
             spark = create_spark_session()
             try:

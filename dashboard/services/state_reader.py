@@ -38,4 +38,6 @@ def read_watermark(project_root: Path) -> dict[str, Any] | None:
 
 def read_bronze_checkpoint(project_root: Path) -> dict[str, Any] | None:
     logger.info("read_bronze_checkpoint started")
-    return _read_json(project_root / "metadata" / "checkpoints" / "bronze_checkpoint.json")
+    return _read_json(
+        project_root / "metadata" / "checkpoints" / "bronze_checkpoint.json"
+    )

@@ -12,6 +12,7 @@ event and closes at the next start (or the end of the log). Inside a window:
   completion message carries ``duration_s=...``, an exact duration,
 * every event is counted by level.
 """
+
 from __future__ import annotations
 
 import re
@@ -28,8 +29,8 @@ from dashboard.services.pipeline_registry import PIPELINE_STAGES
 from dashboard.services.status_service import PipelineOverview, _parse_ts
 
 PIPELINE_LOGGERS = {"elt_pipeline", "__main__"}
-MAX_RUNS = 12          # runs shown in trend charts
-MAX_BUCKETS = 24       # time buckets in the event-volume chart
+MAX_RUNS = 12  # runs shown in trend charts
+MAX_BUCKETS = 24  # time buckets in the event-volume chart
 
 _DURATION_RE = re.compile(r"duration_s=([0-9]+(?:\.[0-9]+)?)")
 
@@ -38,7 +39,7 @@ _DURATION_RE = re.compile(r"duration_s=([0-9]+(?:\.[0-9]+)?)")
 class StageTiming:
     key: str
     label: str
-    status: str                      # SUCCESS / FAILED / RUNNING / UNKNOWN
+    status: str  # SUCCESS / FAILED / RUNNING / UNKNOWN
     start: datetime | None = None
     end: datetime | None = None
     duration_s: float | None = None  # exact if logged, else derived from timestamps
@@ -53,7 +54,7 @@ class RunWindow:
     index: int
     started: datetime | None
     finished: datetime | None
-    status: str                      # SUCCESS / FAILED / INCOMPLETE / RUNNING
+    status: str  # SUCCESS / FAILED / INCOMPLETE / RUNNING
     duration_s: float | None
     stages: list[StageTiming] = field(default_factory=list)
     levels: Counter = field(default_factory=Counter)
@@ -69,7 +70,9 @@ def _seconds(a: datetime | None, b: datetime | None) -> float | None:
     return round((b - a).total_seconds(), 2)
 
 
-def _split_windows(events: list[log_reader.LogEvent]) -> list[list[log_reader.LogEvent]]:
+def _split_windows(
+    events: list[log_reader.LogEvent],
+) -> list[list[log_reader.LogEvent]]:
     """Group events into runs. Events logged before the first start are ignored."""
     windows: list[list[log_reader.LogEvent]] = []
     for event in events:
@@ -84,7 +87,9 @@ def _split_windows(events: list[log_reader.LogEvent]) -> list[list[log_reader.Lo
     return windows
 
 
-def _build_window(index: int, window: list[log_reader.LogEvent], is_last: bool) -> RunWindow:
+def _build_window(
+    index: int, window: list[log_reader.LogEvent], is_last: bool
+) -> RunWindow:
     started = _parse_ts(window[0].timestamp)
     finished: datetime | None = None
     status = "RUNNING" if is_last else "INCOMPLETE"
@@ -99,7 +104,10 @@ def _build_window(index: int, window: list[log_reader.LogEvent], is_last: bool) 
             status, finished = "FAILED", _parse_ts(event.timestamp)
 
     run = RunWindow(
-        index=index, started=started, finished=finished, status=status,
+        index=index,
+        started=started,
+        finished=finished,
+        status=status,
         duration_s=_seconds(started, finished),
         levels=Counter(e.normalized_level for e in window),
     )
@@ -115,16 +123,25 @@ def _build_window(index: int, window: list[log_reader.LogEvent], is_last: bool) 
             None,
         )
         done = next(
-            (e for e in reversed(stage_events)
-             if stage.completion_match.lower() in e.message.lower()), None,
+            (
+                e
+                for e in reversed(stage_events)
+                if stage.completion_match.lower() in e.message.lower()
+            ),
+            None,
         )
         timing = StageTiming(
-            key=stage.key, label=stage.label, status="UNKNOWN", start=first,
+            key=stage.key,
+            label=stage.label,
+            status="UNKNOWN",
+            start=first,
             events=len(stage_events),
             warnings=sum(e.normalized_level == "WARNING" for e in stage_events),
             errors=sum(e.normalized_level == "ERROR" for e in stage_events),
         )
-        if failure and (not done or stage_events.index(failure) > stage_events.index(done)):
+        if failure and (
+            not done or stage_events.index(failure) > stage_events.index(done)
+        ):
             timing.status = "FAILED"
             timing.end = _parse_ts(failure.timestamp)
         elif done:
@@ -138,7 +155,10 @@ def _build_window(index: int, window: list[log_reader.LogEvent], is_last: bool) 
 
         logged = _DURATION_RE.search(done.message) if done else None
         if logged:
-            timing.duration_s, timing.duration_exact = round(float(logged.group(1)), 2), True
+            timing.duration_s, timing.duration_exact = (
+                round(float(logged.group(1)), 2),
+                True,
+            )
         else:
             timing.duration_s = _seconds(timing.start, timing.end)
         run.stages.append(timing)
@@ -179,8 +199,11 @@ def _event_buckets(events: list[log_reader.LogEvent]) -> dict[str, Any]:
     step = timedelta(hours=1) if unit == "hour" else timedelta(days=1)
 
     def floor(t: datetime) -> datetime:
-        return t.replace(minute=0, second=0, microsecond=0) if unit == "hour" \
+        return (
+            t.replace(minute=0, second=0, microsecond=0)
+            if unit == "hour"
             else t.replace(hour=0, minute=0, second=0, microsecond=0)
+        )
 
     counts: OrderedDict[datetime, Counter] = OrderedDict()
     cursor, end = floor(first), floor(last)
@@ -194,10 +217,13 @@ def _event_buckets(events: list[log_reader.LogEvent]) -> dict[str, Any]:
     return {
         "unit": unit,
         "buckets": [
-            {"label": b.strftime(fmt), "full": b.strftime("%Y-%m-%d %H:%M"),
-             "info": c.get("INFO", 0) + c.get("DEBUG", 0),
-             "warning": c.get("WARNING", 0) + c.get("WARN", 0),
-             "error": c.get("ERROR", 0) + c.get("CRITICAL", 0)}
+            {
+                "label": b.strftime(fmt),
+                "full": b.strftime("%Y-%m-%d %H:%M"),
+                "info": c.get("INFO", 0) + c.get("DEBUG", 0),
+                "warning": c.get("WARNING", 0) + c.get("WARN", 0),
+                "error": c.get("ERROR", 0) + c.get("CRITICAL", 0),
+            }
             for b, c in items
         ],
     }
@@ -228,7 +254,9 @@ def build_telemetry(
     success_rate = (
         round(100 * outcome["SUCCESS"] / len(finished_runs)) if finished_runs else None
     )
-    ok_durations = [r.duration_s for r in runs if r.status == "SUCCESS" and r.duration_s is not None]
+    ok_durations = [
+        r.duration_s for r in runs if r.status == "SUCCESS" and r.duration_s is not None
+    ]
     duration_stats = {
         "avg": round(statistics.mean(ok_durations), 2) if ok_durations else None,
         "median": round(statistics.median(ok_durations), 2) if ok_durations else None,
@@ -245,11 +273,16 @@ def build_telemetry(
     run_series = [
         {
             "gap_h": gaps.get(r.index),
-            "label": r.started.strftime("%d %b %H:%M") if r.started else f"run {r.index + 1}",
-            "full": _iso(r.started), "status": r.status,
-            "duration": r.duration_s, "duration_label": _fmt_dur(r.duration_s),
+            "label": r.started.strftime("%d %b %H:%M")
+            if r.started
+            else f"run {r.index + 1}",
+            "full": _iso(r.started),
+            "status": r.status,
+            "duration": r.duration_s,
+            "duration_label": _fmt_dur(r.duration_s),
             "events": r.event_total,
-            "errors": r.levels.get("ERROR", 0), "warnings": r.levels.get("WARNING", 0),
+            "errors": r.levels.get("ERROR", 0),
+            "warnings": r.levels.get("WARNING", 0),
         }
         for r in recent
     ]
@@ -257,43 +290,72 @@ def build_telemetry(
     # ---- stage timing (trend + latest gantt) --------------------------
     stage_trend = [
         {
-            "label": r.started.strftime("%d %b %H:%M") if r.started else f"run {r.index + 1}",
+            "label": r.started.strftime("%d %b %H:%M")
+            if r.started
+            else f"run {r.index + 1}",
             "status": r.status,
             "stages": {s.key: s.duration_s for s in r.stages},
         }
         for r in recent
     ]
-    stage_meta = [{"key": s.key, "label": s.label.title().replace(" / Dbt", " / dbt")}
-                  for s in PIPELINE_STAGES]
+    stage_meta = [
+        {"key": s.key, "label": s.label.title().replace(" / Dbt", " / dbt")}
+        for s in PIPELINE_STAGES
+    ]
 
     stage_stats = []
     for meta in stage_meta:
-        vals = [st.duration_s for r in runs for st in r.stages
-                if st.key == meta["key"] and st.status == "SUCCESS" and st.duration_s is not None]
-        cur = next((st.duration_s for st in (latest.stages if latest else [])
-                    if st.key == meta["key"]), None)
-        stage_stats.append({
-            "key": meta["key"], "label": meta["label"], "n": len(vals), "latest": cur,
-            "min": min(vals) if vals else None, "max": max(vals) if vals else None,
-            "median": round(statistics.median(vals), 2) if vals else None,
-        })
+        vals = [
+            st.duration_s
+            for r in runs
+            for st in r.stages
+            if st.key == meta["key"]
+            and st.status == "SUCCESS"
+            and st.duration_s is not None
+        ]
+        cur = next(
+            (
+                st.duration_s
+                for st in (latest.stages if latest else [])
+                if st.key == meta["key"]
+            ),
+            None,
+        )
+        stage_stats.append(
+            {
+                "key": meta["key"],
+                "label": meta["label"],
+                "n": len(vals),
+                "latest": cur,
+                "min": min(vals) if vals else None,
+                "max": max(vals) if vals else None,
+                "median": round(statistics.median(vals), 2) if vals else None,
+            }
+        )
 
     gantt = None
     if latest and latest.started:
         origin = latest.started
         horizon = latest.finished or max(
-            (s.end for s in latest.stages if s.end), default=origin)
+            (s.end for s in latest.stages if s.end), default=origin
+        )
         total = max(_seconds(origin, horizon) or 0.0, 0.001)
         gantt = {
-            "total_s": total, "total_label": _fmt_dur(total), "status": latest.status,
+            "total_s": total,
+            "total_label": _fmt_dur(total),
+            "status": latest.status,
             "stages": [
                 {
-                    "key": s.key, "label": stage_meta[i]["label"], "status": s.status,
+                    "key": s.key,
+                    "label": stage_meta[i]["label"],
+                    "status": s.status,
                     "offset_s": _seconds(origin, s.start) if s.start else None,
                     "duration_s": s.duration_s,
                     "duration_label": _fmt_dur(s.duration_s),
-                    "exact": s.duration_exact, "events": s.events,
-                    "warnings": s.warnings, "errors": s.errors,
+                    "exact": s.duration_exact,
+                    "events": s.events,
+                    "warnings": s.warnings,
+                    "errors": s.errors,
                 }
                 for i, s in enumerate(latest.stages)
             ],
@@ -303,11 +365,17 @@ def build_telemetry(
     levels = Counter(e.normalized_level for e in events)
     by_logger: dict[str, Counter] = {}
     for e in events:
-        by_logger.setdefault(_stage_for_logger(e.logger_name), Counter())[e.normalized_level] += 1
+        by_logger.setdefault(_stage_for_logger(e.logger_name), Counter())[
+            e.normalized_level
+        ] += 1
     logger_series = sorted(
         (
-            {"label": name, "info": c.get("INFO", 0) + c.get("DEBUG", 0),
-             "warning": c.get("WARNING", 0), "error": c.get("ERROR", 0) + c.get("CRITICAL", 0)}
+            {
+                "label": name,
+                "info": c.get("INFO", 0) + c.get("DEBUG", 0),
+                "warning": c.get("WARNING", 0),
+                "error": c.get("ERROR", 0) + c.get("CRITICAL", 0),
+            }
             for name, c in by_logger.items()
         ),
         key=lambda row: -(row["info"] + row["warning"] + row["error"]),
@@ -316,7 +384,9 @@ def build_telemetry(
     first_ts = _parse_ts(events[0].timestamp) if events else None
     last_ts = _parse_ts(events[-1].timestamp) if events else None
     since = datetime.now() - timedelta(hours=24)
-    last_24h = sum(1 for e in events if (_parse_ts(e.timestamp) or datetime.min) >= since)
+    last_24h = sum(
+        1 for e in events if (_parse_ts(e.timestamp) or datetime.min) >= since
+    )
 
     # ---- dbt ----------------------------------------------------------
     dbt = None
@@ -324,22 +394,30 @@ def build_telemetry(
         dbt = {
             "generated_at": dbt_summary.generated_at,
             "tests": {
-                "pass": dbt_summary.tests_passed, "fail": dbt_summary.tests_failed,
-                "error": dbt_summary.tests_errored, "warn": dbt_summary.tests_warned,
-                "skip": dbt_summary.tests_skipped, "total": dbt_summary.tests_total,
+                "pass": dbt_summary.tests_passed,
+                "fail": dbt_summary.tests_failed,
+                "error": dbt_summary.tests_errored,
+                "warn": dbt_summary.tests_warned,
+                "skip": dbt_summary.tests_skipped,
+                "total": dbt_summary.tests_total,
             },
             "models": [
                 {"name": m.name, "status": m.status, "seconds": m.execution_seconds}
-                for m in sorted(dbt_summary.models, key=lambda m: -(m.execution_seconds or 0))
+                for m in sorted(
+                    dbt_summary.models, key=lambda m: -(m.execution_seconds or 0)
+                )
             ],
             "model_seconds_total": round(
-                sum(m.execution_seconds or 0 for m in dbt_summary.models), 2),
+                sum(m.execution_seconds or 0 for m in dbt_summary.models), 2
+            ),
         }
 
     # ---- storage ------------------------------------------------------
     storage = [
         {
-            "key": layer.key, "label": layer.label.title(), "present": layer.has_data,
+            "key": layer.key,
+            "label": layer.label.title(),
+            "present": layer.has_data,
             "bytes": layer.size_bytes or 0,
             "mb": round((layer.size_bytes or 0) / 1048576, 2),
             "modified": _iso(layer.modified_at),
@@ -363,7 +441,8 @@ def build_telemetry(
             "events_24h": last_24h,
             "warnings": levels.get("WARNING", 0),
             "errors": levels.get("ERROR", 0) + levels.get("CRITICAL", 0),
-            "log_first": _iso(first_ts), "log_last": _iso(last_ts),
+            "log_first": _iso(first_ts),
+            "log_last": _iso(last_ts),
             "jobs_total": sum(job_counts.values()),
             "jobs_success": job_counts.get("SUCCESS", 0),
             "jobs_failed": job_counts.get("FAILED", 0),
@@ -372,7 +451,8 @@ def build_telemetry(
         "duration_stats": duration_stats,
         "duration_stats_label": duration_stats_label,
         "outcomes": {
-            "success": outcome["SUCCESS"], "failed": outcome["FAILED"],
+            "success": outcome["SUCCESS"],
+            "failed": outcome["FAILED"],
             "incomplete": outcome["INCOMPLETE"] + outcome["RUNNING"],
         },
         "runs": run_series,
@@ -390,8 +470,12 @@ def build_telemetry(
         "dbt": dbt,
         "storage": storage,
         "stages": [
-            {"key": s.stage.key, "label": stage_meta[i]["label"], "status": s.status,
-             "jobs": [{"label": j.job.label, "status": j.status} for j in s.jobs]}
+            {
+                "key": s.stage.key,
+                "label": stage_meta[i]["label"],
+                "status": s.status,
+                "jobs": [{"label": j.job.label, "status": j.status} for j in s.jobs],
+            }
             for i, s in enumerate(overview.stages)
         ],
     }
