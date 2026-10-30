@@ -11,10 +11,12 @@
 ## Overview
 
 This runbook covers diagnosing and recovering from failures in the
-ELT-Lakehouse batch pipeline. The pipeline runs in four sequential stages:
+ELT-Lakehouse batch pipeline. The pipeline runs in four sequential stages,
+followed by an optional Gold build and warehouse publishing step:
 
 ```
 Pool Generation → Dataset Generation → Bronze Ingestion → Silver Processing
+                                                        ↘ Gold → PostgreSQL
 ```
 
 A failure in any stage aborts all subsequent stages. Add
@@ -33,7 +35,20 @@ uv run python elt_pipeline.py --build-pool
 uv run python elt_pipeline.py --build-dataset
 uv run python elt_pipeline.py --bronze-runner
 uv run python elt_pipeline.py --silver-runner
+uv run python elt_pipeline.py --gold-runner
+uv run python elt_pipeline.py --serve-gold
 ```
+
+Inspect the logs while diagnosing a failure:
+
+```bash
+tail -f logs/application.log
+tail -f logs/dashboard.log  # dashboard service diagnostics only
+```
+
+`logs/application.log` contains pipeline and application events used by the
+dashboard for run status. Dashboard service messages are isolated in
+`logs/dashboard.log` and are not part of pipeline status evaluation.
 
 ---
 

@@ -9,7 +9,7 @@ medallion layout.
 
 | Area | Status | Notes |
 | --- | --- | --- |
-| Synthetic data generation | Implemented | Config-driven pools and datasets for customers, products, sellers, orders, payments, reviews, and geolocation |
+| Synthetic data generation | Implemented | Config-driven, chunked parallel generation for customers, products, sellers, orders, payments, reviews, and geolocation |
 | Bronze layer | Implemented | Spark ingestion writes the generated datasets to Delta tables |
 | Silver layer | Implemented | Contract-based casting, validation, referential-integrity checks, Delta outputs, and quarantine tables |
 | Data quality | Implemented | Null, duplicate, freshness, schema, business-rule, and referential-integrity checks |
@@ -18,7 +18,7 @@ medallion layout.
 | Kafka ingestion | In development | Producer, consumer, topic-management, and Kafka-to-Bronze modules are present but require a running Kafka environment |
 | Airflow orchestration | In development | DAGs, callbacks, alerts, and custom operators are present under `airflow/` |
 | dbt Gold modeling | Implemented | Gold dimensions, facts, sources, and tests are defined under `dbt_gold/` and run through the Spark/dbt Gold job |
-| Gold and warehouse loading | Available in code | Gold Delta outputs and a PostgreSQL writer are available; deployment-specific warehouse configuration and end-to-end validation remain |
+| Gold and warehouse loading | Available in code | Gold Delta outputs and a PostgreSQL writer are available; `--serve-gold` publishes Gold Delta tables to PostgreSQL when `POSTGRES_*` settings are configured |
 
 ## Architecture
 
@@ -116,15 +116,33 @@ uv run python elt_pipeline.py --run-pipeline
 is not already present locally. You can also combine stage flags; they always
 run in dependency order.
 
-Build the Gold layer after Silver has completed:
+The generator uses process-based parallel chunks for large pool and dataset
+workloads. Worker count is selected from the host CPU count and is logged at
+the start of each generation task. Reduce the configured data volume in
+[`config/generator_config.yaml`](config/generator_config.yaml) when developing
+on a resource-constrained machine.
+
+Build and optionally publish the Gold layer after Silver has completed:
 
 ```bash
-uv run python scripts/run_gold_dbt.py
+uv run python elt_pipeline.py --gold-runner
+uv run python elt_pipeline.py --serve-gold
 ```
 
-The Gold job registers the Silver Delta tables with Spark, creates a temporary
-dbt profile, and writes Gold Delta tables under `storage/gold/`. It does not
-require a user-managed `~/.dbt/profiles.yml`.
+`--gold-runner` registers the Silver Delta tables with Spark, creates a
+temporary dbt profile, and writes Gold Delta tables under `storage/gold/`.
+It does not require a user-managed `~/.dbt/profiles.yml`. `--serve-gold`
+requires the PostgreSQL connection settings documented in
+[`config/postgress_config.yaml`](config/postgress_config.yaml) and the
+corresponding `POSTGRES_*` environment variables.
+
+Other supported entry points include:
+
+```bash
+uv run python elt_pipeline.py --send-report
+uv run python elt_pipeline.py --launch-dashboard
+uv run python elt_pipeline.py --run-tests
+```
 
 The current generator configuration creates pools of up to 1,000,000
 customers, 100,000 products, and 200,000 sellers, with a configured dataset
@@ -172,6 +190,9 @@ monitoring/   Prometheus and Grafana configuration
 - The [Gold layer catalog](docs/catalog.md) documents Gold model grains,
   keys, sources, published columns, and validation rules.
 - Spark jobs use structured logging and memory-monitoring helpers.
+- Pipeline records are written to `logs/application.log`; dashboard service
+  records are written separately to `logs/dashboard.log` and do not propagate
+  into the application log.
 - Invalid records identified during Silver referential-integrity checks are
   written to `storage/silver/quarantine/`.
 - The monitoring dashboard is read-only; it reports pipeline state but does not
