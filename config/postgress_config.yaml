@@ -1,0 +1,32 @@
+# Gold serving: which Gold Delta tables are published to PostgreSQL.
+# Delta folder name == Postgres table name. Dimensions load before facts.
+schema: gold
+
+jdbc:
+  driver: org.postgresql.Driver
+  package: "org.postgresql:postgresql:42.7.4"   # added to the Spark session
+  batch_size: 10000
+  num_partitions: 4        # parallel JDBC connections per table
+  create_missing_tables: true   # create tables if they don't exist1
+
+tables:
+  dimensions:
+    date: dim_date
+    customer: dim_customer
+    seller: dim_seller
+    product: dim_product
+    location: dim_location
+  facts:
+    order_items: fact_order_items
+    orders: fact_orders
+    seller: fact_seller
+    product: fact_product
+
+postgres:
+  host: localhost
+  port: 5432
+  database: elt_lakehouse
+  schema: gold
+  user: gold_loader
+  password_env: POSTGRES_PASSWORD
+  jdbc_driver: org.postgresql.Driver

@@ -123,6 +123,17 @@ def orchestrate(args, send_report: bool = False) -> None:
             from src.elt_lakehouse.spark.jobs.gold_job import main as run_gold_processing
 
             run_gold_processing()
+        elif args.serve_gold:
+            # Serving is its own stage: Gold Delta is already built, so a failed
+            # publish can be retried without rebuilding anything.
+            from src.elt_lakehouse.serving.postgres_writer import publish_gold
+            from src.elt_lakehouse.spark.common.spark_session import create_spark_session
+
+            spark = create_spark_session()
+            try:
+                publish_gold(spark)
+            finally:
+                spark.stop()
 
         duration: float = (datetime.now(timezone.utc) - start_time).total_seconds()
 
@@ -205,6 +216,12 @@ def main() -> None:
         "--gold-runner",
         action="store_true",
         help="Run the build_gold step of the ELT pipeline.",
+    )
+
+    run_group.add_argument(
+        "--serve-gold",
+        action="store_true",
+        help="Publish the Gold Delta tables to PostgreSQL (needs POSTGRES_* env vars).",
     )
 
     args = parser.parse_args()
