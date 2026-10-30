@@ -68,14 +68,22 @@ def create_spark_session(app_name: str | None = None) -> SparkSession:
         except ImportError:
             configure_delta = None
 
+        # JDBC driver for publishing Gold to PostgreSQL (downloaded once via Ivy).
+        jdbc_package = (
+            load_yaml("postgress_config.yaml").get("jdbc", {}).get("package")
+        )
+        extra_packages = [jdbc_package] if jdbc_package else []
+
         if configure_delta:
-            spark = configure_delta(builder).getOrCreate()
+            spark = configure_delta(builder, extra_packages=extra_packages).getOrCreate()
         else:
             # Default Maven coordinate for Delta Spark
             delta_maven = spark_config.get("delta", {}).get(
                 "maven_coord", "io.delta:delta-spark_4.1_2.13:4.3.1"
             )
-            builder = builder.config("spark.jars.packages", delta_maven)
+            builder = builder.config(
+                "spark.jars.packages", ",".join([delta_maven, *extra_packages])
+            )
             spark = builder.getOrCreate()
 
         logger.info(
