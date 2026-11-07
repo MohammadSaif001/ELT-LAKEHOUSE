@@ -12,21 +12,6 @@ logger = get_logger(__name__)
 # ELT Pipeline
 # ==========================
 
-
-def send_pipeline_report() -> None:
-    """Build and send the latest pipeline report."""
-    try:
-        # Keep reporting dependencies optional so normal pipeline stages do not
-        # require the email configuration to be available.
-        from report_sender.email_configure import format_report, send_email
-        from report_sender.log_parsing import generate_report
-
-        report = generate_report()
-        send_email(body=format_report(report))
-    except Exception:
-        logger.exception("Failed to generate or send the pipeline report.")
-
-
 @monitor_memory
 def orchestrate(args, send_report: bool = False) -> None:
     """Run the ELT pipeline."""
@@ -145,6 +130,7 @@ def orchestrate(args, send_report: bool = False) -> None:
         logger.info("ELT pipeline completed successfully in %.2f seconds.", duration)
 
         if send_report:
+            from report_sender.email_sender import send_pipeline_report
             send_pipeline_report()
 
     except Exception:

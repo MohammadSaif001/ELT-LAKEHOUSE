@@ -35,6 +35,11 @@ def _empty_report() -> dict:
         "start_time": None,
         "end_time": None,
         "duration": None,
+        "layers": {
+            "bronze": {"status": "UNKNOWN", "duration": None},
+            "silver": {"status": "UNKNOWN", "duration": None},
+            "gold": {"status": "UNKNOWN", "duration": None},
+        },
         "datasets": {},
         "errors": [],
     }
@@ -79,6 +84,47 @@ def generate_report() -> dict:
                 report["errors"].append(
                     {"timestamp": timestamp, "level": level, "message": message}
                 )
+
+            layer = None
+            if "starting bronze ingestion" in message_lower:
+                layer = "bronze"
+                report["layers"][layer]["status"] = "RUNNING"
+            elif "ingestion functions completed successfully" in message_lower:
+                layer = "bronze"
+                report["layers"][layer]["status"] = "SUCCESS"
+            elif "ingestion failed" in message_lower:
+                layer = "bronze"
+                report["layers"][layer]["status"] = "FAILED"
+            elif "starting silver layer processing" in message_lower:
+                layer = "silver"
+                report["layers"][layer]["status"] = "RUNNING"
+            elif "silver layer processing completed successfully" in message_lower:
+                layer = "silver"
+                report["layers"][layer]["status"] = "SUCCESS"
+            elif "all data validations completed successfully" in message_lower:
+                layer = "silver"
+                report["layers"][layer]["status"] = "SUCCESS"
+            elif "silver layer processing failed" in message_lower:
+                layer = "silver"
+                report["layers"][layer]["status"] = "FAILED"
+            elif "starting gold layer build" in message_lower:
+                layer = "gold"
+                report["layers"][layer]["status"] = "RUNNING"
+            elif "gold layer build completed successfully" in message_lower:
+                layer = "gold"
+                report["layers"][layer]["status"] = "SUCCESS"
+            elif "gold layer build failed" in message_lower:
+                layer = "gold"
+                report["layers"][layer]["status"] = "FAILED"
+
+            if layer:
+                duration_match = re.search(
+                    r"duration_s\s*=\s*([\d.]+)", message, re.IGNORECASE
+                )
+                if duration_match:
+                    report["layers"][layer]["duration"] = float(
+                        duration_match.group(1)
+                    )
 
             dataset_match = re.search(
                 r"(customer|order|seller|product|review|payment|"
