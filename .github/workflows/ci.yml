@@ -1,4 +1,4 @@
-name: CI
+name: ELT Lakehouse CI
 
 on:
   push:
@@ -75,6 +75,39 @@ jobs:
 
           print("Core module import check completed.")
           PY
+  dbt-tests:
+    name: DBT Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      # Install dbt 
+      - name: Install dbt
+        run: |
+          pip install dbt-snowflake
+      
+      # Install dbt dependencies
+      - name: Install dbt dependencies
+        run: |
+           dbt deps .
+    
+      # Run dbt tests
+      - name: Run dbt tests
+        env:
+          DBT_PROFILES_DIR:
+        run: |
+          dbt test
+
 
   test:
     name: Data Quality and Unit Tests (Python ${{ matrix.python-version }})
