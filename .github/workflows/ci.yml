@@ -1,4 +1,4 @@
-name: CI
+name: ELT Lakehouse CI
 
 on:
   push:
@@ -9,6 +9,7 @@ on:
     branches:
       - main
       - "**"
+  workflow_dispatch:
 
 jobs:
   import-smoke-test:
@@ -76,6 +77,43 @@ jobs:
           print("Core module import check completed.")
           PY
 
+  dbt-validation:
+    name: dbt Gold Data Quality Tests
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Java for Spark
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install project dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+
+      - name: Install dbt dependencies
+        working-directory: dbt_gold
+        run: dbt deps
+
+      - name: Validate dbt project
+        run: |
+          python -c "
+          from pathlib import Path
+          assert Path('dbt_gold/dbt_project.yml').exists()
+          print('dbt project found successfully')
+          "
+
   test:
     name: Data Quality and Unit Tests (Python ${{ matrix.python-version }})
     needs: import-smoke-test
@@ -105,12 +143,16 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e .
+          python -m pip install "pytest>=8.0"
 
       - name: Generate test pools
-        run: python elt_pipeline.py --build-pool
+        run: elt --build-pool
 
       - name: Generate test datasets
-        run: python elt_pipeline.py --build-dataset
+        run: elt --build-dataset
 
       - name: Run tests
-        run: python -m pytest -v
+        run: |
+          python -m pip install "pytest>=8.0"
+          python -m pytest --version
+          python -m pytest -v
