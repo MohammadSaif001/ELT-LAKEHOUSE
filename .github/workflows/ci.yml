@@ -98,8 +98,7 @@ jobs:
       
       # Install dbt dependencies
       - name: Install dbt dependencies
-        run: |
-           dbt deps .
+        run: dbt deps
     
       # Run dbt tests
       - name: Run dbt tests
