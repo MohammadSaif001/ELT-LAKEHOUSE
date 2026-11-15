@@ -1,10 +1,10 @@
-from src.elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 import random
 
-from config.config_loader import load_yaml
-from src.elt_lakehouse.generators.base.distribution_loader import load_distribution
+from elt_lakehouse.config.config_loader import load_yaml
+from elt_lakehouse.generators.base.distribution_loader import load_distribution
 
 # state distribution
 state_dist = load_distribution("state_distribution.json")

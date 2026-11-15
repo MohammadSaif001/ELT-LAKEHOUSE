@@ -5,8 +5,8 @@ import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
-from src.elt_lakehouse.generators.base.data_saving import write_tables
-from src.elt_lakehouse.generators.base.parallel import (
+from elt_lakehouse.generators.base.data_saving import write_tables
+from elt_lakehouse.generators.base.parallel import (
     base_seed,
     chunk_seed,
     map_chunks,
@@ -14,8 +14,8 @@ from src.elt_lakehouse.generators.base.parallel import (
     seed_this_process,
     worker_count,
 )
-from src.elt_lakehouse.generators.reviews.review_generator import generate_review
-from src.elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.generators.reviews.review_generator import generate_review
+from elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 

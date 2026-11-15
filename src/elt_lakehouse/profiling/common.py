@@ -1,4 +1,4 @@
-from src.elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 import csv
@@ -6,7 +6,7 @@ import json
 
 import pandas as pd
 
-from src.elt_lakehouse.spark.common.paths import PROFILING_DIR, RAW_DATA_DIR
+from elt_lakehouse.spark.common.paths import PROFILING_DIR, RAW_DATA_DIR
 
 
 def load_csv(file_name: str) -> pd.DataFrame:

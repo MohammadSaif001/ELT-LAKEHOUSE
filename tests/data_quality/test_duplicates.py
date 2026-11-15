@@ -1,4 +1,4 @@
-from src.elt_lakehouse.generators.base.data_loading import load_generated_data
+from elt_lakehouse.generators.base.data_loading import load_generated_data
 
 
 def assert_unique(values, name) -> None:
@@ -9,9 +9,9 @@ def assert_unique(values, name) -> None:
         values (list): List of values to check for uniqueness.
         name (str): Name of the entity being checked (for error messages).
     """
-    assert len(values) == len(set(values)), (
-        f"Duplicate {name} found: {len(values) - len(set(values))}"
-    )
+    assert len(values) == len(
+        set(values)
+    ), f"Duplicate {name} found: {len(values) - len(set(values))}"
 
 
 # =====================================

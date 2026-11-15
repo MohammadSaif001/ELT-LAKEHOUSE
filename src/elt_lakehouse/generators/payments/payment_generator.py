@@ -1,10 +1,10 @@
-from src.elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 from typing import Literal
 
-from config.config_loader import load_yaml
-from src.elt_lakehouse.generators.base.distribution_loader import (
+from elt_lakehouse.config.config_loader import load_yaml
+from elt_lakehouse.generators.base.distribution_loader import (
     load_distribution,
     weighted_choice,
 )

@@ -1,4 +1,4 @@
-from src.elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 import itertools
@@ -7,7 +7,7 @@ import random
 from bisect import bisect_right
 from typing import Any
 
-from src.elt_lakehouse.spark.common.paths import PROFILING_DIR
+from elt_lakehouse.spark.common.paths import PROFILING_DIR
 
 _DISTRIBUTION_PARAMS_CACHE: dict[int, tuple[list, list]] = {}
 

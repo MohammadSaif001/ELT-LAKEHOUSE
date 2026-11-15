@@ -1,4 +1,4 @@
-from src.elt_lakehouse.generators.base.distribution_loader import load_distribution
+from elt_lakehouse.generators.base.distribution_loader import load_distribution
 
 
 def test_order_status_distribution() -> None:

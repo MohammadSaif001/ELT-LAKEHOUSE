@@ -26,6 +26,7 @@ read-only dashboard.
 | Gold layer (dbt) | Implemented | 5 dimensions and 4 facts under `dbt_gold/`, run by `--gold-runner` |
 | PostgreSQL serving | Implemented | `--serve-gold`; unit-tested, needs a running PostgreSQL (see [Serving Gold to PostgreSQL](#serving-gold-to-postgresql)) |
 | Monitoring dashboard | Implemented | Read-only FastAPI dashboard for status, data quality, storage health and logs |
+| Execution tracking | Scaffolded | SQLAlchemy/psycopg dependencies and a reserved tracking package; not connected to orchestration yet |
 | Idempotent and resumable runs | Planned | See the [roadmap](#roadmap) |
 | Incremental processing (CDC, merge, watermarks) | Planned | Module files exist as placeholders only |
 | Kafka streaming ingestion | Planned | Module files exist as placeholders only; see [ADR 002](docs/adr/002_why_kafka.md) |
@@ -83,7 +84,7 @@ multiplies revenue.
 - Python 3.11 to 3.14 (the versions tested by CI)
 - Java 17 for Spark
 - [`uv`](https://docs.astral.sh/uv/) for environments and dependencies
-- PostgreSQL, only for `--serve-gold`
+- PostgreSQL, for schema setup and `--serve-gold`
 
 Dependencies are declared in [`pyproject.toml`](pyproject.toml) and locked in
 [`uv.lock`](uv.lock).
@@ -101,7 +102,7 @@ build the profiling metadata, set up the
 [Kaggle API credentials](https://www.kaggle.com/docs/api), then run:
 
 ```bash
-uv run python elt_pipeline.py --setup
+uv run elt --setup
 ```
 
 The setup step reuses a complete local dataset. Raw CSV files and generated
@@ -111,24 +112,25 @@ profiles are local artifacts and are excluded from Git.
 
 | Command | What it does | Output |
 | --- | --- | --- |
+| `--setup` | Downloads the source dataset and builds profiling metadata | `data/raw/`, `data/profiling/` |
 | `--build-pool` | Generates the customer, product and seller pools | `metadata/pools/` |
 | `--build-dataset` | Generates orders, items, payments, reviews, geolocation | `storage/generated/` |
 | `--bronze-runner` | Ingests the generated data | `storage/bronze/` |
 | `--silver-runner` | Casts, validates and cleans; quarantines bad rows | `storage/silver/` |
 | `--gold-runner` | Builds the dbt Gold models | `storage/gold/` |
+| `--postgres-setup` | Creates or updates PostgreSQL roles, schema, tables, and indexes | PostgreSQL schema `gold` |
 | `--serve-gold` | Publishes Gold to PostgreSQL | PostgreSQL schema `gold` |
-| `--run-pipeline` | Setup, profiling, pools, datasets, Bronze, Silver and Gold in order | all of the above except serving |
+| `--run-pipeline` | Pools, dataset generation, Bronze, Silver and Gold in order | all of the above except setup and serving |
 | `--launch-dashboard` | Starts the dashboard at <http://127.0.0.1:5000> | |
 | `--run-tests` | Runs the test suite | |
 | `--send-report` | Emails the pipeline report (needs `EMAIL_ADDRESS`, `EMAIL_PASSWORD`, `RECIPIENT_EMAIL`) | |
 
-Run any of them with `uv run -m python elt_pipeline.py <flag>`. Stage flags can be
-combined, and they always run in dependency order. For example, a full run
-followed by publishing:
+Run one action at a time with `uv run elt <flag>`. The action
+flags are mutually exclusive. For example, a full run followed by publishing:
 
 ```bash
-uv run python -m elt_pipeline.py --run-pipeline
-uv run python -m elt_pipeline.py --serve-gold
+uv run elt --run-pipeline
+uv run elt --serve-gold
 ```
 
 `--run-pipeline` needs Kaggle credentials only when the complete raw dataset is
@@ -171,21 +173,31 @@ Unplugged, the same run took about 1.7x longer because the CPU was throttled.
 PostgreSQL over JDBC. Gold is not rebuilt, so a failed publish can be retried on
 its own. After each table it compares the Delta and PostgreSQL row counts.
 
-1. Create the roles, schema and tables once, as the database owner. Set your own
-   role passwords first, and never commit real ones:
-   `src/elt_lakehouse/warehouse/postgres/setup.sql`, then `create_tables.sql`,
-   then `create_indexes.sql`.
-2. Set the connection through environment variables:
+1. Configure the database as an administrator. The project provides a rerunnable
+   configurator that applies `setup.sql`, `create_tables.sql`, and
+   `create_indexes.sql` in one transaction:
+
+   ```bash
+   uv run elt --postgres-setup
+   ```
+
+   The direct equivalent is
+   `uv run python -m elt_lakehouse.warehouse.postgres.configure`.
+
+   The configurator uses these environment variables:
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `POSTGRES_HOST` | `localhost` | Database host |
+| `POSTGRES_HOSTNAME` | none | PostgreSQL host used by the configurator |
 | `POSTGRES_PORT` | `5432` | Database port |
-| `POSTGRES_DB` | `elt_lakehouse` | Database name |
-| `POSTGRES_USER` | `pipeline_writer` | Loader role; set it to the role that `setup.sql` creates for loading |
-| `POSTGRES_PASSWORD` | none, required | Loader password |
+| `POSTGRES_DATABASE` | none | Database name used by the configurator |
+| `POSTGRES_USER` | none | Administrator capable of creating roles and schemas |
+| `POSTGRES_PASSWORD` | none, required | Administrator password |
 
-3. Run `uv run python elt_pipeline.py --serve-gold`.
+   The SQL files can also be applied manually by a database administrator.
+2. Set the `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER`,
+   and `POSTGRES_PASSWORD` variables used by the Spark JDBC serving stage.
+3. Run `uv run elt --serve-gold`.
 
 Table names, the schema and JDBC settings are in
 [`config/postgress_config.yaml`](config/postgress_config.yaml). Missing tables
@@ -219,7 +231,8 @@ table's columns with the dbt models, so the two cannot drift apart.
 ```text
 config/       Runtime, generator, Spark and PostgreSQL configuration
 contracts/    JSON schema contracts and schema utilities
-dashboard/    Read-only FastAPI monitoring dashboard
+src/elt_lakehouse/dashboard/
+              Read-only FastAPI monitoring dashboard
 dbt_gold/     dbt Gold models, sources and tests
 docs/         Gold catalog, architecture, ADRs, runbooks
 src/          Generators, ingestion, Spark jobs, quality checks, serving
@@ -236,6 +249,7 @@ monitoring/   Placeholder Prometheus and Grafana files (planned)
 - [Architecture diagrams](docs/architecture/)
 - [Architecture decision records](docs/adr/): why Delta Lake, Kafka and dbt
 - [Runbook: pipeline failure](docs/runbooks/pipeline_failure.md)
+- [Execution tracking design guide](ELT-Execution-Tracking.md)
 
 ## Roadmap
 
@@ -243,7 +257,7 @@ monitoring/   Placeholder Prometheus and Grafana files (planned)
 2. **Incremental processing.** Watermarks and Delta `MERGE` so new data is applied without a full refresh.
 3. **Kafka streaming ingestion.** Producer, consumer and a Kafka-to-Bronze job with replay and recovery ([runbook](docs/runbooks/kafka_recovery.md)).
 4. **Airflow orchestration** of the stages, plus **Prometheus and Grafana** monitoring.
-5. **Run IDs and structured events** in the logs, so the dashboard reads events instead of matching log text.
+5. **Run IDs and structured events** in the logs, so the dashboard reads events instead of matching log text. The current tracking package is only scaffolding.
 
 ## Known limitations
 

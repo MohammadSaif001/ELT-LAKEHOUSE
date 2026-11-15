@@ -5,26 +5,40 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "elt-lakehouse"
 version = "0.1.0"
-requires-python = ">3.10"
 description = "ELT Lakehouse data engineering project"
+requires-python = ">=3.11"
 
 dependencies = [
-    "delta-spark",
-    "pyspark",
+    # delta-spark 4.4.x needs pyspark>=4.0.1,<=4.2.0
+    "delta-spark>=4.4,<4.5",
+    "pyspark>=4.2,<4.3",
     "pyyaml",
-    "pytest",
-    "dotenv>=0.9.9",
+    "python-dotenv>=1.0",
     "kaggle>=1.7.4.5",
     "pyarrow>=25.0.1",
     "fastapi[standard]>=0.141.1",
     "pandas>=2.3.3",
-    "numpy>=2.2.6",
     "dbt-spark[session]",
     "pyvis>=0.3.2",
+    "sqlalchemy>=2.0.57",
+    "psycopg[binary]>=3.3.9",
 ]
+
+[project.scripts]
+elt = "elt_lakehouse.elt_pipeline:main"
+
 [tool.setuptools]
 package-dir = { "" = "src" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["elt_lakehouse*"]
+
+[dependency-groups]
+dev = ["pytest>=8.0"]
+
+[tool.setuptools.package-data]
+elt_lakehouse = ["**/*.yaml", "**/*.json", "**/*.sql", "**/*.html", "**/*.css", "**/*.js"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

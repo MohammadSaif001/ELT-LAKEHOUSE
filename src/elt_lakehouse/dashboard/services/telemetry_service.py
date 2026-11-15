@@ -23,12 +23,12 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from dashboard.services import log_reader
-from dashboard.services.dbt_reader import DbtRunSummary
-from dashboard.services.pipeline_registry import PIPELINE_STAGES
-from dashboard.services.status_service import PipelineOverview, _parse_ts
+from elt_lakehouse.dashboard.services import log_reader
+from elt_lakehouse.dashboard.services.dbt_reader import DbtRunSummary
+from elt_lakehouse.dashboard.services.pipeline_registry import PIPELINE_STAGES
+from elt_lakehouse.dashboard.services.status_service import PipelineOverview, _parse_ts
 
-PIPELINE_LOGGERS = {"elt_pipeline", "__main__"}
+PIPELINE_LOGGERS = {"elt_pipeline", "__main__", "elt_lakehouse.elt_pipeline"}
 MAX_RUNS = 12  # runs shown in trend charts
 MAX_BUCKETS = 24  # time buckets in the event-volume chart
 

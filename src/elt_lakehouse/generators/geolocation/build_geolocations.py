@@ -3,10 +3,10 @@ from pathlib import Path
 
 import pyarrow.parquet as pq
 
-from src.elt_lakehouse.generators.base.data_saving import save_generated_data
-from src.elt_lakehouse.generators.base.pool_manager import load_pool
-from src.elt_lakehouse.spark.common.logger import get_logger
-from src.elt_lakehouse.spark.common.paths import POOLS_DIR
+from elt_lakehouse.generators.base.data_saving import save_generated_data
+from elt_lakehouse.generators.base.pool_manager import load_pool
+from elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.common.paths import POOLS_DIR
 
 logger = get_logger(__name__)
 # ===========================

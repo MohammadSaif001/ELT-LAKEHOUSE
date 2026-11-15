@@ -9,9 +9,9 @@ from time import perf_counter
 
 import yaml
 
-from config.config_loader import load_yaml
-from src.elt_lakehouse.spark.common.logger import get_logger, log_duration
-from src.elt_lakehouse.spark.common.paths import PROJECT_ROOT
+from elt_lakehouse.config.config_loader import load_yaml
+from elt_lakehouse.spark.common.logger import get_logger, log_duration
+from elt_lakehouse.spark.common.paths import PROJECT_ROOT
 
 logger = get_logger(__name__)
 CONFIG = load_yaml("gold_dbt_config.yaml")
@@ -205,7 +205,7 @@ def _run_dbt() -> None:
 def main() -> None:
     logger.info("main started")
     os.environ.setdefault("SPARK_LOCAL_IP", SPARK_CONFIG["local_ip"])
-    from src.elt_lakehouse.spark.common.spark_session import create_spark_session
+    from elt_lakehouse.spark.common.spark_session import create_spark_session
 
     logger.info(
         "Starting Gold layer build: app_name=%s local_ip=%s",

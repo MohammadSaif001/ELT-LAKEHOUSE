@@ -2,8 +2,8 @@ from pathlib import Path
 
 import kaggle
 
-from src.elt_lakehouse.spark.common.logger import get_logger
-from src.elt_lakehouse.spark.common.paths import RAW_DATA_DIR
+from elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.common.paths import RAW_DATA_DIR
 
 logger = get_logger(__name__)
 

@@ -1,7 +1,7 @@
-from config.config_loader import load_yaml
-from src.elt_lakehouse.generators.base.pool_builder import build_pool
-from src.elt_lakehouse.generators.products.product_generator import generate_product
-from src.elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.config.config_loader import load_yaml
+from elt_lakehouse.generators.base.pool_builder import build_pool
+from elt_lakehouse.generators.products.product_generator import generate_product
+from elt_lakehouse.spark.common.logger import get_logger
 
 # ==========================
 # Build Product Pool

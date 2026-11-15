@@ -16,6 +16,6 @@ freshness criteria for each dataset. Records failing freshness checks are separa
 into a quarantine dataset for further investigation or remediation.
 """
 
-from src.elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)

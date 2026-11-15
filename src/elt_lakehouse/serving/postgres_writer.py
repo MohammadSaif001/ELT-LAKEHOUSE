@@ -1,17 +1,10 @@
-"""Publish finished Gold Delta tables to PostgreSQL (the serving layer).
-
-Flow per table: read Gold Delta -> write to Postgres over JDBC -> compare row counts.
-Gold is built in Spark; Postgres only receives the finished tables. Nothing here
-touches Delta, so a failed publish can be retried without rebuilding Gold.
-"""
-
 from pathlib import Path
 
-from config.config_loader import load_yaml
-from src.elt_lakehouse.ingestion.core.reader import read_delta
-from src.elt_lakehouse.ingestion.core.writer import _jdbc_connection, write_postgres
-from src.elt_lakehouse.spark.common.logger import get_logger, kv, log_duration
-from src.elt_lakehouse.spark.common.paths import GOLD_DIR
+from elt_lakehouse.config.config_loader import load_yaml
+from elt_lakehouse.ingestion.core.reader import read_delta
+from elt_lakehouse.ingestion.core.writer import _jdbc_connection, write_postgres
+from elt_lakehouse.spark.common.logger import get_logger, kv, log_duration
+from elt_lakehouse.spark.common.paths import GOLD_DIR
 
 logger = get_logger(__name__)
 

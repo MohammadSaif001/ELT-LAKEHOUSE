@@ -3,7 +3,7 @@ from typing import NamedTuple
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 
-from src.elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 

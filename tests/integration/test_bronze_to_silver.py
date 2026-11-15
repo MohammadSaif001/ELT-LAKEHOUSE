@@ -2,9 +2,9 @@ from pathlib import Path
 
 import pytest
 
-from src.elt_lakehouse.ingestion.core.writer import write_delta
-from src.elt_lakehouse.spark.common.spark_session import create_spark_session
-from src.elt_lakehouse.spark.jobs import silver_job
+from elt_lakehouse.ingestion.core.writer import write_delta
+from elt_lakehouse.spark.common.spark_session import create_spark_session
+from elt_lakehouse.spark.jobs import silver_job
 
 
 @pytest.fixture(scope="module")
@@ -204,10 +204,10 @@ def test_bronze_to_silver_writes_outputs_and_quarantines_invalid_relationships(
     monkeypatch.setattr(silver_job, "create_spark_session", lambda: spark)
     monkeypatch.setattr(silver_job, "write_delta", write_test_delta)
     monkeypatch.setattr(
-        "src.elt_lakehouse.spark.utils.validations.read_delta", read_test_delta
+        "elt_lakehouse.spark.utils.validations.read_delta", read_test_delta
     )
     monkeypatch.setattr(
-        "src.elt_lakehouse.spark.utils.validations.write_delta", write_test_delta
+        "elt_lakehouse.spark.utils.validations.write_delta", write_test_delta
     )
 
     monkeypatch.setattr(spark, "stop", lambda: None)

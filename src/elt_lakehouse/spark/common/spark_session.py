@@ -2,13 +2,13 @@ import os
 
 from pyspark.sql import SparkSession
 
-from config.config_loader import load_yaml
-from src.elt_lakehouse.spark.common.logger import get_logger
-from src.elt_lakehouse.spark.common.paths import PROJECT_ROOT
+from elt_lakehouse.config.config_loader import load_yaml
+from elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.common.paths import PROJECT_ROOT
 
 os.environ.setdefault("SPARK_LOCAL_IP", "127.0.0.1")
 
-logger = get_logger("spark.common.spark_session")
+logger = get_logger(__name__)
 
 spark_tmp_dir = os.path.expanduser("~/.spark_tmp")
 os.makedirs(spark_tmp_dir, exist_ok=True)

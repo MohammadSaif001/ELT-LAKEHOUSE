@@ -2,8 +2,8 @@ import logging
 
 from pyspark.sql import DataFrame, SparkSession
 
-from src.elt_lakehouse.spark.common.logger import get_logger
-from src.elt_lakehouse.spark.utils.memory import monitor_memory
+from elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.utils.memory import monitor_memory
 
 logger = get_logger(__name__)
 

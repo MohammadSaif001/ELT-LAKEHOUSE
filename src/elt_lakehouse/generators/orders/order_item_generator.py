@@ -1,14 +1,14 @@
-from src.elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 import random
 from datetime import datetime, timedelta
 
-from src.elt_lakehouse.generators.base.distribution_loader import (
+from elt_lakehouse.generators.base.distribution_loader import (
     load_distribution,
     weighted_choice,
 )
-from src.elt_lakehouse.generators.base.pool_manager import load_pool_column
+from elt_lakehouse.generators.base.pool_manager import load_pool_column
 
 # Price statistics
 PRICE_STATS = load_distribution("order_price_stats.json")

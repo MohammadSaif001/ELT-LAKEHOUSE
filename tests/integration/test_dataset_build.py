@@ -1,5 +1,5 @@
-from src.elt_lakehouse.generators.base.data_loading import load_generated_data
-from src.elt_lakehouse.spark.jobs.dataset_job import run_dataset_job
+from elt_lakehouse.generators.base.data_loading import load_generated_data
+from elt_lakehouse.spark.jobs.dataset_job import run_dataset_job
 
 
 # ========================

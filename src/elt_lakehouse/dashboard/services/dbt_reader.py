@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from src.elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -125,9 +125,11 @@ def read_run_results(project_root: Path) -> DbtRunSummary | None:
         if test["status"] in {"fail", "error"}
     ]
     return DbtRunSummary(
-        generated_at=metadata.get("generated_at")
-        if isinstance(metadata.get("generated_at"), str)
-        else None,
+        generated_at=(
+            metadata.get("generated_at")
+            if isinstance(metadata.get("generated_at"), str)
+            else None
+        ),
         invocation_started_at=(
             metadata.get("invocation_started_at")
             if isinstance(metadata.get("invocation_started_at"), str)

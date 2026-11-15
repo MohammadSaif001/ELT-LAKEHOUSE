@@ -1,4 +1,4 @@
-from src.elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 import re
@@ -122,9 +122,7 @@ def generate_report() -> dict:
                     r"duration_s\s*=\s*([\d.]+)", message, re.IGNORECASE
                 )
                 if duration_match:
-                    report["layers"][layer]["duration"] = float(
-                        duration_match.group(1)
-                    )
+                    report["layers"][layer]["duration"] = float(duration_match.group(1))
 
             dataset_match = re.search(
                 r"(customer|order|seller|product|review|payment|"

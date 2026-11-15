@@ -1,7 +1,7 @@
 from collections import Counter
 
-from src.elt_lakehouse.generators.base.data_loading import load_generated_data
-from src.elt_lakehouse.generators.base.distribution_loader import load_distribution
+from elt_lakehouse.generators.base.data_loading import load_generated_data
+from elt_lakehouse.generators.base.distribution_loader import load_distribution
 
 # Helpler function to calculate the distribution of values in a given column of a list of dictionaries.
 

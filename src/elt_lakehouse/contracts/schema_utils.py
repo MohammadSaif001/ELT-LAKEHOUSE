@@ -1,10 +1,11 @@
-from src.elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.common.paths import CONTRACTS_DIR
 
 logger = get_logger(__name__)
 import json
 from pathlib import Path
 
-CONTRACTS_DIR = Path(__file__).resolve().parent
+
 
 
 def load_contract(schema_file: str) -> dict:

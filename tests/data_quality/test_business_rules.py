@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from src.elt_lakehouse.generators.base.data_loading import load_generated_data
+from elt_lakehouse.generators.base.data_loading import load_generated_data
 
 
 def test_cancelled_orders_have_no_delivery() -> None:

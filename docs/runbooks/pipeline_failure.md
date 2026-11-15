@@ -1,10 +1,10 @@
 # Runbook — Pipeline Failure Recovery
 
-| Field        | Value                           |
-|--------------|---------------------------------|
+| Field        | Value                            |
+| ------------ | -------------------------------- |
 | **Severity** | P1 (pipeline completely stopped) |
-| **Owner**    | Mohammad Saif                   |
-| **Updated**  | 2026-10-16                      |
+| **Owner**    | Mohammad Saif                    |
+| **Updated**  | 2026-10-16                       |
 
 ---
 
@@ -55,22 +55,26 @@ dashboard for run status. Dashboard service messages are isolated in
 ## Stage 1 — Pool Generation Failures
 
 ### Symptom
+
 ```
-ERROR | src.elt_lakehouse.spark.jobs.pool_job | An error occurred during pool generation.
+ERROR | elt_lakehouse.spark.jobs.pool_job | An error occurred during pool generation.
 FileNotFoundError: Failed to open local file 'metadata/pools/customer_pool.parquet'
 ```
 
 ### Cause
+
 The `metadata/pools/` directory does not exist. This happens on a **fresh
 clone** or after `metadata/` is cleaned up.
 
 ### Fix
+
 ```bash
 mkdir -p metadata/pools
 uv run python elt_pipeline.py --build-pool
 ```
 
 ### Prevention
+
 The pool job auto-creates `metadata/pools/` on startup. If the directory is
 missing, it means `pool_job.py`'s directory-creation guard was bypassed. Check
 [`src/elt_lakehouse/spark/jobs/pool_job.py`](../../src/elt_lakehouse/spark/jobs/pool_job.py)
@@ -81,12 +85,14 @@ for the `Path(POOLS_DIR).mkdir(parents=True, exist_ok=True)` call.
 ## Stage 2 — Dataset Generation Failures
 
 ### Symptom
+
 ```
-ERROR | src.elt_lakehouse.spark.jobs.dataset_job | Dataset generation failed
+ERROR | elt_lakehouse.spark.jobs.dataset_job | Dataset generation failed
 KeyError: 'customer_id'
 ```
 
 ### Cause A — Pool files missing
+
 Dataset generation loads pool Parquet files (`customer_pool.parquet`,
 `product_pool.parquet`, etc.) at runtime. If Stage 1 was skipped or failed,
 these files don't exist.
@@ -94,9 +100,11 @@ these files don't exist.
 **Fix**: Run Stage 1 first, then retry Stage 2.
 
 ### Cause B — Pool schema mismatch
+
 A code change altered the pool schema without re-generating the pools.
 
 **Fix**:
+
 ```bash
 rm -f metadata/pools/*.parquet
 uv run python elt_pipeline.py --build-pool
@@ -104,11 +112,13 @@ uv run python elt_pipeline.py --build-dataset
 ```
 
 ### Cause C — Output directory missing
+
 ```
 FileNotFoundError: storage/generated/
 ```
 
 **Fix**:
+
 ```bash
 mkdir -p storage/generated
 ```
@@ -118,36 +128,44 @@ mkdir -p storage/generated
 ## Stage 3 — Bronze Ingestion Failures
 
 ### Symptom
+
 ```
 ERROR | elt_lakehouse.spark.jobs.bronze_job | Schema validation failed for orders
 AnalysisException: cannot resolve 'seller_id' given input columns
 ```
 
 ### Cause A — Generated Parquet schema drift
+
 The Bronze ingestion scripts (`customers.py`, `orders.py`, etc.)
 have a hardcoded `INPUT_PATH` pointing to `storage/generated/*.parquet`.
 If the generator added/removed columns, the Bronze schema contract is broken.
 
 **Fix**:
+
 1. Check the generator output schema:
+
    ```python
    import pyarrow.parquet as pq
 
    print(pq.read_schema("storage/generated/generated_orders_data.parquet"))
    ```
+
 2. Update the Bronze script's schema contract or the generator to match.
 
 ### Cause B — SparkSession not shared
+
 Bronze and Silver share a SparkSession (passed through `elt_pipeline.py`). If
 Bronze is run standalone with `--bronze-runner`, it creates its own session. This
 is expected behaviour.
 
 ### Cause C — Delta table already locked
+
 ```
 ConcurrentAppendException: Files were added to the root of the table
 ```
 
 **Fix**:
+
 ```bash
 # Remove the Delta table and re-run Bronze to recreate it
 rm -rf storage/bronze/orders_delta/
@@ -159,6 +177,7 @@ uv run python elt_pipeline.py --bronze-runner
 ## Stage 4 — Silver Processing Failures
 
 ### Symptom A — Null check failure
+
 ```
 ERROR | silver_job | Quarantine threshold exceeded for customers
 ```
@@ -168,6 +187,7 @@ rows are null in a required column. Check the generated data distribution via
 `config/generator_config.yaml`.
 
 ### Symptom B — Referential integrity failure (all rows quarantined)
+
 ```
 WARNING | referential_integrity | 0 valid rows after integrity check: orders → customers
 ```
@@ -181,11 +201,13 @@ tries to join against it.
 (`orders`, `order_items`, `payments`, `reviews`).
 
 ### Symptom C — Out of memory
+
 ```
 java.lang.OutOfMemoryError: GC overhead limit exceeded
 ```
 
 **Fix**:
+
 ```bash
 # Increase driver memory in config/spark_config.yaml
 # driver_memory: 4g → 8g
@@ -220,12 +242,14 @@ The Gold job creates a temporary profile automatically. Do not create or edit
 is unavailable, then retry the command.
 
 ### Symptom D — Delta transaction conflict
+
 ```
 ConcurrentModificationException: Transaction has encountered too many conflicts
 ```
 
 **Fix**: Ensure no other Spark process is writing to the same Delta tables.
 Check for lingering `java` processes:
+
 ```bash
 ps aux | grep java
 kill <pid>  # if any stale Spark driver is found
@@ -268,10 +292,10 @@ points directly to the broken component.
 
 ## Log Locations
 
-| What | Where |
-|------|-------|
-| Pipeline stdout | Terminal / `--send-report` email |
-| Spark driver logs | `spark-warehouse/` (local mode) |
+| What                  | Where                                 |
+| --------------------- | ------------------------------------- |
+| Pipeline stdout       | Terminal / `--send-report` email      |
+| Spark driver logs     | `spark-warehouse/` (local mode)       |
 | Delta transaction log | `storage/<layer>/<table>/_delta_log/` |
-| Pool files | `metadata/pools/*.parquet` |
-| Generated data | `storage/generated/*.parquet` |
+| Pool files            | `metadata/pools/*.parquet`            |
+| Generated data        | `storage/generated/*.parquet`         |

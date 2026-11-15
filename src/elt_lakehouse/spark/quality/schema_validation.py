@@ -1,10 +1,10 @@
-from src.elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 
-from src.elt_lakehouse.spark.utils.type_casting import resolve_spark_type
+from elt_lakehouse.spark.utils.type_casting import resolve_spark_type
 
 
 def check_validation(

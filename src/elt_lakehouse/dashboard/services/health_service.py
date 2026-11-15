@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from src.elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from dashboard.services.dbt_reader import DbtRunSummary
-from dashboard.services.status_service import (
+from elt_lakehouse.dashboard.services.dbt_reader import DbtRunSummary
+from elt_lakehouse.dashboard.services.status_service import (
     STATUS_FAILED,
     STATUS_RUNNING,
     STATUS_SUCCESS,

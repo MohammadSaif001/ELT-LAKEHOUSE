@@ -2,8 +2,8 @@ from collections.abc import Callable, Iterator
 
 import pyarrow as pa
 
-from src.elt_lakehouse.generators.base.data_saving import write_tables
-from src.elt_lakehouse.generators.base.parallel import (
+from elt_lakehouse.generators.base.data_saving import write_tables
+from elt_lakehouse.generators.base.parallel import (
     base_seed,
     chunk_seed,
     map_chunks,
@@ -12,8 +12,8 @@ from src.elt_lakehouse.generators.base.parallel import (
     split_counts,
     worker_count,
 )
-from src.elt_lakehouse.spark.common.logger import get_logger
-from src.elt_lakehouse.spark.common.paths import POOLS_DIR
+from elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.common.paths import POOLS_DIR
 
 logger = get_logger(__name__)
 

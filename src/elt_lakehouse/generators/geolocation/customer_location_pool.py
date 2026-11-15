@@ -1,11 +1,11 @@
 from elt_lakehouse.generators.geolocation.customer_location_generator import (
     generate_customer_location,
 )
-from src.elt_lakehouse.generators.base.pool_manager import (
+from elt_lakehouse.generators.base.pool_manager import (
     iter_pool_batches,
     save_pool_batches,
 )
-from src.elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.common.logger import get_logger
 
 # =================================
 # Build Customer Location Pool

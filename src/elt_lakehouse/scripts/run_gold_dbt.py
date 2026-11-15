@@ -8,8 +8,8 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.elt_lakehouse.spark.common.logger import get_logger
-from src.elt_lakehouse.spark.jobs.gold_job import main
+from elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.jobs.gold_job import main
 
 logger = get_logger(__name__)
 

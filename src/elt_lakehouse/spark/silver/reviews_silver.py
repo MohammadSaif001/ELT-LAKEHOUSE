@@ -1,8 +1,8 @@
 from pyspark.sql import DataFrame
 
-from src.elt_lakehouse.spark.common.logger import get_logger
-from src.elt_lakehouse.spark.common.paths import BRONZE_DIR, SILVER_DIR
-from src.elt_lakehouse.spark.utils.validations import validation_data
+from elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.common.paths import BRONZE_DIR, SILVER_DIR
+from elt_lakehouse.spark.utils.validations import validation_data
 
 logger = get_logger(__name__)
 

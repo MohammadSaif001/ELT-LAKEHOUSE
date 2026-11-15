@@ -1,17 +1,17 @@
 from collections.abc import Callable
 from datetime import datetime, timezone
 
-from src.elt_lakehouse.ingestion.bronze.customers import ingest_customers
-from src.elt_lakehouse.ingestion.bronze.geolocation import ingest_geolocation
-from src.elt_lakehouse.ingestion.bronze.order_items import ingest_order_items
-from src.elt_lakehouse.ingestion.bronze.orders import ingest_orders
-from src.elt_lakehouse.ingestion.bronze.payments import ingest_payments
-from src.elt_lakehouse.ingestion.bronze.products import ingest_products
-from src.elt_lakehouse.ingestion.bronze.reviews import ingest_reviews
-from src.elt_lakehouse.ingestion.bronze.sellers import ingest_sellers
-from src.elt_lakehouse.spark.common.logger import get_logger
-from src.elt_lakehouse.spark.common.spark_session import create_spark_session
-from src.elt_lakehouse.spark.utils.memory import monitor_memory
+from elt_lakehouse.ingestion.bronze.customers import ingest_customers
+from elt_lakehouse.ingestion.bronze.geolocation import ingest_geolocation
+from elt_lakehouse.ingestion.bronze.order_items import ingest_order_items
+from elt_lakehouse.ingestion.bronze.orders import ingest_orders
+from elt_lakehouse.ingestion.bronze.payments import ingest_payments
+from elt_lakehouse.ingestion.bronze.products import ingest_products
+from elt_lakehouse.ingestion.bronze.reviews import ingest_reviews
+from elt_lakehouse.ingestion.bronze.sellers import ingest_sellers
+from elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.common.spark_session import create_spark_session
+from elt_lakehouse.spark.utils.memory import monitor_memory
 
 logger = get_logger(__name__)
 

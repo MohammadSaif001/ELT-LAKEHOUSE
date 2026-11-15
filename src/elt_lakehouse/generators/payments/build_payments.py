@@ -1,13 +1,13 @@
 from datetime import datetime, timezone
 
-from config.config_loader import load_yaml
-from src.elt_lakehouse.generators.base.data_loading import (
+from elt_lakehouse.config.config_loader import load_yaml
+from elt_lakehouse.generators.base.data_loading import (
     load_generated_data,
     load_generated_data_column,
 )
-from src.elt_lakehouse.generators.base.data_saving import save_generated_data
-from src.elt_lakehouse.generators.payments.payment_generator import generate_payment
-from src.elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.generators.base.data_saving import save_generated_data
+from elt_lakehouse.generators.payments.payment_generator import generate_payment
+from elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 

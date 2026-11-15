@@ -4,9 +4,9 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from config.config_loader import load_yaml
-from src.elt_lakehouse.generators.base.data_saving import write_tables
-from src.elt_lakehouse.generators.base.parallel import (
+from elt_lakehouse.config.config_loader import load_yaml
+from elt_lakehouse.generators.base.data_saving import write_tables
+from elt_lakehouse.generators.base.parallel import (
     base_seed,
     chunk_seed,
     map_chunks,
@@ -15,12 +15,12 @@ from src.elt_lakehouse.generators.base.parallel import (
     split_counts,
     worker_count,
 )
-from src.elt_lakehouse.generators.base.pool_manager import load_pool_column
-from src.elt_lakehouse.generators.orders.order_generator import generate_order
-from src.elt_lakehouse.generators.orders.order_item_generator import (
+from elt_lakehouse.generators.base.pool_manager import load_pool_column
+from elt_lakehouse.generators.orders.order_generator import generate_order
+from elt_lakehouse.generators.orders.order_item_generator import (
     generate_order_items,
 )
-from src.elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 

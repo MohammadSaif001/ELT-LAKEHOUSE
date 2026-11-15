@@ -1,4 +1,4 @@
-from src.elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 from pathlib import Path
@@ -6,7 +6,7 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from src.elt_lakehouse.spark.common.paths import POOLS_DIR
+from elt_lakehouse.spark.common.paths import POOLS_DIR
 
 
 # ==============================

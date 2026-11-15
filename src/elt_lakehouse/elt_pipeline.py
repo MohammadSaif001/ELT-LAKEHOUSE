@@ -3,14 +3,15 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 
-from src.elt_lakehouse.spark.common.logger import get_logger
-from src.elt_lakehouse.spark.utils.memory import monitor_memory
+from elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.utils.memory import monitor_memory
 
 logger = get_logger(__name__)
 
 # ==========================
 # ELT Pipeline
 # ==========================
+
 
 @monitor_memory
 def orchestrate(args, send_report: bool = False) -> None:
@@ -22,8 +23,8 @@ def orchestrate(args, send_report: bool = False) -> None:
         if args.setup:
             # Setup is intentionally separate from generation so profiling can
             # be refreshed without creating a new synthetic dataset.
-            from src.elt_lakehouse.spark.jobs.build_profile_job import run_profile_job
-            from src.elt_lakehouse.spark.jobs.download_data import download_dataset
+            from elt_lakehouse.spark.jobs.build_profile_job import run_profile_job
+            from elt_lakehouse.spark.jobs.download_data import download_dataset
 
             download_dataset()
             run_profile_job()
@@ -31,19 +32,19 @@ def orchestrate(args, send_report: bool = False) -> None:
         elif args.run_pipeline:
             # The full run follows the dependency order: pools, generated
             # files, Bronze, Silver, and finally the dbt-backed Gold layer.
-            from src.elt_lakehouse.spark.jobs.pool_job import run_pool_job
+            from elt_lakehouse.spark.jobs.pool_job import run_pool_job
 
             run_pool_job()
 
-            from src.elt_lakehouse.spark.common.spark_session import (
+            from elt_lakehouse.spark.common.spark_session import (
                 create_spark_session,
             )
-            from src.elt_lakehouse.spark.jobs.bronze_job import run_bronze_ingestion
-            from src.elt_lakehouse.spark.jobs.dataset_job import run_dataset_job
-            from src.elt_lakehouse.spark.jobs.gold_job import (
+            from elt_lakehouse.spark.jobs.bronze_job import run_bronze_ingestion
+            from elt_lakehouse.spark.jobs.dataset_job import run_dataset_job
+            from elt_lakehouse.spark.jobs.gold_job import (
                 main as run_gold_processing,
             )
-            from src.elt_lakehouse.spark.jobs.silver_job import run_silver_processing
+            from elt_lakehouse.spark.jobs.silver_job import run_silver_processing
 
             run_dataset_job()
             spark = create_spark_session()
@@ -60,19 +61,19 @@ def orchestrate(args, send_report: bool = False) -> None:
             run_gold_processing()
 
         elif args.silver_runner:
-            from src.elt_lakehouse.spark.jobs.silver_job import run_silver_processing
+            from elt_lakehouse.spark.jobs.silver_job import run_silver_processing
 
             run_silver_processing()
         elif args.build_pool:
-            from src.elt_lakehouse.spark.jobs.pool_job import run_pool_job
+            from elt_lakehouse.spark.jobs.pool_job import run_pool_job
 
             run_pool_job()
         elif args.build_dataset:
-            from src.elt_lakehouse.spark.jobs.dataset_job import run_dataset_job
+            from elt_lakehouse.spark.jobs.dataset_job import run_dataset_job
 
             run_dataset_job()
         elif args.bronze_runner:
-            from src.elt_lakehouse.spark.jobs.bronze_job import run_bronze_ingestion
+            from elt_lakehouse.spark.jobs.bronze_job import run_bronze_ingestion
 
             run_bronze_ingestion()
 
@@ -88,7 +89,7 @@ def orchestrate(args, send_report: bool = False) -> None:
                     sys.executable,
                     "-m",
                     "uvicorn",
-                    "dashboard.app:app",
+                    "elt_lakehouse.dashboard.app:app",
                     "--host",
                     "127.0.0.1",
                     "--port",
@@ -106,7 +107,7 @@ def orchestrate(args, send_report: bool = False) -> None:
         elif args.gold_runner:
             # Gold depends on completed Silver tables and is exposed as a
             # standalone stage for reruns without repeating ingestion.
-            from src.elt_lakehouse.spark.jobs.gold_job import (
+            from elt_lakehouse.spark.jobs.gold_job import (
                 main as run_gold_processing,
             )
 
@@ -114,8 +115,8 @@ def orchestrate(args, send_report: bool = False) -> None:
         elif args.serve_gold:
             # Serving is its own stage: Gold Delta is already built, so a failed
             # publish can be retried without rebuilding anything.
-            from src.elt_lakehouse.serving.postgres_writer import publish_gold
-            from src.elt_lakehouse.spark.common.spark_session import (
+            from elt_lakehouse.serving.postgres_writer import publish_gold
+            from elt_lakehouse.spark.common.spark_session import (
                 create_spark_session,
             )
 
@@ -125,20 +126,28 @@ def orchestrate(args, send_report: bool = False) -> None:
             finally:
                 spark.stop()
 
+        elif args.postgres_setup:
+            from elt_lakehouse.warehouse.postgres.configure import (
+                configure_postgres_from_environment,
+            )
+
+            configure_postgres_from_environment()
+
         duration: float = (datetime.now(timezone.utc) - start_time).total_seconds()
 
         logger.info("ELT pipeline completed successfully in %.2f seconds.", duration)
 
         if send_report:
-            from report_sender.email_sender import send_pipeline_report
+            from elt_lakehouse.report_sender.email_sender import send_pipeline_report
+
             send_pipeline_report()
 
-    except Exception:
-        logger.exception("Pipeline failed with a critical error.")
-
+    except Exception as error:
+        logger.exception(f"Pipeline failed with a critical error: {error}")
+        raise
+    finally:
         if send_report:
             send_pipeline_report()
-        raise
 
 
 def main() -> None:
@@ -213,6 +222,12 @@ def main() -> None:
         "--serve-gold",
         action="store_true",
         help="Publish the Gold Delta tables to PostgreSQL (needs POSTGRES_* env vars).",
+    )
+
+    run_group.add_argument(
+        "--postgres-setup",
+        action="store_true",
+        help="Set up the PostgreSQL database schema tables and indexes run ones for setting up the database (needs POSTGRES_* env vars).",
     )
 
     args = parser.parse_args()

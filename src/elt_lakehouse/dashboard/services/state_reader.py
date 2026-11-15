@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 import re
@@ -8,8 +8,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from dashboard.services import log_reader, state_reader, storage_reader
-from dashboard.services.pipeline_registry import (
+from elt_lakehouse.dashboard.services import log_reader, state_reader, storage_reader
+from elt_lakehouse.dashboard.services.pipeline_registry import (
     PIPELINE_STAGES,
     STORAGE_LAYERS,
     Job,
@@ -399,7 +399,7 @@ def _extract_execution_id(value: str | None) -> str | None:
 def _build_recent_runs(events: list[log_reader.LogEvent]) -> list[RunEvent]:
     runs: list[RunEvent] = []
     for event in events:
-        if event.logger_name not in {"elt_pipeline", "__main__"}:
+        if event.logger_name not in {"elt_pipeline", "__main__", "elt_lakehouse.elt_pipeline"}:
             continue
         msg = event.message.lower()
         execution_id = _extract_execution_id(event.message)
@@ -413,7 +413,7 @@ def _build_recent_runs(events: list[log_reader.LogEvent]) -> list[RunEvent]:
             runs.append(
                 RunEvent(event.timestamp, STATUS_SUCCESS, event.message, execution_id)
             )
-        elif event.logger_name in {"elt_pipeline", "__main__"} and (
+        elif event.logger_name in {"elt_pipeline", "__main__", "elt_lakehouse.elt_pipeline"} and (
             "pipeline failed with a critical error" in msg
         ):
             runs.append(

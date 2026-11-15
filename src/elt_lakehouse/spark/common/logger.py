@@ -10,7 +10,7 @@ from typing import Any
 
 import yaml
 
-from src.elt_lakehouse.spark.common.paths import PROJECT_ROOT
+from elt_lakehouse.spark.common.paths import PROJECT_ROOT
 
 _CONFIG_LOADED = False
 

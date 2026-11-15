@@ -3,14 +3,13 @@ from pathlib import Path
 
 import yaml
 
-from src.elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.common.paths import CONFIG_DIR
 
 logger = get_logger(__name__)
 
-CONFIG_DIR = Path(__file__).resolve().parent
-
 # Project root: ELT-lakehouse/
-PROJECT_ROOT = Path(__file__).resolve().parents[4]
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 
 def display_path(path: Path) -> str:

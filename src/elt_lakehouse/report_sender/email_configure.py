@@ -5,8 +5,8 @@ from email.mime.text import MIMEText
 
 from dotenv import load_dotenv
 
-from report_sender.report_render import _format_html_report, format_report
-from src.elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.report_sender.report_render import _format_html_report, format_report
+from elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -18,6 +18,7 @@ SMTP_PORT = 587
 EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 RECIPIENT_EMAIL = os.getenv("RECIPIENT_EMAIL")
+
 
 def email_configured() -> bool:
     return all([EMAIL_ADDRESS, EMAIL_PASSWORD, RECIPIENT_EMAIL])

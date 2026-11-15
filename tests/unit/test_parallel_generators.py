@@ -6,13 +6,13 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-from src.elt_lakehouse.generators.base import parallel, pool_builder, pool_manager
-from src.elt_lakehouse.generators.base.data_saving import write_tables
-from src.elt_lakehouse.generators.customers.customer_generator import generate_customer
-from src.elt_lakehouse.generators.orders import build_orders as bo
-from src.elt_lakehouse.generators.products.product_generator import generate_product
-from src.elt_lakehouse.generators.reviews import build_reviews as br
-from src.elt_lakehouse.generators.sellers.seller_generator import generate_seller
+from elt_lakehouse.generators.base import parallel, pool_builder, pool_manager
+from elt_lakehouse.generators.base.data_saving import write_tables
+from elt_lakehouse.generators.customers.customer_generator import generate_customer
+from elt_lakehouse.generators.orders import build_orders as bo
+from elt_lakehouse.generators.products.product_generator import generate_product
+from elt_lakehouse.generators.reviews import build_reviews as br
+from elt_lakehouse.generators.sellers.seller_generator import generate_seller
 
 
 def _draw(task):

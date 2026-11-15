@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from src.elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -34,7 +34,7 @@ PIPELINE_STAGES: list[Stage] = [
     Stage(
         key="pool_generation",
         label="POOL GENERATION",
-        logger_name="src.elt_lakehouse.spark.jobs.pool_job",
+        logger_name="elt_lakehouse.spark.jobs.pool_job",
         completion_match="Pool generation completed successfully",
         jobs=[
             Job(
@@ -66,7 +66,7 @@ PIPELINE_STAGES: list[Stage] = [
     Stage(
         key="dataset_generation",
         label="DATASET GENERATION",
-        logger_name="src.elt_lakehouse.spark.jobs.dataset_job",
+        logger_name="elt_lakehouse.spark.jobs.dataset_job",
         completion_match="Dataset generation completed successfully",
         jobs=[
             Job(
@@ -122,7 +122,7 @@ PIPELINE_STAGES: list[Stage] = [
     Stage(
         key="bronze_ingestion",
         label="BRONZE INGESTION",
-        logger_name="src.elt_lakehouse.spark.jobs.bronze_job",
+        logger_name="elt_lakehouse.spark.jobs.bronze_job",
         completion_match="All ingestion functions completed successfully",
         jobs=[
             Job("orders", "Orders", "Order ingestion", "storage/bronze/orders_delta"),
@@ -170,7 +170,7 @@ PIPELINE_STAGES: list[Stage] = [
     Stage(
         key="silver_transformation",
         label="SILVER TRANSFORMATION",
-        logger_name="src.elt_lakehouse.spark.jobs.silver_job",
+        logger_name="elt_lakehouse.spark.jobs.silver_job",
         completion_match="All data validations completed successfully",
         jobs=[
             Job(
@@ -184,7 +184,7 @@ PIPELINE_STAGES: list[Stage] = [
     Stage(
         key="gold_transformation",
         label="GOLD / DBT TRANSFORMATION",
-        logger_name="src.elt_lakehouse.spark.jobs.gold_job",
+        logger_name="elt_lakehouse.spark.jobs.gold_job",
         completion_match="Gold layer build completed successfully",
         jobs=[
             Job("gold_models", "Gold Models", "Gold build", "storage/gold"),

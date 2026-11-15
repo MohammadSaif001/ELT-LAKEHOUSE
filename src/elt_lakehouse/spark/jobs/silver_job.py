@@ -3,22 +3,22 @@ from datetime import datetime, timezone
 from pyspark.sql import DataFrame
 from pyspark.storagelevel import StorageLevel
 
-from src.elt_lakehouse.ingestion.core.writer import write_delta
-from src.elt_lakehouse.spark.common.logger import get_logger
-from src.elt_lakehouse.spark.common.paths import SILVER_DIR
-from src.elt_lakehouse.spark.common.spark_session import create_spark_session
-from src.elt_lakehouse.spark.quality.referential_integrity import (
+from elt_lakehouse.ingestion.core.writer import write_delta
+from elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.common.paths import SILVER_DIR
+from elt_lakehouse.spark.common.spark_session import create_spark_session
+from elt_lakehouse.spark.quality.referential_integrity import (
     check_referential_integrity,
 )
-from src.elt_lakehouse.spark.silver.customers_silver import process_customers
-from src.elt_lakehouse.spark.silver.geo_location_silver import process_geolocation
-from src.elt_lakehouse.spark.silver.order_item_silver import process_order_items
-from src.elt_lakehouse.spark.silver.orders_silver import process_orders
-from src.elt_lakehouse.spark.silver.payments_silver import process_payments
-from src.elt_lakehouse.spark.silver.product_silver import process_products
-from src.elt_lakehouse.spark.silver.reviews_silver import process_reviews
-from src.elt_lakehouse.spark.silver.sellers_silver import process_sellers
-from src.elt_lakehouse.spark.utils.memory import monitor_memory
+from elt_lakehouse.spark.silver.customers_silver import process_customers
+from elt_lakehouse.spark.silver.geo_location_silver import process_geolocation
+from elt_lakehouse.spark.silver.order_item_silver import process_order_items
+from elt_lakehouse.spark.silver.orders_silver import process_orders
+from elt_lakehouse.spark.silver.payments_silver import process_payments
+from elt_lakehouse.spark.silver.product_silver import process_products
+from elt_lakehouse.spark.silver.reviews_silver import process_reviews
+from elt_lakehouse.spark.silver.sellers_silver import process_sellers
+from elt_lakehouse.spark.utils.memory import monitor_memory
 
 logger = get_logger(__name__)
 

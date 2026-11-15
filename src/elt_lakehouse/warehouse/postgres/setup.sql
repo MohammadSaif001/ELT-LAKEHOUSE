@@ -1,28 +1,29 @@
 -- ELT Lakehouse Postgres Warehouse Setup Script
 -- This script creates the roles and gold schema required by the ELT Lakehouse.
 
--- Create the roles used by the ELT Lakehouse.
--- The gold_owner role owns the gold schema and has full privileges
--- to manage the schema and its objects.
-CREATE ROLE gold_owner
-    NOLOGIN;
-
--- JDBC connection role used to load data into the gold schema.
-CREATE ROLE gold_loader
-    LOGIN
-    PASSWORD 'Load3rP@ssw0rd';
-
--- Analyst role with read-only access to the gold schema.
-CREATE ROLE gold_reader
-    LOGIN
-    PASSWORD 'R3ad0nlyP@ssw0rd';
+-- Create the roles used by the ELT Lakehouse if they do not already exist.
+-- The role passwords are only applied when a role is first created.
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'gold_owner') THEN
+        CREATE ROLE gold_owner NOLOGIN;
+    END IF;
+    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'gold_loader') THEN
+        CREATE ROLE gold_loader LOGIN PASSWORD 'Load3rP@ssw0rd';
+    END IF;
+    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'gold_reader') THEN
+        CREATE ROLE gold_reader LOGIN PASSWORD 'R3ad0nlyP@ssw0rd';
+    END IF;
+END
+$$;
 
 -- Grant database connection access to the loader and reader roles.
 GRANT CONNECT ON DATABASE elt_lakehouse
     TO gold_loader, gold_reader;
 
 -- Create the gold schema and assign ownership to gold_owner.
-CREATE SCHEMA gold AUTHORIZATION gold_owner;
+CREATE SCHEMA IF NOT EXISTS gold AUTHORIZATION gold_owner;
+ALTER SCHEMA gold OWNER TO gold_owner;
 
 -- Grant the loader permission to use and create objects in the gold schema.
 GRANT USAGE, CREATE ON SCHEMA gold

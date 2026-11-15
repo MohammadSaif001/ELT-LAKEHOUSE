@@ -1,11 +1,11 @@
-from src.elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 from pathlib import Path
 
 import pyarrow.parquet as pq
 
-from src.elt_lakehouse.spark.common.paths import GENERATED_DIR
+from elt_lakehouse.spark.common.paths import GENERATED_DIR
 
 
 class GeneratedDataLoader:

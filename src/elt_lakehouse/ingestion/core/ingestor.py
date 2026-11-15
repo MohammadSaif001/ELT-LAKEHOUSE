@@ -1,9 +1,9 @@
 from pathlib import Path
 
-from src.elt_lakehouse.ingestion.core.reader import read_json, read_parquet
-from src.elt_lakehouse.ingestion.core.writer import write_delta
-from src.elt_lakehouse.spark.common.logger import get_logger
-from src.elt_lakehouse.spark.utils.memory import monitor_memory
+from elt_lakehouse.ingestion.core.reader import read_json, read_parquet
+from elt_lakehouse.ingestion.core.writer import write_delta
+from elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.utils.memory import monitor_memory
 
 logger = get_logger(__name__)
 

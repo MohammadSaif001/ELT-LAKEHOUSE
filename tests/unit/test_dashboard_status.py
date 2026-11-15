@@ -5,9 +5,14 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi.testclient import TestClient
 
-from dashboard import app as dashboard_app
-from dashboard.services import dbt_reader, health_service, log_reader, status_service
-from dashboard.services.dbt_reader import DbtRunSummary, DbtTestResult
+from elt_lakehouse.dashboard import app as dashboard_app
+from elt_lakehouse.dashboard.services import (
+    dbt_reader,
+    health_service,
+    log_reader,
+    status_service,
+)
+from elt_lakehouse.dashboard.services.dbt_reader import DbtRunSummary, DbtTestResult
 
 
 def _write_log(project_root, lines):
@@ -27,7 +32,7 @@ def test_log_reader_parses_structured_runtime_context(tmp_path):
             _log_line(
                 "2026-10-29 01:00:00",
                 "INFO",
-                "src.elt_lakehouse.spark.jobs.gold_job",
+                "elt_lakehouse.spark.jobs.gold_job",
                 "Running dbt Gold build started command=build target=local "
                 'project_dir="/workspace/dbt gold"',
             ),
@@ -64,7 +69,7 @@ def test_gold_stage_uses_new_completion_message(tmp_path):
             _log_line(
                 "2026-10-29 01:00:02",
                 "INFO",
-                "src.elt_lakehouse.spark.jobs.gold_job",
+                "elt_lakehouse.spark.jobs.gold_job",
                 "Gold layer build completed successfully.",
             ),
             _log_line(
@@ -137,7 +142,7 @@ def test_stage_completion_and_duration_come_from_stage_log(tmp_path):
             _log_line(
                 completed.strftime("%Y-%m-%d %H:%M:%S"),
                 "INFO",
-                "src.elt_lakehouse.spark.jobs.dataset_job",
+                "elt_lakehouse.spark.jobs.dataset_job",
                 "Dataset generation completed successfully in duration_s=4.75",
             ),
             _log_line(
@@ -175,7 +180,7 @@ def test_stage_failure_is_not_hidden_by_existing_output(tmp_path):
             _log_line(
                 failed.strftime("%Y-%m-%d %H:%M:%S"),
                 "ERROR",
-                "src.elt_lakehouse.spark.jobs.silver_job",
+                "elt_lakehouse.spark.jobs.silver_job",
                 "Silver layer processing failed.",
             ),
             _log_line(

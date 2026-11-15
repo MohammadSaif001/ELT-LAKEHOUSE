@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from src.elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -16,17 +16,17 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from dashboard.services import (
+from elt_lakehouse.dashboard.services import (
     dbt_reader,
     health_service,
     log_reader,
     status_service,
     telemetry_service,
 )
-from dashboard.services.pipeline_registry import PIPELINE_STAGES
+from elt_lakehouse.dashboard.services.pipeline_registry import PIPELINE_STAGES
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DASHBOARD_ROOT = PROJECT_ROOT / "dashboard"
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+DASHBOARD_ROOT = Path(__file__).resolve().parent
 
 app = FastAPI(title="ELT Pipeline Health Dashboard")
 app.mount(
@@ -115,9 +115,11 @@ def _redact_mapping(value):
             "connection_string",
         )
         return {
-            key: "[REDACTED]"
-            if any(part in str(key).lower() for part in secret_keys)
-            else _redact_mapping(item)
+            key: (
+                "[REDACTED]"
+                if any(part in str(key).lower() for part in secret_keys)
+                else _redact_mapping(item)
+            )
             for key, item in value.items()
         }
     if isinstance(value, list):
@@ -283,9 +285,9 @@ def index(request: Request):
         gold_facts=GOLD_FACTS,
         dbt_summary=dbt_summary,
         dbt_check=next(check for check in health.checks if check.key == "dbt_tests"),
-        dbt_models={model.name: model for model in dbt_summary.models}
-        if dbt_summary
-        else {},
+        dbt_models=(
+            {model.name: model for model in dbt_summary.models} if dbt_summary else {}
+        ),
         gold_dimension_count=len(GOLD_DIMENSIONS),
         gold_fact_count=len(GOLD_FACTS),
         gold_model_count=len(GOLD_DIMENSIONS) + len(GOLD_FACTS),
@@ -411,9 +413,9 @@ def gold_layer(request: Request):
         dbt_check_message=next(
             check.message for check in dbt_health.checks if check.key == "dbt_tests"
         ),
-        dbt_models={model.name: model for model in dbt_summary.models}
-        if dbt_summary
-        else {},
+        dbt_models=(
+            {model.name: model for model in dbt_summary.models} if dbt_summary else {}
+        ),
         active_page="gold_layer",
         page_number="06",
     )
@@ -500,4 +502,4 @@ def api_health():
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("dashboard.app:app", host="127.0.0.1", port=5000, reload=True)
+    uvicorn.run("elt_lakehouse.dashboard.app:app", host="127.0.0.1", port=5000, reload=True)

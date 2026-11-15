@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from src.elt_lakehouse.generators.orders.order_generator import (
+from elt_lakehouse.generators.orders.order_generator import (
     generate_order,
     generate_order_purchase_timestamp,
 )

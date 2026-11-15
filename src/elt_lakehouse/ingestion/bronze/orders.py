@@ -1,8 +1,8 @@
 from pyspark.sql import SparkSession
 
-from config.config_loader import load_yaml
-from src.elt_lakehouse.ingestion.core.ingestor import ingestor
-from src.elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.config.config_loader import load_yaml
+from elt_lakehouse.ingestion.core.ingestor import ingestor
+from elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 

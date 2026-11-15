@@ -1,17 +1,17 @@
-from src.elt_lakehouse.spark.common.logger import get_logger
+from elt_lakehouse.spark.common.logger import get_logger
 
 logger = get_logger(__name__)
 import random
 from datetime import datetime, timedelta
 
-from config.config_loader import load_yaml
-from src.elt_lakehouse.generators.base.distribution_loader import (
+from elt_lakehouse.config.config_loader import load_yaml
+from elt_lakehouse.generators.base.distribution_loader import (
     load_distribution,
     random_from_list,
     weighted_choice,
 )
-from src.elt_lakehouse.generators.base.generator_base import generate_id
-from src.elt_lakehouse.generators.base.pool_manager import load_pool_column
+from elt_lakehouse.generators.base.generator_base import generate_id
+from elt_lakehouse.generators.base.pool_manager import load_pool_column
 
 # Order status distribution
 ORDER_STATUS_DIST = load_distribution("order_status_distribution.json")

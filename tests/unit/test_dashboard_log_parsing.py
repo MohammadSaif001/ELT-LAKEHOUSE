@@ -7,9 +7,13 @@ from pathlib import Path
 
 import pytest
 
-from dashboard.services import log_reader, pipeline_registry, status_service
+from elt_lakehouse.dashboard.services import (
+    log_reader,
+    pipeline_registry,
+    status_service,
+)
 
-J = "src.elt_lakehouse.spark.jobs."
+J = "elt_lakehouse.spark.jobs."
 BRONZE = {
     "customers": "Customer",
     "geolocations": "Geolocation",
@@ -61,11 +65,11 @@ class LogBuilder:
         for name, label in BRONZE.items():
             self.add(J + "bronze_job", f"Ingesting dataset:{name}")
             self.add(
-                "src.elt_lakehouse.ingestion.bronze.x",
+                "elt_lakehouse.ingestion.bronze.x",
                 f"Starting {label.lower()} ingestion: input_path=a, output_path=b",
             )
             self.add(
-                "src.elt_lakehouse.ingestion.bronze.x",
+                "elt_lakehouse.ingestion.bronze.x",
                 f"{label} ingestion completed successfully: output_path=b",
             )
         self.add(
@@ -221,12 +225,10 @@ def test_dashboard_logger_lines_are_ignored(tmp_path):
     (tmp_path / "logs" / "application.log").write_text(
         "2026-10-29 04:00:01 | INFO | dashboard.services.storage_reader | inspect started\n"
         "continuation of a dashboard record\n"
-        "2026-10-29 04:00:02 | INFO | src.elt_lakehouse.spark.jobs.silver_job | Silver ok\n"
+        "2026-10-29 04:00:02 | INFO | elt_lakehouse.spark.jobs.silver_job | Silver ok\n"
     )
     events = log_reader.read_events(tmp_path)
-    assert [e.logger_name for e in events] == [
-        "src.elt_lakehouse.spark.jobs.silver_job"
-    ]
+    assert [e.logger_name for e in events] == ["elt_lakehouse.spark.jobs.silver_job"]
 
 
 def test_events_are_cached_until_file_changes(tmp_path):

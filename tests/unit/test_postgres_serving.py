@@ -25,8 +25,8 @@ except ImportError:
     py4j.protocol = protocol
     sys.modules.update({"py4j": py4j, "py4j.protocol": protocol})
 
-from src.elt_lakehouse.ingestion.core import writer
-from src.elt_lakehouse.serving import postgres_writer as pw
+from elt_lakehouse.ingestion.core import writer
+from elt_lakehouse.serving import postgres_writer as pw
 
 
 class _Recorder:
