@@ -77,43 +77,6 @@ jobs:
           print("Core module import check completed.")
           PY
 
-  dbt-validation:
-    name: dbt Gold Data Quality Tests
-    needs: test
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Set up Java for Spark
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-
-      - name: Install project dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e .
-
-      - name: Install dbt dependencies
-        working-directory: dbt_gold
-        run: dbt deps
-
-      - name: Validate dbt project
-        run: |
-          python -c "
-          from pathlib import Path
-          assert Path('dbt_gold/dbt_project.yml').exists()
-          print('dbt project found successfully')
-          "
-
   test:
     name: Data Quality and Unit Tests (Python ${{ matrix.python-version }})
     needs: import-smoke-test
@@ -153,6 +116,64 @@ jobs:
 
       - name: Run tests
         run: |
-          python -m pip install "pytest>=8.0"
           python -m pytest --version
           python -m pytest -v
+
+  dbt-validation:
+    name: dbt Gold Data Quality Tests
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Set up Java for Spark
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install project dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+
+      - name: Create CI dbt profile
+        run: |
+          mkdir -p ~/.dbt
+          cat <<'EOF' > ~/.dbt/profiles.yml
+          elt_lakehouse_gold:
+            target: ci
+            outputs:
+              ci:
+                type: spark
+                method: session
+                schema: gold
+                threads: 2
+                server_side_parameters:
+                  "spark.sql.extensions": "io.delta.sql.DeltaSparkSessionExtension"
+                  "spark.sql.catalog.spark_catalog": "org.apache.spark.sql.delta.catalog.DeltaCatalog"
+          EOF
+
+      - name: Install dbt dependencies and compile models
+        working-directory: dbt_gold
+        run: |
+          dbt deps
+          dbt compile --target ci
+
+      - name: Build dbt lakehouse pipeline (Bronze -> Silver -> Gold)
+        run: |
+          elt --build-pool
+          elt --build-dataset
+          elt --run-pipeline
+
+      - name: Run dbt Gold tests
+        working-directory: dbt_gold
+        run: dbt test --target ci
