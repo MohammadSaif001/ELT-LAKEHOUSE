@@ -161,6 +161,7 @@ jobs:
                 server_side_parameters:
                   "spark.sql.extensions": "io.delta.sql.DeltaSparkSessionExtension"
                   "spark.sql.catalog.spark_catalog": "org.apache.spark.sql.delta.catalog.DeltaCatalog"
+                  "spark.jars.packages": "io.delta:delta-spark_2.13:4.4.0"
           EOF
 
       - name: Install dbt dependencies and compile models
