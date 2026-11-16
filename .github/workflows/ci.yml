@@ -155,6 +155,7 @@ jobs:
               ci:
                 type: spark
                 method: session
+                host: local
                 schema: gold
                 threads: 2
                 server_side_parameters:
