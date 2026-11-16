@@ -130,6 +130,8 @@ jobs:
         run: dbt compile --target ci
 
       - name: Build dbt source tables
+        env:
+          DBT_TARGET: ci
         run: |
           elt --build-pool
           elt --build-dataset

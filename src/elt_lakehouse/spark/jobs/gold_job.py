@@ -18,10 +18,17 @@ CONFIG = load_yaml("gold_dbt_config.yaml")
 DBT_CONFIG = CONFIG["dbt"]
 SPARK_CONFIG = CONFIG["spark"]
 DBT_PROJECT_DIR = PROJECT_ROOT / DBT_CONFIG["project_dir"]
+
+
+def _dbt_target() -> str:
+    """Return the configured dbt target, allowing CI to share its profile target."""
+    return os.environ.get("DBT_TARGET", DBT_CONFIG["target"])
+
+
 logger.info(
     "Gold job configuration loaded: project_dir=%s target=%s gold_schema=%s",
     DBT_PROJECT_DIR,
-    DBT_CONFIG["target"],
+    _dbt_target(),
     DBT_CONFIG["gold_schema"],
 )
 
@@ -91,7 +98,7 @@ def _register_silver_tables(spark) -> None:
 
 def _profile_config() -> dict:
     profile_name = DBT_CONFIG["profile_name"]
-    target = DBT_CONFIG["target"]
+    target = _dbt_target()
     logger.info(
         "Building dbt profile configuration: profile=%s target=%s adapter=%s",
         profile_name,
@@ -120,7 +127,7 @@ def _run_dbt() -> None:
         logger,
         "Running dbt Gold build",
         command=DBT_CONFIG["command"],
-        target=DBT_CONFIG["target"],
+        target=_dbt_target(),
         project_dir=DBT_PROJECT_DIR,
     ):
         try:
@@ -160,7 +167,7 @@ def _run_dbt() -> None:
                 logger.info(
                     "Invoking dbt: command=%s target=%s",
                     DBT_CONFIG["command"],
-                    DBT_CONFIG["target"],
+                    _dbt_target(),
                 )
                 runner = dbtRunner()
                 result = runner.invoke(
@@ -171,7 +178,7 @@ def _run_dbt() -> None:
                         "--profiles-dir",
                         profile_dir,
                         "--target",
-                        DBT_CONFIG["target"],
+                        _dbt_target(),
                     ]
                 )
             finally:
@@ -197,7 +204,7 @@ def _run_dbt() -> None:
             logger.error(
                 "dbt Gold build failed: command=%s target=%s",
                 DBT_CONFIG["command"],
-                DBT_CONFIG["target"],
+                _dbt_target(),
             )
             raise RuntimeError("dbt Gold build failed; see the dbt output above.")
 
