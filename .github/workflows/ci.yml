@@ -77,6 +77,46 @@ jobs:
           print("Core module import check completed.")
           PY
 
+  test:
+    name: Data Quality and Unit Tests (Python ${{ matrix.python-version }})
+    needs: import-smoke-test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Set up Java for Spark
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install project dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          python -m pip install "pytest>=8.0"
+
+      - name: Generate test pools
+        run: elt --build-pool
+
+      - name: Generate test datasets
+        run: elt --build-dataset
+
+      - name: Run tests
+        run: python -m pytest -v
+
   dbt-validation:
     name: dbt Gold Data Quality Tests
     needs: test
@@ -125,61 +165,20 @@ jobs:
                   "spark.jars.packages": "io.delta:delta-spark_2.13:4.4.0"
           EOF
 
+      - name: Build source tables
+        run: |
+          elt --build-pool
+          elt --build-dataset
+
       - name: Compile dbt project
         working-directory: dbt_gold
         run: dbt compile --target ci
 
-      - name: Build dbt source tables
+      - name: Build Gold dbt models
+        working-directory: dbt_gold
+        run: dbt run --target ci
+
+      - name: Run ELT pipeline and dbt tests
         env:
           DBT_TARGET: ci
-        run: |
-          elt --build-pool
-          elt --build-dataset
-          elt --run-pipeline
-
-      - name: Run dbt Gold tests
-        working-directory: dbt_gold
-        run: dbt test --target ci
-
-  test:
-    name: Data Quality and Unit Tests (Python ${{ matrix.python-version }})
-    needs: import-smoke-test
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.11", "3.12", "3.13", "3.14"]
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: pip
-
-      - name: Set up Java for Spark
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-
-      - name: Install project dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e .
-          python -m pip install "pytest>=8.0"
-
-      - name: Generate test pools
-        run: elt --build-pool
-
-      - name: Generate test datasets
-        run: elt --build-dataset
-
-      - name: Run tests
-        run: |
-          python -m pip install "pytest>=8.0"
-          python -m pytest --version
-          python -m pytest -v
+        run: elt --run-pipeline
