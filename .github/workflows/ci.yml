@@ -146,39 +146,7 @@ jobs:
         working-directory: dbt_gold
         run: dbt deps
 
-      - name: Create CI dbt profile
-        run: |
-          mkdir -p ~/.dbt
-          cat <<'EOF' > ~/.dbt/profiles.yml
-          elt_lakehouse_gold:
-            target: ci
-            outputs:
-              ci:
-                type: spark
-                method: session
-                host: local
-                schema: gold
-                threads: 2
-                server_side_parameters:
-                  "spark.sql.extensions": "io.delta.sql.DeltaSparkSessionExtension"
-                  "spark.sql.catalog.spark_catalog": "org.apache.spark.sql.delta.catalog.DeltaCatalog"
-                  "spark.jars.packages": "io.delta:delta-spark_2.13:4.4.0"
-          EOF
-
-      - name: Build source tables
-        run: |
-          elt --build-pool
-          elt --build-dataset
-
-      - name: Compile dbt project
-        working-directory: dbt_gold
-        run: dbt compile --target ci
-
-      - name: Build Gold dbt models
-        working-directory: dbt_gold
-        run: dbt run --target ci
-
-      - name: Run ELT pipeline and dbt tests
+      - name: Run complete ELT pipeline and dbt validation
         env:
           DBT_TARGET: ci
         run: elt --run-pipeline
